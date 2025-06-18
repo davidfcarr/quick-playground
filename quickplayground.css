@@ -1,0 +1,97 @@
+.hidden_item {display: none}
+input,
+button,
+select,
+textarea {
+  font: inherit;
+}
+
+.form-group {
+  display: grid;
+  gap: 0.5cap;
+}
+
+label {
+  text-transform: uppercase;
+  font-size: 1rem;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+}
+
+input {
+  background: var(--surface-2);
+  color: var(--text-1);
+  border: var(--border);
+  border-radius: 16px;
+  padding: 1ex 2ex;
+  accent-color: var(--accent);
+}
+
+input:not([type="checkbox"], [type="radio"]) {
+  width: 25%;
+}
+
+/* general styling */
+:root {
+  --surface-0: hsl(229, 41%, 5%);
+  --surface-1: hsl(229, 25%, 12%);
+  --surface-2: hsl(234, 26%, 16%);
+  --text-1: hsl(229, 12%, 100%);
+  --text-2: hsl(229, 12%, 66%);
+  --required: hsl(321, 32%, 56%);
+  --accent: hsl(262, 84%, 52%);
+  --border: 1px solid hsl(229, 22%, 19%);
+}
+h1 {
+  font-size: 4rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+a {
+  color: hsl(from var(--accent) h s 30%);
+}
+
+label {
+  text-transform: uppercase;
+  font-size: 1rem;
+}
+
+button {
+  cursor: pointer;
+  background-color: var(--accent);
+  color: var(--text-1);
+  padding: 1em 1.5em;
+  border: 0;
+  border-radius: 16px;
+
+  &:hover,
+  &:focus-visible {
+    background-color: hsl(from var(--accent) h s 30%);
+  }
+}
+
+.playground-doc {
+    background-color: #fff;
+    border-radius: 50px;
+    padding: 50px;
+    margin: 20px;
+    max-width: 800px;
+}
+
+.playground label {
+  font-weight: bold;
+  display: inline-block;
+  width: 10em;
+}
+
+ul.playgroundpro {
+    list-style-type: square;
+    padding: 5px;
+    margin-left: 30px;
+}
+
+.fineprint {
+    font-style: italic;
+    font-size: small;
+}
