@@ -1,23 +1,25 @@
 <?php
 add_action('init', 'quickplayground_clone_init');
+
 function quickplayground_clone_init() {
     if(isset($_GET['clonetest'])) {
-        $cloneoutput = quickplayground_clone();
-        wp_die($cloneoutput);
+        $clone['output'] = quickplayground_clone();
+        wp_die($clone['output']);
     }
     if(get_option('is_playground_clone',false) && !get_option('playground_downloaded',false)) {
         quickplayground_clone();
         //add_filter('the_content', 'quickplayground_clone_message');
     }
 }
+
 function quickplayground_clone_message($content) {
     if(is_admin()) {
         return $content;
     }
     //return '<p>You are a clone</p>';
-    $cloneoutput = quickplayground_clone();
-    if(!empty($cloneoutput)) {
-        return '<div class="quickplayground-clone-message">'.$cloneoutput.'</div>';
+    $clone['output'] = quickplayground_clone();
+    if(!empty($clone['output'])) {
+        return '<div class="quickplayground-clone-message">'.$clone['output'].'</div>';
     } else {
         return $content;
     }
@@ -25,10 +27,10 @@ function quickplayground_clone_message($content) {
 
 $baseurl='';
 $mysite_url='';
-$cloneoutput='';
+$clone['output']='';
 function quickplayground_clone() {
 
-    global $wpdb, $current_user, $baseurl, $mysite_url, $cloneoutput;
+    global $wpdb, $current_user, $baseurl, $mysite_url;
     $url = get_option('playground_sync_origin');
     $mysite_url = rtrim(get_option('siteurl'),'/');
     if(empty($url)) {
@@ -40,22 +42,14 @@ function quickplayground_clone() {
     
     add_user_meta( $current_user->ID, 'tm_member_welcome', time() );
 
-    $event_table = $wpdb->prefix.'rsvpmaker_event';
-
-    $firstevent = 0;
-
     if($url == $mysite_url) {
         return '<p>Error: You cannot clone your own website</p>';
     }
 
-    $cloneoutput = '';
-
     $baseurl = $url;
 
-    $url .= '/wp-json/quickplayground/v1/playground_clone/'.$playground_profile;
-    $taxurl = $baseurl .'/wp-json/quickplayground/v1/clone_taxonomy';
-
-    $cloneoutput .= '<h1>Cloning from '.$url.'</h1>';
+    $url .= '/wp-json/quickplayground/v1/playground_clone/'.$playground_profile.'?t='.time().'&nocache=1';
+    $taxurl = $baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$playground_profile.'?t='.time().'&nocache=1';
 
     error_log('Cloning from '.$url);
     $response = wp_remote_get($url);
@@ -64,11 +58,25 @@ function quickplayground_clone() {
 
     if(is_wp_error($response)) {
 
-        $cloneoutput .=  '<p>Error: '.htmlentities($response->get_error_message()).'</p>';
+        $clone['output'] .=  '<p>Error: '.htmlentities($response->get_error_message()).'</p>';
         error_log('Error retrieving clone data: '.$response->get_error_message());
-        return $cloneoutput;
+        return $clone['output'];
     } 
-        $clone = json_decode($response['body'],true);
+        $json = $response['body'];
+        update_option('incoming_json',$json);
+        $json = quickplayground_json_incoming($json);
+        update_option('incoming_json_modified',$json);
+        $clone = json_decode($json,true);//decode as associative array
+        if(!is_array($clone)) {
+            error_log('json decode error '.var_export($clone,true));
+            return 'json decode error '.htmlentities(var_export($clone,true)).' json '.htmlentities($json);
+        }
+        error_log('clone array created '.sizeof($clone));
+        $clone['output'] = '';
+        $clone['output'] .= '<h1>Cloning from '.$url.'</h1>';
+        if(!empty($clone['client_ip']))
+            error_log('client_ip '.$clone['client_ip']);
+
         if(!empty($clone['playground_premium']))
             update_option('playground_premium',$clone['playground_premium']);
         if(!empty($clone['posts'])) {
@@ -76,150 +84,135 @@ function quickplayground_clone() {
             $wpdb->query("truncate $wpdb->posts");
         }
 
-        $clone = apply_filters('playground_clone_received_by_playground',$clone);
+        $clone = apply_filters('playground_clone_received',$clone);
         error_log('fetched clone with: '.sizeof($clone['posts']).' posts');
         if(!empty($clone['playground_sync_code']))
             update_option('playground_sync_code',$clone['playground_sync_code']);
-        $cloneoutput .= sprintf('<p>Cloning %s posts</p>',sizeof($clone['posts']));
+        $clone['output'] .= sprintf('<p>Cloning %s posts</p>',sizeof($clone['posts']));
 
-        $cloneoutput .= sprintf('<p>Nav id from source %d</p>',$clone['nav_id']);
+        $clone['output'] .= sprintf('<p>Nav id from source %d</p>',$clone['nav_id']);
 
         $nav_id = 0;
         $page_ids = [];
-
+        error_log('start cloning posts');
+        if(!empty($clone['posts']) && is_array($clone['posts']))
         foreach($clone['posts'] as $post) {
             error_log('post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type']);
-            $cloneoutput .= 'post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type']."<br>\n";
+            $clone['output'] .= 'post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type']."<br>\n";
             if($post['post_type'] == 'wp_navigation') {
-
                 $post['post_content'] = str_replace($baseurl,$mysite_url,$post['post_content']);
-
             }
-
+            /*
+            should be taken care of already
             else {
 
                 $post['post_content'] = str_replace('href="'.$baseurl,'href="'.$mysite_url,$post['post_content']);
 
             }
+            */
 
             if($post['post_type'] == 'page') {
                 $page_ids[] = $post['ID'];
                 $pagecount++;
             }
 
-            if($post['post_type'] == 'rsvpmaker') {
-                error_log('Processing RSVP post: '.$post['ID'].' '.$post['post_title']);
-                if(!function_exists('get_rsvpversion'))
-                    continue; // rsvpmaker not available, skip this post
-                $event = array('event'=>$post['ID']);
-
-                $event['date'] = $post['date'];
-
-                $event['enddate'] = $post['enddate'];
-
-                $event['ts_start'] = $post['ts_start'];
-
-                $event['ts_end'] = $post['ts_end'];
-
-                $event['timezone'] = $post['timezone'];
-
-                $event['display_type'] = $post['display_type'];
-
-                $event['post_title'] = $post['post_title'];
-                error_log('extracting event data: '.var_export($event,true));
-
-                $cloneoutput .= '<p>Extracting event data: '.var_export($event,true).'</p>';
-                $result = $wpdb->replace($event_table,$event);
-                error_log('insert result: '.$result .' last error '.$wpdb->last_error);
-                
-                //remove unnecessary fields
-
-                $post = array(
-
-                    'ID' => $post['ID'],
-
-                    'post_type' => 'rsvpmaker',
-
-                    'post_name' => $post['post_name'],
-
-                    'post_date' => $post['post_date'],
-
-                    'post_date_gmt' => $post['post_date_gmt'],
-
-                    'post_modified' => $post['post_modified'],
-
-                    'post_modified_gmt' => $post['post_modified_gmt'],
-
-                    'post_excerpt' => $post['post_excerpt'],
-
-                    'post_author' => $post['post_author'],
-
-                    'post_title' => $post['post_title'],
-
-                    'post_content' => $post['post_content'],
-
-                    'post_status' => 'publish',
-
-                );
-
-            }
-
-            $cloneoutput .= '<p>Inserting post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type'].'</p>';
+            $clone['output'] .= '<p>Inserting post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type'].'</p>';
             unset($post['filter']);  
             $result = $wpdb->replace($wpdb->posts,$post);
             error_log('Result of post insert: '.var_export($result,true));
             error_log('Last error: '.var_export($wpdb->last_error,true));
 
             if(!$result) {
-                $cloneoutput .= '<p>Error: '.htmlentities($wpdb->last_error).'</p>';
+                $clone['output'] .= '<p>Error: '.htmlentities($wpdb->last_error).'</p>';
             }
             else {
                 update_post_meta($post['ID'],'cloned',1);
             }
         }
 
-        update_option('playground_sync_date',date('Y-m-d H:i:s'));
         do_action('quickplayground_clone',$url,$clone);
         update_option('playground_downloaded',true);
         update_option('pages_cloned',$pagecount);
 
+            if(!empty($clone['demo_pages'])) {
+            foreach($clone['demo_pages'] as $post) {
+                    error_log('post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type']);
+                    $clone['output'] .= 'post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type']."<br>\n";
+                    if($post['post_type'] == 'page')
+                        $pagecount++;
+                    $clone['output'] .= '<p>Inserting post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type'].'</p>';
+                    unset($post['filter']);  
+                    $result = $wpdb->replace($wpdb->posts,$post);
+                    error_log('Result of post insert: '.var_export($result,true));
+                    error_log('Last error: '.var_export($wpdb->last_error,true));
+
+                    if(!$result) {
+                        $clone['output'] .= '<p>Error: '.htmlentities($wpdb->last_error).'</p>';
+                    }
+                    else {
+                        add_post_meta($post['ID'],'cloned',1);
+                    }
+                }
+            }   
+            if(!empty($clone['demo_posts'])) 
+            {
+                foreach($clone['demo_posts'] as $post) {
+                        error_log('post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type']);
+                        $clone['output'] .= 'post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type']."<br>\n";
+                        $clone['output'] .= '<p>Inserting post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type'].'</p>';
+                        unset($post['filter']);  
+                        $result = $wpdb->replace($wpdb->posts,$post);
+                        $clone['output'] .= "<p>$wpdb->last_query</p>";
+                        error_log('Demo post query: '.$wpdb->last_query);
+                        error_log('Result of demo post insert: '.var_export($result,true));
+                        error_log('Last error: '.var_export($wpdb->last_error,true));
+                        if(!$result) {
+                            $clone['output'] .= '<p>Error: '.htmlentities($wpdb->last_error).'</p>';
+                            error_log('error saving demo post '.$post['post_title']);
+                        }
+                        else {
+                            add_post_meta($post['ID'],'cloned',1);
+                        }
+                }
+            }   
+
         if(!empty($clone['thumbnails']) && is_array($clone['thumbnails'])) {
+            update_option('clone_thumbnails',$clone['thumbnails']);
             $retry = [];
             require_once(ABSPATH . 'wp-admin/includes/media.php');
             require_once(ABSPATH . 'wp-admin/includes/file.php');
             require_once(ABSPATH . 'wp-admin/includes/image.php');
             foreach($clone['thumbnails'] as $id_img) {
-                $cloneoutput .= sprintf('<p>Downloaded Thumbnail %s</p>',var_export($id_img,true));
+                $clone['output'] .= sprintf('<p>Downloaded Thumbnail %s</p>',var_export($id_img,true));
                 if(empty($id_img['guid']))
                     continue;
                 try {
                 $id = media_sideload_image($id_img['guid'], $id_img['post_id'], 'cloned thumbail', 'id');
                 if($id) {
                 $result = add_post_meta($id_img['post_id'],'_thumbnail_id',$id);                    
-                $cloneoutput .= sprintf('<p>Downloaded Thumbnail %s, setting thumbnail for %d to %d %s</p>',$id_img['guid'],$id_img['post_id'],$id,var_export($result,true));
+                $clone['output'] .= sprintf('<p>Downloaded Thumbnail %s, setting thumbnail for %d to %d %s</p>',$id_img['guid'],$id_img['post_id'],$id,var_export($result,true));
                 }
                 else
-                    $cloneoutput .= sprintf('<p>Error downloading thumbnail %s for %d, returned %s</p>',$id_img['guid'],$id_img['post_id'],var_export($id,true));
+                    $clone['output'] .= sprintf('<p>Error downloading thumbnail %s for %d, returned %s</p>',$id_img['guid'],$id_img['post_id'],var_export($id,true));
                     $retry[] = $id_img;
                 }
                 catch (Exception $e) {
-                    $cloneoutput .= sprintf('<p>Error downloading thumbnail %s %s</p>',$id_img['guid'],$e->getMessage());
+                    $clone['output'] .= sprintf('<p>Error downloading thumbnail %s %s</p>',$id_img['guid'],$e->getMessage());
                     error_log($id_img['guid'] .' download error '.$e->getMessage());
                     $retry[] = $id_img;
                 }
                 }
         }
             
-    //second try, downloading thumbnails
     if(!empty($retry)) {
         foreach($retry as $id_img) {
             $id = media_sideload_image($id_img['guid'], $id_img['post_id'], 'cloned thumbail', 'id');
             if($id) {
             $result = add_post_meta($id_img['post_id'],'_thumbnail_id',$id);                    
-            $cloneoutput .= sprintf('<p>On retry, downloaded Thumbnail %s, setting thumbnail for %d to %d %s</p>',$id_img['guid'],$id_img['post_id'],$id,var_export($result,true));
+            $clone['output'] .= sprintf('<p>On retry, downloaded Thumbnail %s, setting thumbnail for %d to %d %s</p>',$id_img['guid'],$id_img['post_id'],$id,var_export($result,true));
             }
             else
-                $cloneoutput .= sprintf('<p>On retry, error downloading thumbnail %s for %d, returned %s</p>',$id_img['guid'],$id_img['post_id'],var_export($id,true));        
+                $clone['output'] .= sprintf('<p>On retry, error downloading thumbnail %s for %d, returned %s</p>',$id_img['guid'],$id_img['post_id'],var_export($id,true));        
         }
     }
 
@@ -234,15 +227,29 @@ function quickplayground_clone() {
         }
     } 
 
+    
+    if(!empty($clone["settings"]))
+    {
+        foreach($clone["settings"] as $setting => $value) {
+            $clone['output'] .= '<p>setting '.$setting.' = '.var_export($value,true).'</p>';
+            error_log('setting '.$setting.' = '.var_export($value,true));
+            //update_option($setting,$value);
+        }
+    }
+    
     $response2 = wp_remote_get($taxurl);
     if(is_wp_error($response2)) {
-        $cloneoutput .=  '<p>Error: '.htmlentities($response2->get_error_message()).'</p>';
+        $clone['output'] .=  '<p>Error: '.htmlentities($response2->get_error_message()).'</p>';
         error_log('Error retrieving clone data: '.$response2->get_error_message());
-        update_option('quickplayground_log', $cloneoutput);
-        return $cloneoutput;
-    } 
+        return $clone['output'];
+    }
 
     $clone = json_decode($response2['body'],true);
+    if(!is_array($clone)) {
+        error_log('error decoding taxonomy clone json');
+        return;
+    }
+    $clone['output'] = $log;
 
         if(!empty($clone['postmeta'])) {
 
@@ -252,7 +259,7 @@ function quickplayground_clone() {
 
                 if(!$result) {
 
-                    $cloneoutput .= '<p>Error: '.htmlentities($wpdb->last_error).'</p>';
+                    $clone['output'] .= '<p>Error: '.htmlentities($wpdb->last_error).'</p>';
 
                 }
 
@@ -268,7 +275,7 @@ function quickplayground_clone() {
 
             if(!$result) {
 
-                $cloneoutput .= '<p>Error: termmeta '.htmlentities($wpdb->last_error).'</p>';
+                $clone['output'] .= '<p>Error: termmeta '.htmlentities($wpdb->last_error).'</p>';
 
             }
 
@@ -281,11 +288,11 @@ function quickplayground_clone() {
         foreach($clone['terms'] as $row) {
 
             $result = $wpdb->replace($wpdb->terms,$row);
-            $cloneoutput .= "<p>$wpdb->last_query</p>";
+            $clone['output'] .= "<p>$wpdb->last_query</p>";
 
             if(!$result) {
 
-                $cloneoutput .= '<p>Error: terms '.htmlentities($wpdb->last_error).'</p>';
+                $clone['output'] .= '<p>Error: terms '.htmlentities($wpdb->last_error).'</p>';
 
             }
 
@@ -294,14 +301,14 @@ function quickplayground_clone() {
     }
 
     if(!empty($clone['term_relationships'])) {
-        $cloneoutput .= sprintf('<p>%d term_relationships',sizeof($clone['term_relationships']));
+        $clone['output'] .= sprintf('<p>%d term_relationships',sizeof($clone['term_relationships']));
         foreach($clone['term_relationships'] as $row) {
 
             $result = $wpdb->replace($wpdb->term_relationships,$row);
-            $cloneoutput .= "<p>$wpdb->last_query</p>";
+            $clone['output'] .= "<p>$wpdb->last_query</p>";
 
             if(!$result) {
-                $cloneoutput .= '<p>Error: term_relationships '.htmlentities($wpdb->last_error).'</p>';
+                $clone['output'] .= '<p>Error: term_relationships '.htmlentities($wpdb->last_error).'</p>';
             }
         }
     }
@@ -309,57 +316,39 @@ function quickplayground_clone() {
     if(!empty($clone['term_taxonomy'])) {
         foreach($clone['term_taxonomy'] as $row) {
             $result = $wpdb->replace($wpdb->term_taxonomy,$row);
-            $cloneoutput .= "<p>$wpdb->last_query</p>";
+            $clone['output'] .= "<p>$wpdb->last_query</p>";
             if(!$result) {
-                $cloneoutput .= '<p>Error: term_taxonomy '.htmlentities($wpdb->last_error).'</p>';
+                $clone['output'] .= '<p>Error: term_taxonomy '.htmlentities($wpdb->last_error).'</p>';
             }
         }
     }
 
-    //$json2 = json_encode(json_decode($response['body']), JSON_PRETTY_PRINT);
-    $cloneoutput = apply_filters('playground_clone_received_by_playground_end',$cloneoutput,$clone);
-
-    if(function_exists('future_toastmaster_meetings')) {
-        $future = future_toastmaster_meetings(1);
-        if(!empty($future)) {
-        $next = $future[0]->ID;
-        $rolekeys = array('_role_Speaker_1','_role_Speaker_2','_role_Speaker_3','_role_Toastmaster_of_the_Day_1','_role_Timer_1','_role_Grammarian_1','_role_Ah_Counter_1','_role_General_Evaluator_1','_role_Evaluator_1','_role_Evaluator_2','_role_Evaluator_3','_role_Table_Topic_Master_1');
-
-        $cloneoutput .= sprintf('<p>Before add users first event %d</p>',$clone['next_event']);
-
-        $names = array('George Test','Abraham Test','Teddy Test','Susan Test','John Test','Thomas Test','Thomas Test Jr.','Jackie Test');
-
-        $password = wp_generate_password();
-
-        foreach($names as $name) {
-
-            $firstlast = explode(' ',$name);
-
-            $slug = str_replace(' ','_',strtolower($name));
-
-            $u = array('user_login' => $slug ,'user_email' => $slug.'@example.com', 'user_pass' => $password,'display_name' => $name,'first_name' => $firstlast[0] ,'last_name' => $firstlast[1] );
-
-            $cloneoutput .= '<p>Creating user '.var_export($u,true)."<p>\n"; 
-
-            $id = wp_insert_user($u);
-                if($next) {
-                    $role = array_shift($rolekeys);
-
-                    if($role === null) {
-
-                        continue;
-
-                    }
-
-                    $cloneoutput .= '<p>Adding role '.$role.' to user '.$id.'</p>';
-
-                    update_post_meta($next, $role, $id);
-                }
-            }   
+    if(!empty($clone["users"]))
+    {
+        foreach($clone['users'] as $user) {
+            $first_name = $user['first_name'];
+            $last_name = $user['last_name'];
+            unset($user['first_name']);
+            unset($user['last_name']); 
+            $result = $wpdb->replace($wpdb->users,$user);
+            $log = printf('%s <br />Result: %s',$wpdb->last_query, var_export($result,true));
+            error_log($log);
+            $clone['output'] = '<p>'.$log.'</p>';
+            update_user_meta($user['ID'],'first_name',$first_name);
+            update_user_meta($user['ID'],'last_name',$last_name);
         }
     }
-    update_option('quickplayground_log', $cloneoutput);
-   return $cloneoutput;
+    
+    if(!empty($clone['adminuser']))
+    {
+        foreach($clone['adminuser'] as $key => $value)
+            update_user_meta(1,$key,$value);
+    }
+
+    $clone = apply_filters('playground_clone_end',$clone);
+    update_option('quickplayground_log', $clone['output']);
+    update_option('playground_sync_date',date('Y-m-d H:i:s'));
+   return $clone['output'];
 }
 
 function quickmenu_build_navigation($ids) {

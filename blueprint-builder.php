@@ -16,8 +16,9 @@ function quickplayground_builder() {
     $settings = get_option('playground_clone_settings_'.$profile,array());
     $stylesheet = $settings['clone_stylesheet'] ?? $stylesheet;
 
-echo '<h2>Customization Options</h2>';
 printf('<form method="post" action="%s"> %s <input type="hidden" name="build_profile" value="1">',admin_url('admin.php?page=quickplayground_builder'), wp_nonce_field('quickplayground','playground',true,false));
+echo '<p><button>Refresh</button></p>';
+echo '<h2>Customization Options</h2>';
 printf('<p>Loading saved blueprint for profile %s with %d steps defined. You can add or modify themes, plugins, and settings below.</p>',htmlentities($profile),sizeof($blueprint['steps']));
 
 $saved_plugins = $saved_themes = [];
@@ -28,12 +29,8 @@ quickplayground_theme_options($blueprint, $stylesheet, $themeslots);
 quickplayground_plugin_options($blueprint, !playground_premium_enabled());
 
 if(!playground_premium_enabled()) {
-    foreach($settings as $key => $value) {
-    if(in_array($key, ['key_pages', 'copy_pages', 'copy_blogs', 'copy_events','demo_pages','post_types','demo_posts'])) {
-        continue; // skip these settings as they are handled above
-    }
-    printf('<input type="hidden" name="settings[%s]" type="text" value="%s" /></p>',$key,$value);
-    }
+    printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Name','blogname',$settings['blogname']);
+    printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Name','blogdescription',$settings['blogdescription']);
 
     printf('<p><input type="checkbox" name="settings[key_pages]" value="1" %s > Include key pages and posts (linked to from the home page or menu)</p>',(!isset($settings['key_pages']) || $settings['key_pages']) ? ' checked="checked" ' : '');
     printf('<input type="hidden" name="profile" value="%s" />',$profile);
@@ -212,8 +209,11 @@ function quickplayground_plugin_options($blueprint, $active_only = true) {
     }
 }
 
-echo '<h2>Plugins for Your Playground</h2>';
-echo '<p><input type="checkbox" name="all_active_plugins" value="'.implode(',',$active_plugins).'"> Include all active plugins</p>';
+echo '<h2>Choose Plugins for Your Playground</h2>';
+$plausible_plugins = quickplayground_plausible_plugins();
+if(!empty($plausible_plugins['active'])) {
+echo '<p><input type="checkbox" name="all_active_plugins" value="'.implode(',',$plausible_plugins['active']).'"> Include these active plugins ('.implode(', ',$plausible_plugins['active_names']).')</p>';
+}
 for($i = 0; $i < 10 + sizeof($saved_plugins); $i++) {
 if(!empty($saved_plugins[$i])) {
     if($saved_plugins[$i]['pluginData']['resource'] == 'wordpress.org/plugins') {
@@ -228,7 +228,7 @@ if(!empty($saved_plugins[$i])) {
         $slug = $match[1];
         $local = 1;
     }
-    if($slug == 'design-plugin-playground')
+    if($slug == 'quick-playground')
         continue; // skip this plugin, it is already included in the playground
     $active = (!empty($saved_plugins[$i]['options']['activate']) ) ? ' checked="checked" ' : '';
     if(!empty($slug))

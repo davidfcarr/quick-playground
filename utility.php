@@ -6,7 +6,8 @@ function quickplayground_repo_check($urlOrSlug, $type = 'plugin') {
 
     if('theme' == $type) {
 
-        require_once( ABSPATH . 'wp-admin/includes/theme-install.php' );
+        //require_once( ABSPATH . 'wp-admin/includes/theme-install.php' );
+        require_once( ABSPATH . 'wp-admin/includes/theme.php' );
 
         $info = themes_api( 'theme_information', array( 'slug' => $basename ) );
 
@@ -33,8 +34,6 @@ function quickplayground_repo_check($urlOrSlug, $type = 'plugin') {
 add_action( 'admin_bar_menu', 'quickplayground_toolbar_link', 9999 );
 
 function quickplayground_toolbar_link( $wp_admin_bar ) {
-
-
 
     if(get_option('is_playground_clone',false))
 
@@ -105,6 +104,7 @@ function quickplayground_design_playground_menus() {
         add_menu_page('Quick Playground', 'Quick Playground', 'manage_options', 'quickplayground', 'quickplayground','data:image/svg+xml;base64, PHN2ZyBmaWxsPSIjRkZGRkZGIiBoZWlnaHQ9IjgwMHB4IiB3aWR0aD0iODAwcHgiIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIAoJIHZpZXdCb3g9IjAgMCA1MTIuMDAxIDUxMi4wMDEiIHhtbDpzcGFjZT0icHJlc2VydmUiPgo8Zz4KCTxnPgoJCTxwYXRoIGQ9Ik01MDEuMzM1LDE3MC41ODdoLTM1MnYtMjEuMzMzaDEwLjY2N2M0LjE4MSwwLDcuOTc5LTIuNDUzLDkuNzI4LTYuMjUxYzEuNzI4LTMuODE5LDEuMDY3LTguMjk5LTEuNjg1LTExLjQzNQoJCQlMOTMuMzc3LDQ2LjIzNWMtNC4wNTMtNC42NTEtMTIuMDExLTQuNjUxLTE2LjA2NCwwTDIuNjQ3LDEzMS41NjljLTIuNzUyLDMuMTU3LTMuNDM1LDcuNjE2LTEuNjg1LDExLjQzNQoJCQljMS43MjgsMy43OTcsNS41MjUsNi4yNTEsOS43MDcsNi4yNTFoMTAuNjY3djMwOS4zMzNjMCw1Ljg4OCw0Ljc3OSwxMC42NjcsMTAuNjY3LDEwLjY2N3MxMC42NjctNC43NzksMTAuNjY3LTEwLjY2N3YtMTAuNjY3CgkJCWg4NS4zMzN2MTAuNjY3YzAsNS44ODgsNC43NzksMTAuNjY3LDEwLjY2NywxMC42NjdzMTAuNjY3LTQuNzc5LDEwLjY2Ny0xMC42NjdWMTkxLjkyMWg2NFYzMDAuNTUKCQkJYy0xMi4zOTUsNC40MTYtMjEuMzMzLDE2LjE0OS0yMS4zMzMsMzAuMDM3YzAsMTcuNjQzLDE0LjM1NywzMiwzMiwzMnMzMi0xNC4zNTcsMzItMzJjMC0xMy44ODgtOC45MzktMjUuNjIxLTIxLjMzMy0zMC4wMzcKCQkJVjE5MS45MjFoODUuMzMzdjg3LjI5NmMtMTIuMzk1LDQuNDE2LTIxLjMzMywxNi4xNDktMjEuMzMzLDMwLjAzN2MwLDE3LjY0MywxNC4zNTcsMzIsMzIsMzJjMTcuNjQzLDAsMzItMTQuMzU3LDMyLTMyCgkJCWMwLTEzLjg4OC04LjkzOS0yNS42MjEtMjEuMzMzLTMwLjAzN3YtODcuMjk2aDY0djI2Ni42NjdjMCw1Ljg4OCw0Ljc3OSwxMC42NjcsMTAuNjY3LDEwLjY2N2M1Ljg4OCwwLDEwLjY2Ny00Ljc3OSwxMC42NjctMTAuNjY3CgkJCVYxOTEuOTIxaDQyLjY2N3YyMy41NzNjLTYuNCwyLjY2Ny0xMC42NjcsNy41MzEtMTAuNjY3LDEzLjc2YzAsNi4yMjksNC4yNjcsMTEuMDkzLDEwLjY2NywxMy43NnYzMS4xNDcKCQkJYy02LjQsMi42NjctMTAuNjY3LDcuNTMxLTEwLjY2NywxMy43NnM0LjI2NywxMS4wOTMsMTAuNjY3LDEzLjc2djMxLjE0N2MtNi40LDIuNjY3LTEwLjY2Nyw3LjUzMS0xMC42NjcsMTMuNzYKCQkJYzAsNi4yMjksNC4yNjcsMTEuMDkzLDEwLjY2NywxMy43NnYzMS4xNDdjLTYuNCwyLjY2Ny0xMC42NjcsNy41MzEtMTAuNjY3LDEzLjc2YzAsNi4yMjksNC4yNjcsMTEuMDkzLDEwLjY2NywxMy43NnYxOC4yNAoJCQljMCw1Ljg4OCw0Ljc3OSwxMC42NjcsMTAuNjY3LDEwLjY2N2M1Ljg4OCwwLDEwLjY2Ny00Ljc3OSwxMC42NjctMTAuNjY3di0xOC4yNGM2LjQtMi42NjcsMTAuNjY3LTcuNTMxLDEwLjY2Ny0xMy43NgoJCQljMC02LjIyOS00LjI2Ny0xMS4wOTMtMTAuNjY3LTEzLjc2di0zMS4xNDdjNi40LTIuNjY3LDEwLjY2Ny03LjUzMSwxMC42NjctMTMuNzZjMC02LjIyOS00LjI2Ny0xMS4wOTMtMTAuNjY3LTEzLjc2di0zMS4xNDcKCQkJYzYuNC0yLjY2NywxMC42NjctNy41MzEsMTAuNjY3LTEzLjc2YzAtNi4yMjktNC4yNjctMTEuMDkzLTEwLjY2Ny0xMy43NnYtMzEuMTQ3YzYuNC0yLjY2NywxMC42NjctNy41MzEsMTAuNjY3LTEzLjc2CgkJCXMtNC4yNjctMTEuMDkzLTEwLjY2Ny0xMy43NnYtMjMuNTczaDEwLjY2N2M1Ljg4OCwwLDEwLjY2Ny00Ljc3OSwxMC42NjctMTAuNjY3UzUwNy4yMjMsMTcwLjU4Nyw1MDEuMzM1LDE3MC41ODd6CgkJCSBNMTI4LjAwMSw0MjYuNTg3SDQyLjY2OHYtNDIuNjY3aDg1LjMzM1Y0MjYuNTg3eiBNMTI4LjAwMSwzNjIuNTg3SDQyLjY2OHYtNDIuNjY3aDg1LjMzM1YzNjIuNTg3eiBNMTI4LjAwMSwyOTguNTg3SDQyLjY2OAoJCQl2LTQyLjY2N2g4NS4zMzNWMjk4LjU4N3ogTTEyOC4wMDEsMjM0LjU4N0g0Mi42Njh2LTg1LjMzM2g4NS4zMzNWMjM0LjU4N3ogTTM0LjE3NywxMjcuOTIxbDUxLjE1Ny01OC40NzVsNTEuMTU3LDU4LjQ3NUgzNC4xNzd6CgkJCSBNMjI0LjAwMSwzNDEuMjU0Yy01Ljg4OCwwLTEwLjY2Ny00Ljc3OS0xMC42NjctMTAuNjY3czQuNzc5LTEwLjY2NywxMC42NjctMTAuNjY3czEwLjY2Nyw0Ljc3OSwxMC42NjcsMTAuNjY3CgkJCVMyMjkuODg5LDM0MS4yNTQsMjI0LjAwMSwzNDEuMjU0eiBNMzMwLjY2OCwzMTkuOTIxYy01Ljg4OCwwLTEwLjY2Ny00Ljc3OS0xMC42NjctMTAuNjY3czQuNzc5LTEwLjY2NywxMC42NjctMTAuNjY3CgkJCXMxMC42NjcsNC43NzksMTAuNjY3LDEwLjY2N1MzMzYuNTU2LDMxOS45MjEsMzMwLjY2OCwzMTkuOTIxeiIvPgoJPC9nPgo8L2c+Cjwvc3ZnPg==', 61);
         add_submenu_page('quickplayground','Playground Builder', 'Playground Builder', 'manage_options', 'quickplayground_builder', 'quickplayground_builder');
         add_submenu_page('quickplayground','Playground Sync', 'Playground Sync', 'manage_options', 'quickplayground_sync', 'quickplayground_sync');
+        add_submenu_page('quickplayground','Playground Test', 'Playground Test', 'manage_options', 'quickplayground_test', 'quickplayground_test');
         $cap = is_multisite() ? 'manage_network' : 'manage_options';
         add_submenu_page('quickplayground','Playground Pro', 'Playground Pro', $cap, 'quickplayground_pro', 'quickplayground_pro');
         if(is_multisite())
@@ -286,4 +286,77 @@ function quickplayground_blueprint_debug_filter($blueprint) {
     }
     $blueprint['steps'] = array_values(array_filter($blueprint['steps']));
     return $blueprint;
+}
+
+function quickplayground_json_incoming($json) {
+    $sync_origin = 'href=\"'.str_replace("/","\/",get_option('playground_sync_origin'));
+    $mysite_url = 'href=\"'.str_replace("/","\/",rtrim(get_option('siteurl'),'/'));
+    return str_replace($sync_origin,$mysite_url,$json);
+}
+
+function quickplayground_json_outgoing($json) {
+    $sync_origin = str_replace("/","\/",get_option('playground_sync_origin'));
+    $mysite_url = str_replace("/","\/",rtrim(get_option('siteurl'),'/'));
+    return str_replace($mysite_url,$sync_origin,$json);
+}
+
+function quickplayground_fake_user($id) {
+$faker = Faker\Factory::create();
+$user=array('ID'=>$id,'first_name'=>$faker->firstName,'last_name'=>$faker->lastName);
+$user['display_name'] = $user['first_name'].' '.$user['last_name'];
+$user['user_login'] = preg_replace('/[^a-z0-9]/','',strtolower($user['display_name']));
+$user['user_email'] = $user['user_login'] . '@example.com';
+$user['user_pass'] = wp_generate_password();
+return $user;
+}
+
+function quickplayground_plausible_plugins() {
+    if(!function_exists('get_plugins'))
+        require_once(ABSPATH.'/wp-admin/includes/plugins.php');
+    $plugins = get_plugins();
+    $active_plugins = get_option('active_plugins', array());
+    $plausible = array("active"=>array(), "inactive"=>array(),'active_names'=>array());
+    $excluded_plugins = (is_multisite()) ? get_blog_option(1,'playground_excluded_plugins',array()) : array();
+    $exclude = array(
+        'akismet/akismet.php',
+        'hello.php',
+        'hello-dolly/hello.php',
+        'playground/playground.php',
+        'quick-playground/quick-playground.php',
+        'jetpack/jetpack.php',
+        'wp-crontrol/wp-crontrol.php',
+        'query-monitor/query-monitor.php',
+    );
+    $filterwords = array(
+        'playground',
+        'security',
+        'spam',
+        'cache',
+        'caching',
+        'comment',
+        'admin',
+    );    
+    foreach($plugins as $plugin_file => $plugin_data) {
+        if(in_array($plugin_file, $exclude)) {
+            continue;
+        }
+        $parts = explode('/', $plugin_file);
+        $slug = $parts[0];
+        if(in_array($slug, $excluded_plugins)) {
+            continue; // skip this plugin
+        }
+        foreach($filterwords as $word) {
+            if(strpos($plugin_file, $word) !== false || strpos(strtolower($plugin_data['Name']), $word) !== false) {
+                continue 2; // skip this plugin
+            }
+        }
+        $is_active = in_array($plugin_file, $active_plugins);
+        if($is_active) {
+            $plausible['active'][] = $slug;
+            $plausible['active_names'][] = $plugin_data['Name'];
+        } else {
+            $plausible['inactive'][$slug] = $plugin_data['Name'];
+        }
+    }
+return $plausible;
 }

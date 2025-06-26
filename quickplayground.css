@@ -42,11 +42,6 @@ input:not([type="checkbox"], [type="radio"]) {
   --accent: hsl(262, 84%, 52%);
   --border: 1px solid hsl(229, 22%, 19%);
 }
-h1 {
-  font-size: 4rem;
-  font-weight: 300;
-  line-height: 1;
-}
 
 a {
   color: hsl(from var(--accent) h s 30%);
@@ -94,4 +89,15 @@ ul.playgroundpro {
 .fineprint {
     font-style: italic;
     font-size: small;
+}
+
+.playground-theme-previews {
+  display: grid;
+  grid-template-columns: auto auto;
+}
+.playground-stylesheet {
+    background-color: #fff;
+    border-radius: 50px;
+    padding: 50px;
+    margin: 20px;
 }

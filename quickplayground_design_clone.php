@@ -83,5 +83,9 @@ return $output;
 }
 
 function quickplayground_clone_log() {
+    echo '<h2>Incoming JSON</h2>';
+    echo '<pre>'.htmlentities(get_option('incoming_json')).'</pre>';
+    echo '<h2>Incoming JSON modified</h2>';
+    echo '<pre>'.htmlentities(get_option('incoming_json_modified')).'</pre>';
     echo get_option('quickplayground_log');
 }

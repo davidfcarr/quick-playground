@@ -27,9 +27,11 @@ function quickplayground_get_menu_data($clone) {
 return $clone;
 }
 
-function quickplayground_get_category_data($ids = []) {
+function quickplayground_get_category_data($clone) {
+    if(empty($clone['ids']))
+      return $clone;
     global $wpdb;
-    
+    $ids = $clone['ids'];    
     $sql = "SELECT p.ID, p.post_title, tr.*,tt.*, terms.*
   FROM $wpdb->posts AS p 
   LEFT JOIN $wpdb->term_relationships AS tr ON tr.object_id = p.ID

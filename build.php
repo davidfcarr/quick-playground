@@ -10,6 +10,7 @@ function quickplayground_build($postvars,$profile = 'default') {
         $slugs = array_merge($slugs,$excluded_plugins);
     if(!empty($default_plugins)) {
         foreach($default_plugins as $slug) {
+        printf('<p>default plugins %s</p>',$slug);
         $postvars['add_plugin'][] = $slug;
         $postvars['activate_plugin'][] = 1;
         $postvars['ziplocal_plugin'][] = false;
@@ -18,6 +19,7 @@ function quickplayground_build($postvars,$profile = 'default') {
     if(isset($postvars['all_active_plugins'])) {
         $active_plugins = explode(',',$postvars['all_active_plugins']);
         foreach($active_plugins as $slug) {
+            printf('<p>active plugins %s</p>',$slug);
             $postvars['add_plugin'][] = $slug;
             $postvars['activate_plugin'][] = 1;
             $postvars['ziplocal_plugin'][] = false;
@@ -200,10 +202,6 @@ function quickplayground_build($postvars,$profile = 'default') {
         }
     }
 
-    if(!empty($settings['copy_events']) && !in_array('rsvpmaker', $slugs)) {
-        $steps[] = makePluginItem('rsvpmaker', true, true);
-    }
-
     if(isset($postvars['add_code'])) {
 
         foreach($postvars['add_code'] as $i => $code) {
@@ -223,15 +221,17 @@ function quickplayground_build($postvars,$profile = 'default') {
         }
     }
     $settings['origin_stylesheet'] = get_stylesheet();
-    $settings['timezone_string'] = get_option('timezone_string');
+    $settings_to_copy = apply_filters('playground_settings_to_copy',array('timezone_string'));
+    foreach($settings_to_copy as $setting)
+        $settings[$setting] = get_option($setting);
     $steps[] = makeBlueprintItem('setSiteOptions',null, $settings);    
-    quickplayground_playground_zip_plugin("design-plugin-playground");
+    quickplayground_playground_zip_plugin("quick-playground");
     $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
     if($enabled) {
         $plugindata = ProPlaygroundData($enabled);
         $steps[] = makeBlueprintItem('installPlugin', array('pluginData'=>$plugindata), array('activate'=>true));
     }
-    $steps[] = makePluginItem("design-plugin-playground", false, true);
+    $steps[] = makePluginItem("quick-playground", false, true);
 
     $blueprint = array('features'=>array('networking'=>true),'steps'=>$steps);
     if(playground_premium_enabled())
@@ -244,4 +244,61 @@ function quickplayground_build($postvars,$profile = 'default') {
     echo '<pre>'.htmlentities(json_encode($blueprint, JSON_PRETTY_PRINT)).'</pre>';
     }
     return array($blueprint, $settings);
+}
+
+function quickplayground_swap_theme($blueprint, $slug) {
+    $public = true;
+    if(!quickplayground_repo_check($slug,'theme')) {
+        $public = false;
+        quickplayground_playground_zip_theme($slug);
+    }
+    $steps = [];
+    $themetest = wp_get_theme($slug);
+    $parent_theme = $themetest->parent();
+    if(!empty($parent_theme)) {
+        $parent = $parent_theme->get_stylesheet();
+        $steps[] = makeThemeItem($parent, false, false);
+    }
+    $match = false;
+    foreach($blueprint['steps'] as $step) {
+        if($step['step'] == 'installTheme') {
+            if(strpos($step['themeData']['resource'],'themes')) {
+                $themeslug = $step['themeData']['slug'];
+            } else {
+                //zip
+                $themeslug = preg_replace('/\.zip.+/','',basename($step['themeData']['url']));
+            }
+            if($themeslug == $slug) {
+            $step['options']['activate'] = true;
+            $match = true;
+            }
+            else {
+            $step['options']['activate'] = false;
+            }
+        }
+        $steps[] = $step;
+    }
+    if(!$match)
+        $steps[] = makeThemeItem($slug, $public, true);
+    $steps[] = makeBlueprintItem('setSiteOptions',null, ['clone_stylesheet' => $slug]);
+    $blueprint['steps'] = $steps;
+    return $blueprint;
+}
+
+function quickplayground_change_blueprint_setting($blueprint, $settings) {
+    $public = true;
+    $steps = [];
+    $match = false;
+    foreach($blueprint['steps'] as $step) {
+        if($step['step'] == 'setSiteOptions') {
+            foreach($settings as $key => $value)
+                $step['options'][$key] = $value;
+        }
+        $steps[] = $step;
+    }
+    if(!$match)
+        $steps[] = makeThemeItem($slug, $public, true);
+    $steps[] = makeBlueprintItem('setSiteOptions',null, ['clone_stylesheet' => $slug]);
+    $blueprint['steps'] = $steps;
+    return $blueprint;
 }

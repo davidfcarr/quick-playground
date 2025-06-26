@@ -1,5 +1,7 @@
 <?php
 function playground_premium_enabled() {
+    if(isset($_GET['basic']))
+        return false;
     $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
     $expiration = is_multisite() ? get_blog_option(1,'playground_premium_expiration') : get_option('playground_premium_expiration');
     $expiration = intval($expiration);

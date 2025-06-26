@@ -5,7 +5,9 @@ function blueprint_settings_init($profile, $stylesheet) {
         $result = quickplayground_build($_POST,$profile);
         $blueprint = $result[0];
         $settings = $result[1];
-        printf("Updated settings <pre>%s</pre>",var_export($settings,true));
+        $key = playground_premium_enabled();
+        $button = quickplayground_get_button($profile, $key);
+        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p></div>',$button);
         update_option('playground_clone_settings_'.$profile,$settings);
     }
     else
@@ -26,7 +28,7 @@ function blueprint_settings_init($profile, $stylesheet) {
         $ppoptions .= sprintf('<option value="%s" %s>%s</option>',$value, ($value == $profile) ? ' selected="selected" ' : '', $value);
     }
     $ppoptions .= sprintf('<option value="add_custom">%s</option>', __('Add New Profile','theme-plugin-playground'));
-    if(isset($_GET['reset'])) {
+    if(isset($_GET['reset']) || empty($blueprint)) {
         $page_on_front = intval(get_option('page_on_front'));
         $settings = array();
         $settings['page_on_front'] = $page_on_front;
@@ -38,11 +40,12 @@ function blueprint_settings_init($profile, $stylesheet) {
         $settings['copy_blogs'] = 10;
         $settings['copy_events'] = 1;
         $settings['key_pages'] = 1;
-        $settings['origin_stylesheet'] = $stylesheet;
+        $settings['origin_stylesheet'] = get_stylesheet();
+        printf('<p>New Blueprint settings %s</p>',var_export($settings,true));
     }
-    if(isset($_GET['reset']) || (empty($blueprint) && 'default' == $profile)) {
+    if(isset($_GET['reset']) || empty($blueprint)) {
         $postvars['settings'] = $settings;
-        $postvars['add_theme'][] = $stylesheet;
+        $postvars['add_theme'][] = get_stylesheet();
         $postvars['profile'] = $profile;
         $postvars['repo'] = 'https://wordpress.org/plugins/sql-buddy/';
         if(isset($_GET['reset']))

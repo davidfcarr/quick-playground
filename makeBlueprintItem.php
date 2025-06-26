@@ -79,7 +79,7 @@ function playgroundData($slug, $type = 'plugin', $public = true) {
 
         $data['resource'] = 'url';
 
-        $data['url'] = $playground_uploads_url.'/'.$slug.'.zip?x='.time();
+        $data['url'] = $playground_uploads_url.'/'.$slug.'.zip?t=TIMESTAMP';
 
     }
 
