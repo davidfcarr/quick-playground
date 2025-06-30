@@ -2,31 +2,23 @@
 
 Contributors: davidfcarr  
 
-Tags: design, theme, plugin, playground, WordPress  
+Tags: design, theme, plugin, testing, playground  
 
 Requires at least: 5.8  
 
-Tested up to: 6.3  
+Tested up to: 6.8.1  
 
-Stable tag: 1.0.0  
+Stable tag: 0.9.0  
 
 License: GPLv2 or later  
 
 License URI: https://www.gnu.org/licenses/gpl-2.0.html  
 
-
-
-Simplify the process of creating WordPress plugin instances that can include unpublished code such as custom themes and plugins. Clone your website's home page and key content to experiment with design changes without altering your live website.
-
-
+Simplify the process of creating WordPress Playground sites that can include unpublished code such as custom themes and plugins. Clone your website's home page and key content to experiment with design changes without altering your live website.
 
 == Description ==
 
-
-
 The Theme and Plugin Playground plugin provides a safe and convenient way to test new designs and features for your WordPress website. It creates a clone of your website's home page and key content, allowing you to experiment with design changes without affecting your live website.
-
-
 
 Features:
 
@@ -36,9 +28,11 @@ Features:
 
 - Test new designs in a WordPress Playground environment.
 
-- Sync changes back to your live website (experimental feature).
+Pro Version Upgrades 
 
-- Includes a library of recommended modern block themes for testing.
+- Save changes for future playground sessions, allowing you to keep experimenting. You can also create demo environments separate from your live website content, for example to showcase themes, plugins, or hosting services.
+
+- Sync changes back to your live website (experimental feature).
 
 
 

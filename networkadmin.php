@@ -1,4 +1,10 @@
 <?php
+/**
+ * Displays and processes the network admin settings page for Quick Playground.
+ *
+ * Allows the network administrator to specify plugins and themes that should be excluded or required by default
+ * for playground sites. Handles saving and displaying options for excluded and default plugins/themes.
+ */
 function quickplayground_networkadmin() {
     if(!empty($_POST) && !wp_verify_nonce( $_POST['playground'], 'quickplayground' ) ) 
     {

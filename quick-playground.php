@@ -1,20 +1,14 @@
 <?php
-
 /**
-
  * Plugin Name: Quick Playground
-
- * Plugin URI:  https://davidfcarr.com/design-plugin-playground
-
- * Description: Quickly create Theme and Plugin demo, testing, and staging websites in WordPress Playground.
-
- * Version:     1.0.0
-
- * Author:      davidfcarr
-
- * License:     GPL2
-
- */
+ * Plugin URI:  https://davidfcarr.com/quick-playground
+ * Description: Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites.
+ * Version:     0.9.0
+ * Author:      David F. Carr
+*  License:     GPL2
+*  Text Domain: quick-playground
+*  Domain Path: /languages
+*/
 
 require_once('clone.php');
 require_once('utility.php');
@@ -34,13 +28,20 @@ require_once 'faker/src/autoload.php';
 if(is_multisite())
     require_once('networkadmin.php');
 $temp = wp_upload_dir();
-$playground_uploads = $temp['basedir'];
-$playground_uploads = rtrim(preg_replace('/sites.+/','',$playground_uploads),'/');
+
+$playground_site_uploads = $temp['basedir'];
+$playground_uploads = rtrim(preg_replace('/sites.+/','',$playground_site_uploads),'/');
 $playground_uploads_url = $temp['baseurl'];
 $playground_uploads_url = rtrim(preg_replace('/sites.+/','',$playground_uploads_url),'/');
 
 unset($temp);
 
+/**
+ * Main function for the Quick Playground admin page.
+ *
+ * Handles form submission, loads and displays the current blueprint and settings,
+ * and outputs the UI for managing playground profiles, themes, and plugins.
+ */
 function quickplayground() {
     if(!empty($_POST) && !wp_verify_nonce( $_POST['playground'], 'quickplayground' ) ) 
     {
@@ -58,13 +59,13 @@ function quickplayground() {
     $settings = get_option('playground_clone_settings_'.$profile,array());
     $stylesheet = $settings['clone_stylesheet'] ?? $stylesheet;
     $key = playground_premium_enabled();
-    $button = quickplayground_get_button($profile, $key);
+    $button = quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
     $playground_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
     $clone_api_url = rest_url('quickplayground/v1/playground_clone/'.$profile);
 
-printf('<h2>Quick Playground for %s</h2>',get_bloginfo('name'));
+printf('<h2>Quick Playground for %s: %s</h2>',get_bloginfo('name'),$profile);
 
-    printf('<p>Loading saved blueprint for profile %s with %d steps defined. You can add or modify the themes, plugins, and settings on the <a href="%s">plugin builder page</a>.</p>',htmlentities($profile),sizeof($blueprint['steps']),admin_url('admin.php?page=quickplayground_builder'));
+    printf('<p>Loading saved blueprint for profile %s with %d steps defined.</p>',htmlentities($profile),sizeof($blueprint['steps']));
 echo $button;
 
 printf('<form method="post" action="%s"><input type="hidden" name="build_profile" value="1"> %s ',admin_url('admin.php?page=quickplayground_builder'), wp_nonce_field('quickplayground','playground',true,false));
@@ -76,6 +77,7 @@ printf('<p><input type="checkbox" name="settings[key_pages]" value="1" %s > Incl
 printf('<input type="hidden" name="profile" value="%s" />',$profile);
 echo '<p><button>Submit</button></p>';
 echo '</form>';
+printf('<p>For more customization options, see the <a href="%s">Playground Builder page</a>.</p>',admin_url('admin.php?page=quickplayground_builder'));
 
 echo '<div class="playground-doc">';
 if($key) {
@@ -102,17 +104,25 @@ if($key) {
 echo '</div>';
     echo '<div class="playground-theme-previews">';
     $themes = wp_get_themes(['allowed'=>true]);
+    if(!empty($themes) && sizeof($themes) > 1) {
+        echo '<p>See how your website would look with any of the WordPress themes shown below.</p>';
+    }
     foreach($themes as $theme) {
         if($theme->stylesheet == $stylesheet)
             continue;
-        $button = quickplayground_get_button($profile,$theme->stylesheet, $key);
+        $button = quickplayground_get_button(['profile'=>$profile,'key'=>$key,'stylesheet'=>$theme->stylesheet]);
+        $blueprint_url = get_playground_api_url(['profile'=>$profile,'key'=>$key,'stylesheet'=>$theme->stylesheet]);
         $screenshot = $theme->get_screenshot(); ///get_stylesheet_directory_uri().'/screenshot.png';
-        printf('<div class="playground-stylesheet"><div style="">Theme: %s</div><div class="playground-theme-screenshot"><img src="%s" width="300" /></div><div class="playground-theme-button">%s</div></div>',$theme->Name,$screenshot,$button);
-        //print_r($theme->get_screenshot);
+        printf('<div class="playground-stylesheet"><div style="">Theme: %s</div><div class="playground-theme-screenshot"><img src="%s" width="300" /></div><div class="playground-theme-button">%s<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',$theme->Name,$screenshot,$button,$blueprint_url,quickplayground_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet]));
     }
     echo '</div>';
 }
 
+/**
+ * Enqueues admin scripts and styles for Quick Playground admin pages.
+ *
+ * @param string $hook The current admin page hook.
+ */
 function quickplayground_enqueue_admin_script( $hook ) {
     if ( !strpos($hook,'quickplayground') ) {
         return;
@@ -125,34 +135,44 @@ add_action( 'admin_enqueue_scripts', 'quickplayground_enqueue_admin_script' );
 /**
  * Generates the API URL for the playground based on the profile and optional parameters.
  *
- * @param string $profile The profile name.
+ * @param string $profile    The profile name.
+ * @param string $key        Optional. A key for premium features.
  * @param string $stylesheet Optional. The stylesheet to use.
- * @param string $key Optional. A key for premium features.
- * @return string The API URL.
+ * @param bool   $nocache    Optional. Whether to disable cache.
+ * @return string            The API URL.
  */
-function get_playground_api_url($profile,$stylesheet = '',$key='') {
+function get_playground_api_url($args=[]) {
+    if(empty($args['profile'])) {
+        $profile = 'default';
+    }
+    else {
+        $profile = sanitize_text_field($args['profile']);
+    }
     global $current_user;
     $playground_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
-    if($stylesheet)
-        $playground_api_url .= '&stylesheet='.$key;
-    if($key)
-        $playground_api_url .= '&key='.$key;
+    if(!empty($args['stylesheet']))
+        $playground_api_url .= '&stylesheet='.sanitize_text_field($args['stylesheet']);
+    if(!empty($args['key']))
+        $playground_api_url .= '&key='.sanitize_text_field($args['key']);
+    if(!empty($args['nocache']))
+        $playground_api_url .= '&nocache='.$true;
     return $playground_api_url;
 }
 
 /**
  * Generates a button to access the playground for a specific profile.
  *
- * @param string $profile The profile name.
+ * @param string $profile    The profile name.
+ * @param string $key        Optional. A key for premium features.
  * @param string $stylesheet Optional. The stylesheet to use.
- * @param string $key Optional. A key for premium features.
- * @return string HTML for the button.
+ * @param bool   $nocache    Optional. Whether to disable cache.
+ * @return string            HTML for the button.
  */
-function quickplayground_get_button($profile,$stylesheet = '',$key='') {
+function quickplayground_get_button($args = ['profile' => 'default']) {
 global $current_user;
-$playground_api_url = get_playground_api_url($profile,$stylesheet = '',$key='');
+$playground_api_url = empty($args['url']) ? get_playground_api_url($args) : $args['url'];
 
-return sprintf('<a target="_blank" href="%s" style="
+$button = sprintf('<a target="_blank" href="%s" style="
   background-color: #004165;
   color: white;
   font-size: 16px;
@@ -199,4 +219,16 @@ return sprintf('<a target="_blank" href="%s" style="
 &nbsp;&nbsp;&nbsp;  Go To Playground
 </a>','https://playground.wordpress.net/?blueprint-url='.urlencode($playground_api_url)
 );
+return $button;
+}
+
+/**
+ * Outputs a public link to the playground blueprint for a given profile and stylesheet.
+ *
+ * @param string $profile    The profile name.
+ * @param string $stylesheet Optional. The stylesheet to use.
+ */
+function quickplayground_get_blueprint_link($args = ['profile'=>'default','stylesheet' => '']) {
+$playground_api_url = get_playground_api_url($args);
+return '<p><a href="https://playground.wordpress.net/?blueprint-url='.urlencode($playground_api_url).'">Public Link</a></p>';
 }

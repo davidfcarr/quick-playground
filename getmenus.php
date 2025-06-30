@@ -1,4 +1,10 @@
 <?php
+/**
+ * Retrieves navigation menu data and related posts, relationships, and taxonomy for cloning.
+ *
+ * @param array $clone The clone data array.
+ * @return array       Modified clone data array with menu information.
+ */
 function quickplayground_get_menu_data($clone) {
     global $wpdb;
 
@@ -18,15 +24,21 @@ function quickplayground_get_menu_data($clone) {
  WHERE p.post_type = 'nav_menu_item'
    AND tt.term_id = $menu->term_id");
    foreach($menu_relationships as $mr) {
-    $clone['posts'][] = (object) array('ID'->$mr->ID,'post_title'=>$mr->post_title,'post_content'=>$mr->post_content,'post_status'=>'publish','post_type'=>'nav_menu_item');
-    $clone['term_relationships'][] = (object) array('object_id'->$mr->object_id,'term_order'=>$mr->term_order,'term_taxonomy_id'=>$mr->term_taxonomy_id);
-    $clone['term_taxonomy'][] = (object) array('term_taxonomy_id'->$mr->term_taxonomy_id,'term_id'=>$mr->term_id,'taxonomy'=>$mr->taxonomy,'description'=>$mr->description,'parent'=>$mr->parent,'count'=>$mr->count);
+    $clone['posts'][] = (object) array('ID'=>$mr->ID,'post_title'=>$mr->post_title,'post_content'=>$mr->post_content,'post_status'=>'publish','post_type'=>'nav_menu_item');
+    $clone['term_relationships'][] = (object) array('object_id'=>$mr->object_id,'term_order'=>$mr->term_order,'term_taxonomy_id'=>$mr->term_taxonomy_id);
+    $clone['term_taxonomy'][] = (object) array('term_taxonomy_id'=>$mr->term_taxonomy_id,'term_id'=>$mr->term_id,'taxonomy'=>$mr->taxonomy,'description'=>$mr->description,'parent'=>$mr->parent,'count'=>$mr->count);
    }
 
     }
 return $clone;
 }
 
+/**
+ * Retrieves category and theme taxonomy data for a set of post IDs for cloning.
+ *
+ * @param array $clone The clone data array.
+ * @return array       Modified clone data array with category/theme taxonomy information.
+ */
 function quickplayground_get_category_data($clone) {
     if(empty($clone['ids']))
       return $clone;

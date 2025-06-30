@@ -1,20 +1,26 @@
 <?php 
 include 'premium.php';
+
+/**
+ * Displays the Quick Playground Blueprint Builder admin page and handles form output.
+ */
 function quickplayground_builder() {
+global $wpdb, $current_user, $playground_uploads, $playground_uploads_url;
+$profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';
+$playground_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
+$clone_api_url = rest_url('quickplayground/v1/playground_clone/'.$profile);
+$origin_url = rtrim(get_option('siteurl'),'/');
+$stylesheet = get_stylesheet();
+blueprint_settings_init($profile,$stylesheet);
+$blueprint = get_option('playground_blueprint_'.$profile, array());
+$settings = get_option('playground_clone_settings_'.$profile,array());
+$stylesheet = $settings['clone_stylesheet'] ?? $stylesheet;
+
+printf('<h2>Quick Playground BluePrint Builder for %s: %s</h2>',get_bloginfo('name'),$profile);
 ?>
 <h1>Blueprint Builder</h1>
 <p>This is where you define which themes and plugins you want each WordPress Playground to include. You can create several Playground profiles, associated with different themes, plugins, and options.</p>
 <?php
-    global $wpdb, $current_user, $playground_uploads, $playground_uploads_url;
-    $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';
-    $playground_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
-    $clone_api_url = rest_url('quickplayground/v1/playground_clone/'.$profile);
-    $origin_url = rtrim(get_option('siteurl'),'/');
-    $stylesheet = get_stylesheet();
-    blueprint_settings_init($profile,$stylesheet);
-    $blueprint = get_option('playground_blueprint_'.$profile, array());
-    $settings = get_option('playground_clone_settings_'.$profile,array());
-    $stylesheet = $settings['clone_stylesheet'] ?? $stylesheet;
 
 printf('<form method="post" action="%s"> %s <input type="hidden" name="build_profile" value="1">',admin_url('admin.php?page=quickplayground_builder'), wp_nonce_field('quickplayground','playground',true,false));
 echo '<p><button>Refresh</button></p>';
@@ -36,6 +42,25 @@ if(!playground_premium_enabled()) {
     printf('<input type="hidden" name="profile" value="%s" />',$profile);
     echo '<p><button>Submit</button></p>';
     echo '</form>';
+        $upgrade_url = admin_url('admin.php?page=quickplayground_pro');
+
+    echo '<div class="playground-doc">';
+
+    echo "<h2>Upgrade Option</h2><p>Quick Playground allows you to test themes, plugins, design ideas, and configuration settings on a virtual WordPress Playground copy of your website, without worrying about breaking your live site.</p>";
+    echo "<p>The Pro version allows you greater freedom to customize the themes and plugins installed, including custom themes and plugins that are not in the WordPress.org repository, and provides more tools for developers to create demo environments.</p>";
+    printf('<p><a href="%s">Upgrade</a> for access to these features.</p>
+    <ul class="playgroundpro">
+    <li>Install and active Themes and Plugins that are different from those on your live website</li>
+    <li>Demonstrate Themes and Plugins that are not in the WordPress repository (served as zip files from your server instead)</li>
+    <li>Specify a different front page from the one used your live website</li>
+    <li>Publish additional demo pages to the playground, based on draft or published pages of your website</li>
+    <li>Extend the plugin with custom filters and actions</li>
+    <li>Call custom PHP code in the playground.</li>
+    </ul>
+    <p><strong>For a limited time, you can get the Pro version just by signing up for the Quick Playground Email List. <a href="%s">Upgrade Now</a>.</strong></p>
+    ',$upgrade_url,$upgrade_url);
+    echo '</div>';
+
     return;
 }
 
@@ -43,6 +68,8 @@ echo '<p>Additional themes or plugins from the WordPress repository<br /><textar
 
 if(!empty($blueprint)) {
     foreach($blueprint['steps'] as $step) {
+        if(!is_array($step))
+            $step = (array) $step;
             if('runPHP' == $step['step']) {
                 if(!strpos($step['code'],'quickplayground_clone')) {
                 $saved_code = $step['code'];
@@ -52,8 +79,9 @@ if(!empty($blueprint)) {
 }
 
 printf('<p>Custom PHP code *<br /><textarea name="add_code[]" cols="100" rows="3">%s</textarea></p>',htmlentities($saved_code));
+echo '<p><code>&lt;?php require_once \'wordpress/wp-load.php\';</code> will be added automatically to enable WordPress and plugin functions.</p>';
 
-printf('<p>Custom Step (JSON)<br /><textarea name="json_steps" cols="100" rows="3">%s</textarea></p><p>Example from the <a href="https://wordpress.github.io/wordpress-playground/blueprints/examples/">documentation</a>:</p><pre>%s</pre>','','
+printf('<p>Custom Step (JSON)<br /><textarea name="json_steps" cols="100" rows="3">%s</textarea></p><p>Example from the <a href="https://wordpress.github.io/wordpress-playground/blueprints/examples/">documentation</a>:</p><pre>%s</pre>',get_option('json_steps_'.$profile),'
 {
     "step": "installPlugin",
     "pluginData": {
@@ -69,8 +97,6 @@ printf('<p>Custom Step (JSON)<br /><textarea name="json_steps" cols="100" rows="
     }
 }');
 
-echo '<br /><code>&lt;?php require_once \'wordpress/wp-load.php\';</code> will be added automatically to enable WordPress and plugin functions.
-</p>';
 
 if(!empty($settings['page_on_front'])) {
     $page_on_front = $settings['page_on_front'];
@@ -100,10 +126,7 @@ printf('<p>Front Page: <select name="settings[page_on_front]">%s</select></p>',$
 printf('<p><input type="checkbox" name="settings[key_pages]" value="1" %s > Include key pages and posts (linked to from the home page or menu)</p>',(!isset($settings['key_pages']) || $settings['key_pages']) ? ' checked="checked" ' : '');
 //quickplayground_key_pages_checkboxes();
 
-$rsvp_checked = (!isset($settings['copy_events']) || $settings['copy_events']) ? ' checked="checked" ' : '';
-$rsvp_prompt = (function_exists('get_rsvpmaker_event_table')) ? '<input type="checkbox" name="settings[copy_events]" value="1" '.$rsvp_checked.' > Future RSVPMaker events ' : ''; 
-
-printf('<p>Copy <input type="checkbox" name="settings[copy_pages]" value="1" %s > all published pages <input style="width:5em" type="number" name="settings[copy_blogs]" value="%d" size="3" > latest blog posts '.$rsvp_prompt.'</p>',!empty($settings['copy_pages']) ? ' checked="checked" ' : '',(!isset($settings['copy_blogs']) || $settings['copy_blogs']) ? intval($settings['copy_blogs']) : 10);
+printf('<p>Copy <input type="checkbox" name="settings[copy_pages]" value="1" %s > all published pages <input style="width:5em" type="number" name="settings[copy_blogs]" value="%d" size="3" > latest blog posts</p>',!empty($settings['copy_pages']) ? ' checked="checked" ' : '',(!isset($settings['copy_blogs']) || $settings['copy_blogs']) ? intval($settings['copy_blogs']) : 10);
 
 if(!empty($settings['demo_pages']) && is_array($settings['demo_pages'])) {
     foreach($settings['demo_pages'] as $page_id) {
@@ -130,7 +153,7 @@ $classAndID = ($i > 0) ? ' class="hidden_item post" id="post_'.$i.'" ' : ' class
 printf('<p%s>Demo Blog Post: <select class="select_with_hidden" name="demo_posts[]">%s</select></p>'."\n",$classAndID,'<option value="">Choose Blog Post</option>'.$post_options);
 }
 
-do_action('quickplayground_form_demo_content');
+do_action('quickplayground_form_demo_content',$settings);
 
 $types = get_post_types(array(
    'public'   => true,
@@ -149,6 +172,9 @@ echo '<p>'.__('Content types added by plugins','design-plugin-playground').'</p>
 }
 
 printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Name','blogname',$settings['blogname']);
+printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Description','blogdescription',$settings['blogdescription']);
+printf('<p><input name="settings[%s]" type="radio" value="1" %s /> %s','playground_no_cache',empty($settings['playground_no_cache']) ? '' : ' checked="checked" ', __('Use live website content','quick-playground'));
+printf(' <input name="settings[%s]" type="radio" value="0" %s /> %s</p>','playground_no_cache',empty($settings['playground_no_cache']) ? ' checked="checked" ' : '', __('Use saved playground demo data','quick-playground'));
 printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Name','blogdescription',$settings['blogdescription']);
 
 echo '<p><input type="checkbox" name="show_details" value="1" /> Show Detailed Output</p>';
@@ -159,40 +185,39 @@ if(playground_premium_enabled())
     do_action('quickplayground_additional_setup_form_fields');
 echo '<p><button>Submit</button></p>';
 echo '</form>';
+$key = playground_premium_enabled();
+$playground_api_url = get_playground_api_url(['profile'=>$profile,'key'=>$key]);
+
+$taxurl = rest_url('quickplayground/v1/clone_taxonomy/'.$profile.'?t='.time());
+$imgurl = rest_url('quickplayground/v1/clone_images/'.$profile.'?t='.time());
 
 printf('<h3>For Testing</h3><p>Blueprint API URL: <a href="%s" target="_blank">%s</a></p>',esc_url($playground_api_url),esc_html($playground_api_url));
-printf('<p>Clone API URL: <a href="%s" target="_blank">%s</a></p>',esc_url($clone_api_url),esc_html($clone_api_url));
-printf('<p>Playground button code</p><p><textarea cols="100" rows="5">%s</textarea></p>',htmlentities(quickplayground_get_button($profile)));
+printf('<p>Blueprint, No Cache: <a href="%s&nocache=1" target="_blank">%s&nocache=1</a></p>',esc_url($playground_api_url),esc_html($playground_api_url));
+printf('<p>Clone Posts API URL: <br /><a href="%s" target="_blank">%s</a></p>',esc_url($clone_api_url),esc_html($clone_api_url));
+printf('<p>Clone Metadata/Taxonomy API URL: <br /><a href="%s" target="_blank">%s</a></p>',esc_url($taxurl),esc_html($taxurl));
+printf('<p>Clone Images API URL: <br /><a href="%s" target="_blank">%s</a></p>',esc_url($imgurl),esc_html($imgurl));
+printf('<p>Demo playground button code</p><p><textarea cols="100" rows="5">%s</textarea></p>',htmlentities(quickplayground_get_button(['profile',$profile])));
+quickplayground_get_blueprint_link(['profile'=>$profile]);
 }
 
+/**
+ * Outputs plugin selection options for the playground blueprint form.
+ *
+ * @param array $blueprint   The current blueprint array.
+ * @param bool  $active_only Whether to show only active plugins (default true).
+ */
 function quickplayground_plugin_options($blueprint, $active_only = true) {
-    if(!function_exists('get_plugins'))
-        require_once(ABSPATH.'/wp-admin/includes/plugins.php');
-
-    $excluded_plugins = (is_multisite()) ? get_blog_option(1,'playground_excluded_plugins',array()) : array();
-    $active_plugins = [];
-    $all_plugins = [];
+    $plausible_plugins = quickplayground_plausible_plugins();
     $pluginoptions = '<option value="">Select a plugin</option>';
-    $active_pluginoptions = '<option value="">Select a plugin</option>';
-    $plugins = get_plugins();//['allowed'=>true]
-
-    foreach($plugins as $dir_file => $header) {
-        $parts = preg_split('/[\.\/]/',$dir_file);
-        $basename = $parts[0];
-        if(in_array($basename,$excluded_plugins) || 'design-plugin-playground' == $basename) {
-            continue; // skip excluded plugins
-        }
-        $all_plugins[$basename] = $header["Name"];
-        if(is_plugin_active($dir_file) )
-        {
-            if(!in_array($basename,$excluded_plugins))
-                $active_plugins[] = $basename;
-            $active_pluginoptions .= sprintf('<option value="%s">%s (%s)</option>',$basename, $header["Name"],__('Active','theme-plugin-playground'));
-        }
-        elseif(!$active_only)
-            $pluginoptions .= sprintf('<option value="%s">%s</option>',$basename, $header["Name"]);
+    foreach($plausible_plugins['active'] as $index => $slug) {
+        $name = $plausible_plugins['active_names'][$index];
+        $pluginoptions .= sprintf('<option value="%s">%s (%s)</option>',$slug, $name,__('Active','quick-playground'));
     }
-
+    if(!$active_only) {
+        foreach($plausible_plugins['inactive'] as $slug => $name) {
+            $pluginoptions .= sprintf('<option value="%s">%s</option>',$slug, $name);
+        }
+    }    
     if(!empty($blueprint)) {
     foreach($blueprint['steps'] as $step) {
         if(is_array($step)) {
@@ -210,7 +235,6 @@ function quickplayground_plugin_options($blueprint, $active_only = true) {
 }
 
 echo '<h2>Choose Plugins for Your Playground</h2>';
-$plausible_plugins = quickplayground_plausible_plugins();
 if(!empty($plausible_plugins['active'])) {
 echo '<p><input type="checkbox" name="all_active_plugins" value="'.implode(',',$plausible_plugins['active']).'"> Include these active plugins ('.implode(', ',$plausible_plugins['active_names']).')</p>';
 }
@@ -236,13 +260,20 @@ if(!empty($saved_plugins[$i])) {
 } 
 else {
     $classAndID = ($i > 0 + sizeof($saved_plugins)) ? ' class="hidden_item plugin" id="plugin_'.$i.'" ' : ' class="plugin" id="plugin_'.$i.'" ';
-    printf('<p%s>Add Plugin: <select class="select_with_hidden" name="add_plugin[]">%s</select>  <input type="radio" name="ziplocal_plugin[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin[%d]" value="1" /> Local Zip <br /><input type="radio" name="activate_plugin[%d]" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin[%d]" value="0" /> Do Not Activate  </p>',$classAndID,$active_pluginoptions.$pluginoptions,$i,$i,$i,$i);
+    printf('<p%s>Add Plugin: <select class="select_with_hidden" name="add_plugin[]">%s</select>  <input type="radio" name="ziplocal_plugin[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin[%d]" value="1" /> Local Zip <br /><input type="radio" name="activate_plugin[%d]" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin[%d]" value="0" /> Do Not Activate  </p>',$classAndID,$pluginoptions,$i,$i,$i,$i);
     }
 }
 echo "<p class=\"fineprint\">Make a selection, and another will be revealed</p>\n";
 
 }
 
+/**
+ * Outputs theme selection options for the playground blueprint form.
+ *
+ * @param array  $blueprint   The current blueprint array.
+ * @param string $stylesheet  The current theme stylesheet.
+ * @param int    $themeslots  Number of theme slots to display (default 1).
+ */
 function quickplayground_theme_options($blueprint, $stylesheet, $themeslots = 1) {
 $excluded_themes = (is_multisite()) ? get_blog_option(1,'playground_excluded_themes',array()) : array();
 $saved_plugins = $saved_themes = [];
@@ -344,5 +375,5 @@ if($themeslots == 1 && sizeof($saved_themes) > 1) {
 } 
 
 }
-
 }
+    

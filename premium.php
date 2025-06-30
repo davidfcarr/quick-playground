@@ -1,14 +1,24 @@
 <?php
+/**
+ * Checks if Playground Pro features are enabled and not expired.
+ *
+ * @return bool|string Returns the enabled key if valid, or false if not enabled or expired.
+ */
 function playground_premium_enabled() {
-    if(isset($_GET['basic']))
+    if(get_option('disable_playground_premium',false))
         return false;
     $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
     $expiration = is_multisite() ? get_blog_option(1,'playground_premium_expiration') : get_option('playground_premium_expiration');
     $expiration = intval($expiration);
-    //todo periodicall re-validate
+    //todo periodically re-validate
     return (!empty($enabled) && $expiration > time()) ? $enabled : false;
 }
 
+/**
+ * Displays a status message about Playground Pro features and their expiration.
+ *
+ * @return bool True if Pro features are enabled, false otherwise.
+ */
 function playground_premium_status_message() {
     global $current_user;
     $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
@@ -40,6 +50,9 @@ function playground_premium_status_message() {
     }    
 }
 
+/**
+ * Displays and processes the Playground Pro admin page, including license key and registration form.
+ */
 function quickplayground_pro() {
     global $current_user;
     if(!empty($_POST) && !wp_verify_nonce( $_POST['playground'], 'quickplayground' ) ) 
@@ -79,8 +92,8 @@ function quickplayground_pro() {
     $key = $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
     }
     if($key) {
-        echo "<p>Checking https://davidfcarr.com/wp-json/quickplayground/v1/license?email=$email&key=$key&t=".time()."</p>\n";
         $email = get_option('playground_premium_email');
+        echo "<p>Checking https://davidfcarr.com/wp-json/quickplayground/v1/license?email=$email&key=$key&t=".time()."</p>\n";
         $response = wp_remote_get("https://davidfcarr.com/wp-json/quickplayground/v1/license?email=$email&key=$key&t=".time());
         if(is_wp_error($response)) {
             echo '<p>Error: '.htmlentities($response->get_error_message()).'</p>';
@@ -111,7 +124,7 @@ function quickplayground_pro() {
     if(!$enabled)
     {
     ?>
-    <form method="post" class="playground" action="<?php echo admin_url('admin.php?page=quickplayground_pro')?>">
+    <form method="post" class="playground" action="<?php echo admin_url('admin.php?page=quickplayground_pro')?>
         <?php wp_nonce_field('quickplayground','playground',true,true); ?>
         <h3>Request a license key by email</h3>
         <p><label>First Name</label> <input type="text" name="first" value="<?php echo $current_user->last_name; ?>" /> </p>
@@ -124,7 +137,7 @@ function quickplayground_pro() {
     <?php
     }
     ?>
-    <form method="post" class="playground" action="<?php echo admin_url('admin.php?page=quickplayground_pro')?>">
+    <form method="post" class="playground" action="<?php echo admin_url('admin.php?page=quickplayground_pro')?>
         <?php wp_nonce_field('quickplayground','playground',true,true); ?>
         <h3>Enter your license key</h3>
         <p><label>Key</label> <input type="text" name="key" value="<?php echo $enabled; ?>" /> </p>
@@ -165,15 +178,5 @@ function quickplayground_pro() {
         return $clone;
     }
     </pre>
-<?php
-if(!isset($_GET['cheat']))
-    return;
-?>
-    <form method="post" action="<?php echo admin_url('admin.php?page=quickplayground_pro')?>">
-    <p>Pro Features Enabled
-    <input type="radio" name="unlock" value="1" <?php if($enabled) echo 'checked="checked"' ?> > Yes 
-    <input type="radio" name="unlock" value="0" <?php if(!$enabled) echo 'checked="checked"' ?>> No </p>
-    <p><button>Update</button></p>
-</form>
 <?php
 }

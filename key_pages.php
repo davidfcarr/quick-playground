@@ -1,4 +1,9 @@
 <?php
+/**
+ * Finds key pages by scraping the home page for internal links.
+ *
+ * @return array Array of key page slugs.
+ */
 function quickplayground_find_key_pages() {
     $siteurl = rtrim(get_option('siteurl'),'/');
     $response = wp_remote_get($siteurl);
@@ -10,7 +15,7 @@ function quickplayground_find_key_pages() {
     $home_html = $response['body'];
     $parse = parse_url($siteurl);
     $domain = $parse['host'];
-    $pattern = '/<a href\s*=\s*(?:["\'](?<url>[^"\']*)["\'])/';
+    $pattern = '/<a[^>]+href\s*=\s*(?:["\'](?<url>[^"\']*)["\'])/';
     preg_match_all($pattern, $home_html, $matches);
     $keypages = [];
     foreach($matches[1] as $match) {
@@ -25,6 +30,10 @@ function quickplayground_find_key_pages() {
     set_transient('key_pages',$keypages); 
     return $keypages;
 }
+
+/**
+ * Outputs checkboxes for each key page found, for use in a form.
+ */
 function quickplayground_key_pages_checkboxes() {
     $keypages = quickplayground_find_key_pages();
     $done = [];
@@ -37,6 +46,12 @@ function quickplayground_key_pages_checkboxes() {
         printf('<p><input type="checkbox" value="%d"> %s %s %d</p>',$page->ID,$page->post_title,$page->post_status,$page->ID);
     }
 }
+
+/**
+ * Retrieves WP_Post objects for each key page found.
+ *
+ * @return array Array of WP_Post objects for key pages.
+ */
 function quickplayground_key_pages() {
     $keypages = quickplayground_find_key_pages();
     $kp = [];
@@ -49,5 +64,5 @@ function quickplayground_key_pages() {
         if($page)
             $kp[] = $page;
     }
-return $kp;
+    return $kp;
 }

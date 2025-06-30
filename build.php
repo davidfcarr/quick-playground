@@ -1,5 +1,12 @@
 <?php
-function quickplayground_build($postvars,$profile = 'default') {
+/**
+ * Builds a playground blueprint and settings array based on provided variables and profile.
+ *
+ * @param array  $postvars Array of POST variables for the playground build.
+ * @param string $profile  The profile name (default: 'default').
+ * @return array           Array containing the blueprint and settings.
+ */
+function quickplayground_build($postvars, $profile = 'default') {
     $site_origin = rtrim(get_option('siteurl'),'/');
     $default_plugins = is_multisite() ? get_blog_option(1,'playground_default_plugins',array()) : array();
     $excluded_plugins = is_multisite() ? get_blog_option(1,'playground_excluded_plugins',array()) : array();
@@ -44,6 +51,7 @@ function quickplayground_build($postvars,$profile = 'default') {
         $settings['is_playground_clone']=true;
         $settings['playground_profile']=$profile;
         $settings['playground_sync_origin']=$site_origin;
+        $settings['playground_site_dir'] = is_multisite() ? '/sites/'.get_current_blog_id() : '';
         $settings['demo_pages'] = [];
         $settings['key_pages'] = empty($settings['key_pages']) ? 0 : 1; // 0 if not checked
         if(isset($postvars['post_types']))
@@ -96,6 +104,7 @@ function quickplayground_build($postvars,$profile = 'default') {
 
     if(isset($postvars['add_theme'])) {
         foreach($postvars['add_theme'] as $i => $slug) {
+            $slug = trim($slug);
             if(empty($slug) || in_array($slug, $themeslugs)) {
                 continue; // skip duplicate themes
             }
@@ -202,7 +211,7 @@ function quickplayground_build($postvars,$profile = 'default') {
         }
     }
 
-    if(isset($postvars['add_code'])) {
+    if(!empty($postvars['add_code'])) {
 
         foreach($postvars['add_code'] as $i => $code) {
 
@@ -212,7 +221,13 @@ function quickplayground_build($postvars,$profile = 'default') {
         }
     }
     if(isset($postvars['json_steps'])) {
-        $json = sanitize_textarea_field(stripslashes($postvars['json_steps']));
+        if(!empty($postvars['json_steps'])) {
+        $postvars['json_steps'] = stripslashes($postvars['json_steps']);
+        }
+        update_option('json_steps_'.$profile, $postvars['json_steps']);
+    }
+    if(!empty($postvars['json_steps'])) {
+        $json = sanitize_textarea_field($postvars['json_steps']);
         if(!strpos($json,']'))
             $json = '['.$json.']';
         $addsteps = json_decode($json);
@@ -228,7 +243,7 @@ function quickplayground_build($postvars,$profile = 'default') {
     quickplayground_playground_zip_plugin("quick-playground");
     $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
     if($enabled) {
-        $plugindata = ProPlaygroundData($enabled);
+        $plugindata = ProPlaygroundData();
         $steps[] = makeBlueprintItem('installPlugin', array('pluginData'=>$plugindata), array('activate'=>true));
     }
     $steps[] = makePluginItem("quick-playground", false, true);
@@ -246,7 +261,18 @@ function quickplayground_build($postvars,$profile = 'default') {
     return array($blueprint, $settings);
 }
 
+/**
+ * Swaps the active theme in the blueprint to the specified slug.
+ *
+ * @param array  $blueprint The current blueprint array.
+ * @param string $slug      The theme slug to activate.
+ * @return array            Modified blueprint array.
+ */
 function quickplayground_swap_theme($blueprint, $slug) {
+    $slug = trim($slug);
+    if(empty($slug)) {
+        return $blueprint;
+    }
     $public = true;
     if(!quickplayground_repo_check($slug,'theme')) {
         $public = false;
@@ -257,6 +283,7 @@ function quickplayground_swap_theme($blueprint, $slug) {
     $parent_theme = $themetest->parent();
     if(!empty($parent_theme)) {
         $parent = $parent_theme->get_stylesheet();
+        quickplayground_playground_zip_theme($parent);
         $steps[] = makeThemeItem($parent, false, false);
     }
     $match = false;
@@ -285,20 +312,27 @@ function quickplayground_swap_theme($blueprint, $slug) {
     return $blueprint;
 }
 
+/**
+ * Updates the site options in the blueprint with new settings.
+ *
+ * @param array $blueprint The current blueprint array.
+ * @param array $settings  Associative array of settings to update.
+ * @return array           Modified blueprint array.
+ */
 function quickplayground_change_blueprint_setting($blueprint, $settings) {
     $public = true;
     $steps = [];
     $match = false;
     foreach($blueprint['steps'] as $step) {
+        if(!is_array($step)) {
+            $step = (array) $step; // skip non-array steps
+        }
         if($step['step'] == 'setSiteOptions') {
             foreach($settings as $key => $value)
                 $step['options'][$key] = $value;
         }
         $steps[] = $step;
     }
-    if(!$match)
-        $steps[] = makeThemeItem($slug, $public, true);
-    $steps[] = makeBlueprintItem('setSiteOptions',null, ['clone_stylesheet' => $slug]);
     $blueprint['steps'] = $steps;
     return $blueprint;
 }

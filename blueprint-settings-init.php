@@ -1,4 +1,10 @@
 <?php
+/**
+ * Initializes and manages playground blueprint settings and profiles.
+ *
+ * @param string $profile    The profile name.
+ * @param string $stylesheet The current theme stylesheet.
+ */
 function blueprint_settings_init($profile, $stylesheet) {
 
     if(isset($_POST['build_profile'])) {  
@@ -6,7 +12,7 @@ function blueprint_settings_init($profile, $stylesheet) {
         $blueprint = $result[0];
         $settings = $result[1];
         $key = playground_premium_enabled();
-        $button = quickplayground_get_button($profile, $key);
+        $button = quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
         printf('<div class="notice notice-success"><p>Updated</p><p>%s</p></div>',$button);
         update_option('playground_clone_settings_'.$profile,$settings);
     }
@@ -41,15 +47,12 @@ function blueprint_settings_init($profile, $stylesheet) {
         $settings['copy_events'] = 1;
         $settings['key_pages'] = 1;
         $settings['origin_stylesheet'] = get_stylesheet();
-        printf('<p>New Blueprint settings %s</p>',var_export($settings,true));
     }
     if(isset($_GET['reset']) || empty($blueprint)) {
         $postvars['settings'] = $settings;
         $postvars['add_theme'][] = get_stylesheet();
         $postvars['profile'] = $profile;
         $postvars['repo'] = 'https://wordpress.org/plugins/sql-buddy/';
-        if(isset($_GET['reset']))
-            $postvars['show_blueprint'] = 1; // force showing the blueprint
         $result = quickplayground_build($postvars,$profile);
         $blueprint = $result[0];
         $settings = $result[1];
