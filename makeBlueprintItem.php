@@ -62,7 +62,6 @@ function makeCodeItem($code) {
     if(!strpos($code, '?>')) {
         $code .= "\n?>";
     }
-    printf('makeCodeItem(%s)', htmlentities($code));
     return makeBlueprintItem('runPHP', array('code'=>$prefix.$code));
 }
 

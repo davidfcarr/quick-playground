@@ -11,13 +11,13 @@ function quickplayground_build($postvars, $profile = 'default') {
     $default_plugins = is_multisite() ? get_blog_option(1,'playground_default_plugins',array()) : array();
     $excluded_plugins = is_multisite() ? get_blog_option(1,'playground_excluded_plugins',array()) : array();
     $default_themes = is_multisite() ? get_blog_option(1,'playground_default_themes',array()) : array();
-    $slugs = ['theme-plugin-playground'];
+    $slugs = ['quick-playground'];
     $themeslugs = [];
     if(!empty($excluded_plugins))
         $slugs = array_merge($slugs,$excluded_plugins);
     if(!empty($default_plugins)) {
         foreach($default_plugins as $slug) {
-        printf('<p>default plugins %s</p>',$slug);
+        printf('<p>default plugins %s</p>',esc_html($slug));
         $postvars['add_plugin'][] = $slug;
         $postvars['activate_plugin'][] = 1;
         $postvars['ziplocal_plugin'][] = false;
@@ -26,7 +26,7 @@ function quickplayground_build($postvars, $profile = 'default') {
     if(isset($postvars['all_active_plugins'])) {
         $active_plugins = explode(',',$postvars['all_active_plugins']);
         foreach($active_plugins as $slug) {
-            printf('<p>active plugins %s</p>',$slug);
+            printf('<p>active plugins %s</p>',esc_html($slug));
             $postvars['add_plugin'][] = $slug;
             $postvars['activate_plugin'][] = 1;
             $postvars['ziplocal_plugin'][] = false;
@@ -78,8 +78,7 @@ function quickplayground_build($postvars, $profile = 'default') {
                 }
             }
         }
-        if(playground_premium_enabled())
-            $settings = apply_filters('quickplayground_new_settings',$settings);
+        $settings = apply_filters('quickplayground_new_settings',$settings);
     }
 
     if(isset($postvars['logerrors']))
@@ -117,22 +116,22 @@ function quickplayground_build($postvars, $profile = 'default') {
                 if($ziplocal) {
                     $public = false;
             if(isset($_POST['show_details']) || isset($_GET['reset']))
-                    printf('<p>Adding local theme %s</p>',htmlentities($slug));
+                    printf('<p>Adding local theme %s</p>',esc_html($slug));
                     quickplayground_playground_zip_theme($slug);
                 } else {
                     if(quickplayground_repo_check($slug,'theme')) {
             if(isset($_POST['show_details']) || isset($_GET['reset']))
-                        printf('<p>Adding public theme %s</p>',htmlentities($slug));
+                        printf('<p>Adding public theme %s</p>',esc_html($slug));
                     } else {
                         $public = false;
             if(isset($_POST['show_details']) || isset($_GET['reset']))
-                        printf('<p>Public theme %s not found, adding as local zip</p>',htmlentities($slug));
+                        printf('<p>Public theme %s not found, adding as local zip</p>',esc_html($slug));
                         quickplayground_playground_zip_theme($slug);
                     }
                 }
             if($i < 1) {
                 if(isset($_POST['show_details']) || isset($_GET['reset']))
-                printf('<p>Default theme %s</p>',$slug);
+                printf('<p>Default theme %s</p>',esc_html($slug));
                 $settings['clone_stylesheet'] = $slug;
                 $themetest = wp_get_theme($slug);
                 $parent_theme = $themetest->parent();
@@ -156,11 +155,11 @@ function quickplayground_build($postvars, $profile = 'default') {
 
         if(quickplayground_repo_check($slug,'theme')) {
             if(isset($_POST['show_details']) || isset($_GET['reset']))
-                printf('<p>Adding public theme %s</p>',htmlentities($slug));
+                printf('<p>Adding public theme %s</p>',esc_html($slug));
         } else {
             $public = false;
             if(isset($_POST['show_details']) || isset($_GET['reset'])) 
-                printf('<p>Public theme %s not found, adding as local zip</p>',htmlentities($slug));
+                printf('<p>Public theme %s not found, adding as local zip</p>',esc_html($slug));
             quickplayground_playground_zip_theme($slug);
         }
         $steps[] = makeThemeItem($slug, $public, $activate);
@@ -182,7 +181,7 @@ function quickplayground_build($postvars, $profile = 'default') {
                     $did_zip = quickplayground_playground_zip_plugin($slug);
                     if(!$did_zip) {
                     if(isset($_POST['show_details']) || isset($_GET['reset']))
-                        printf('<p>Unable to add as local plugin %s</p>',htmlentities($slug));
+                        printf('<p>Unable to add as local plugin %s</p>',esc_html($slug));
                     continue;
                     }
                 } else {
@@ -190,18 +189,17 @@ function quickplayground_build($postvars, $profile = 'default') {
                     if(quickplayground_repo_check($slug,'plugin')) {
 
                     if(isset($_POST['show_details']) || isset($_GET['reset']))
-                        printf('<p>Adding public plugin %s</p>',htmlentities($slug));
-
+                        printf('<p>Adding public plugin %s</p>',esc_html($slug));
                     } else {
                         $public = false;
                         $did_zip = quickplayground_playground_zip_plugin($slug);
                         if(!$did_zip) {
                         if(isset($_POST['show_details']) || isset($_GET['reset']))
-                            printf('<p>Unable to add as local plugin %s</p>',htmlentities($slug));
+                            printf('<p>Unable to add as local plugin %s</p>',esc_html($slug));
                         continue;
                         }
                         if(isset($_POST['show_details']) || isset($_GET['reset']))
-                            printf('<p>Public plugin %s not found, adding as local zip</p>',htmlentities($slug));
+                            printf('<p>Public plugin %s not found, adding as local zip</p>',esc_html($slug));
                     }
 
                 }
@@ -249,14 +247,13 @@ function quickplayground_build($postvars, $profile = 'default') {
     $steps[] = makePluginItem("quick-playground", false, true);
 
     $blueprint = array('features'=>array('networking'=>true),'steps'=>$steps);
-    if(playground_premium_enabled())
-        $blueprint = apply_filters('quickplayground_new_blueprint',$blueprint);
+    $blueprint = apply_filters('quickplayground_new_blueprint',$blueprint);
 
     update_option('playground_blueprint_'.$profile, $blueprint);
     update_option('playground_clone_settings_'.$profile, $settings);
-    printf('<div class="notice notice-success"><p>Blueprint saved for profile %s with %d steps defined.</p></div>',htmlentities($profile),sizeof($blueprint['steps']));
+    printf('<div class="notice notice-success"><p>Blueprint saved for profile %s with %d steps defined.</p></div>',esc_html($profile),sizeof($blueprint['steps']));
     if(!empty($postvars['show_blueprint'])) {
-    echo '<pre>'.htmlentities(json_encode($blueprint, JSON_PRETTY_PRINT)).'</pre>';
+    echo '<pre>'.esc_html(json_encode($blueprint, JSON_PRETTY_PRINT)).'</pre>';
     }
     return array($blueprint, $settings);
 }

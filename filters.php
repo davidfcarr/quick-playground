@@ -12,7 +12,7 @@ function quickplayground_playground_clone_rsvpmakers($clone) {
     if(!empty($clone['settings']['copy_events']) && function_exists('rsvpmaker_get_future_events')) {
         $clone['next_event'] = 0;
         $clone['rsvpmakers'] = [];
-        $rsvpmakers = rsvpmaker_get_future_events();
+        $rsvpmakers = rsvpmaker_get_future_events(['limit'=>intval($clone['settings']['copy_events'])]);
         if(!empty($rsvpmakers) ) {
             $clone['next_event'] = $rsvpmakers[0]->ID;
             foreach($rsvpmakers as $r) {
@@ -42,6 +42,14 @@ function quickplayground_playground_clone_rsvpmakers($clone) {
                 $event['post_title'] = $r->post_title;
                 $clone['rsvpmakers'][] = $event;
             }
+        }
+    }
+    if(!empty($clone['settings']['demo_rsvpmakers']) && is_array($clone['settings']['demo_rsvpmakers']) && function_exists('rsvpmaker_get_future_events')) {
+      foreach($clone['settings']['demo_rsvpmakers'] as $r) {
+        $r = intval($r);
+        $clone['ids'][] = $event->ID;
+        $clone['rsvpmakers'][] = (array) get_rsvpmaker_event($r);
+        $clone['posts'][] = (array) get_post($r);
         }
     }
     return $clone;
@@ -79,7 +87,7 @@ function rsvpmaker_playground_clone($clone) {
             $result = $wpdb->replace($event_table, $r);
             $clone['output'] .= "<p>$wpdb->last_query</p>";
             if(!$result) {
-                $clone['output'] .= '<p>Error: terms '.htmlentities($wpdb->last_error).'</p>';
+                $clone['output'] .= '<p>Error: terms '.esc_html($wpdb->last_error).'</p>';
             }
         }
     }
@@ -101,6 +109,21 @@ function rsvpmaker_settings_for_playground($settings_list) {
     return $settings_list;
 }
 
+add_filter('quickplayground_clone_save_posts','quickplayground_clone_save_rsvpmaker_posts',10,1);
+
+function quickplayground_clone_save_rsvpmaker_posts($clone) {
+    if(function_exists('rsvpmaker_get_future_events')) {
+        $clone['rsvpmakers'] = [];
+        foreach($clone['posts'] as $post) {
+            $post = (array) $post;
+            if($post['post_type'] == 'rsvpmaker') {
+                $clone['rsvpmakers'][] = (array) get_rsvpmaker_event($post['ID']);
+            }
+        }
+    }
+    return $clone;
+}
+
 add_action('quickplayground_form_demo_content','quickplayground_form_demo_rsvpmaker_content',10,1);
 
 function quickplayground_form_demo_rsvpmaker_content($settings) {
@@ -112,6 +135,6 @@ echo '<p>Copy <input type="number" name="settings[copy_events]" value="'.$copy_e
 $events_dropdown = get_events_dropdown ();
   for($i = 0; $i < 10; $i++) {
   $classAndID = ($i > 0) ? ' class="hidden_item rsvpmaker" id="rsvpmaker_'.$i.'" ' : ' class="rsvpmaker" id="rsvpmaker_'.$i.'" ';
-  printf('<p%s>Demo Blog Post: <select class="select_with_hidden" name="demo_events[]">%s</select></p>'."\n",$classAndID,'<option value="">Choose Event</option>'.$events_dropdown);
+  printf('<p%s>Demo Blog Post: <select class="select_with_hidden" name="demo_rsvpmakers[]">%s</select></p>'."\n",$classAndID,'<option value="">Choose Event</option>'.$events_dropdown);
   }
 }

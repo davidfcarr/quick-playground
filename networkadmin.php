@@ -8,7 +8,7 @@
 function quickplayground_networkadmin() {
     if(!empty($_POST) && !wp_verify_nonce( $_POST['playground'], 'quickplayground' ) ) 
     {
-        echo '<h2>Security Error</h2>';
+        echo '<h2>'.__('Security Error','quick-playground').'</h2>';
         return;
     }
     echo '<p>As network administrator, you can specify plugins and themes that should be excluded or required by default.</p>';
@@ -41,7 +41,7 @@ function quickplayground_networkadmin() {
     foreach($plugins as $dir_file => $header) {
         $parts = preg_split('/[\.\/]/',$dir_file);
         $basename = $parts[0];
-        if(in_array($basename,$excluded_plugins) || 'design-plugin-playground' == $basename) {
+        if(in_array($basename,$excluded_plugins) || 'quick-playground' == $basename) {
             continue; // skip excluded plugins
         }
         $all_plugins[$basename] = $header["Name"];
@@ -49,10 +49,10 @@ function quickplayground_networkadmin() {
         {
             if(!in_array($basename,$excluded_plugins))
                 $active_plugins[] = $basename;
-            $active_pluginoptions .= sprintf('<option value="%s">%s (%s)</option>',$basename, $header["Name"],__('Active','theme-plugin-playground'));
+            $active_pluginoptions .= sprintf('<option value="%s">%s (%s)</option>',esc_attr($basename), esc_html($header["Name"]),esc_html__('Active','quick-playground'));
         }
         else
-            $pluginoptions .= sprintf('<option value="%s">%s</option>',$basename, $header["Name"]);
+            $pluginoptions .= sprintf('<option value="%s">%s</option>',esc_attr($basename), esc_html($header["Name"]));
     }
     $themeoptions = '<option value="">Select a theme</option>';
 
@@ -63,31 +63,31 @@ function quickplayground_networkadmin() {
     foreach($themes as $styleslug => $themeobj) {
         if(in_array($styleslug,$excluded_themes))
         if($stylesheet == $styleslug) {
-            $current_theme_option = sprintf('<option value="%s">%s</option>',$styleslug, $themeobj->__get('name'));
+            $current_theme_option = sprintf('<option value="%s">%s</option>',esc_attr($styleslug), esc_html($themeobj->__get('name')));
         }
-        $themeoptions .= sprintf('<option value="%s">%s</option>',$styleslug, $themeobj->__get('name'));
+        $themeoptions .= sprintf('<option value="%s">%s</option>',esc_attr($styleslug), esc_html($themeobj->__get('name')));
     }
     echo '<h2>Excluded Plugins</h2>';
     foreach($excluded_plugins as $p)
-        printf('<p><input type="checkbox" name="excluded_plugins[]" value="%s" checked="checked"> %s</p>',$p, $p);
+        printf('<p><input type="checkbox" name="excluded_plugins[]" value="%s" checked="checked"> %s</p>',esc_attr($p), esc_html($p));
     for($i = 0; $i < 10; $i++) {
     printf('<p>Exclude Plugin: <select name="excluded_plugins[]">%s</select></p>',$active_pluginoptions.$pluginoptions);
     }
     echo '<h2>Excluded Themes</h2>';
     foreach($excluded_themes as $p)
-        printf('<p><input type="checkbox" name="excluded_themes[]" value="%s" checked="checked"> %s</p>',$p, $p);
+        printf('<p><input type="checkbox" name="excluded_themes[]" value="%s" checked="checked"> %s</p>',esc_attr($p), esc_html($p));
     for($i = 0; $i < 10; $i++) {
     printf('<p>Exclude Theme: <select name="excluded_themes[]">%s</select></p>',$themeoptions);
     }
     echo '<h2>Default Plugins</h2>';
     foreach($default_plugins as $p)
-        printf('<p><input type="checkbox" name="default_plugins[]" value="%s" checked="checked"> %s</p>',$p,$p);
+        printf('<p><input type="checkbox" name="default_plugins[]" value="%s" checked="checked"> %s</p>',esc_attr($p),esc_html($p));
     for($i = 0; $i < 10; $i++) {
     printf('<p>Default Plugin: <select name="default_plugins[]">%s</select></p>',$active_pluginoptions.$pluginoptions);
     }
     echo '<h2>Default Themes</h2>';
     foreach($default_themes as $p)
-        printf('<p><input type="checkbox" name="default_themes[]" value="%s" checked="checked"> %s</p>',$p,$p);
+        printf('<p><input type="checkbox" name="default_themes[]" value="%s" checked="checked"> %s</p>',esc_attr($p),esc_html($p));
 
     for($i = 0; $i < 10; $i++) {
     printf('<p>Default Theme: <select name="default_themes[]">%s</select></p>',$themeoptions);

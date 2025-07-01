@@ -11,21 +11,21 @@ function quickplayground_sync() {
     print_r($_REQUEST);
     if(!empty($_POST) && !wp_verify_nonce( $_POST['playground'], 'quickplayground' ) ) 
     {
-        echo '<h2>Security Error</h2>';
+        echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
         return;
     }
     if($changes) {
         $status = 'Preview';
         if(isset($_POST['approve'])) {
-            printf('<h2>%s</h2>',__('Processing Changes','design-plugin-playground'));
+            printf('<h2>%s</h2>',esc_html__('Processing Changes','quick-playground'));
             $status = 'Doing';
         }
         else {
-            printf('<h2>%s</h2>',__('Proposed Changes','design-plugin-playground'));
-            printf('<form method="post" action="%s" ><input type="hidden" name="approve" value="1"><div><button>Approve Changes</button></div>%s %s</form>',admin_url('admin.php?page=quickplayground_sync'),wp_nonce_field('quickplayground','playground',true,false),wp_nonce_field('quickplayground','playground',true,false));
+            printf('<h2>%s</h2>',esc_html__('Proposed Changes','quick-playground'));
+            printf('<form method="post" action="%s" ><input type="hidden" name="approve" value="1"><div><button>Approve Changes</button></div>%s %s</form>',esc_attr(admin_url('admin.php?page=quickplayground_sync'),wp_nonce_field('quickplayground','playground',true,false),wp_nonce_field('quickplayground','playground',true,false)));
         }      
         if(isset($changes['switch_theme'])) {
-            printf('<p>%s: Switch theme to <strong>%s</strong></p>',$status,$changes['switch_theme']);
+            printf('<p>%s: Switch theme to <strong>%s</strong></p>',esc_attr($status),esc_html($changes['switch_theme']));
             if(isset($_POST['approve']))
                 switch_theme($changes['switch_theme']);
         }
@@ -37,23 +37,23 @@ function quickplayground_sync() {
                 if($exists) {
                     if(isset($_POST['approve'])) {
                         $result = wp_update_post($p);
-                        printf('<p>Update result for %s %s %s</p>',$p['ID'],$p['post_title'],var_export($result,true));
+                        printf('<p>Update result for %s %s %s</p>',intval($p['ID']),esc_html($p['post_title']),esc_html(var_export($result,true)));
                     }
-                    printf('<p>%s: Update %s <strong>%s</strong></p>',$status,$p['post_type'],$p['post_title']);
+                    printf('<p>%s: Update %s <strong>%s</strong></p>',esc_html($status),esc_html($p['post_type']),esc_html($p['post_title']));
                 }
                 else {
-                    printf('<p>%s: Add %s <strong>%s</strong></p>',$status,$p['post_type'],$p['post_title']);
+                    printf('<p>%s: Add %s <strong>%s</strong></p>',esc_html($status),esc_html($p['post_type']),esc_html($p['post_title']));
                     if(isset($_POST['approve'])) {
                         unset($p['ID']);
                         $post_id = wp_insert_post($p);
-                        printf('<p>Insert result %s %s</p>',var_export($post_id,true),$p['post_title']);
+                        printf('<p>Insert result %s %s</p>',esc_html(var_export($post_id,true)),esc_html($p['post_title']));
                     }
                 }
-                printf('<p><a href="%s">Edit</a></p>',get_edit_post_link($post_id,false));
+                printf('<p><a href="%s">Edit</a></p>',esc_attr(get_edit_post_link($post_id,false)));
                 foreach($meta as $key => $values)
                 {
                     foreach($values as $value) {
-                        echo "<p>".$status.": update_post_meta($post_id,$key,$value); </p>";
+                        echo "<p>".esc_html($status).": update_post_meta($post_id,$key,$value); </p>";
                         if(isset($_POST['approve']))    
                             update_post_meta($post_id,$key,$value);
                     }
@@ -70,7 +70,7 @@ function quickplayground_sync() {
                 foreach($changes['termmeta'] as $meta) {
                     $result = $wpdb->replace($wpdb->termmeta,$meta);
                     if(!$result) {
-                        $changesoutput .= '<p>Error: termmeta '.htmlentities($wpdb->last_error).'</p>';
+                        $changesoutput .= '<p>Error: termmeta '.esc_html($wpdb->last_error).'</p>';
                     }
                 }
             }
@@ -80,7 +80,7 @@ function quickplayground_sync() {
                     $result = $wpdb->replace($wpdb->terms,$row);
                     $changesoutput .= "<p>$wpdb->last_query</p>";
                     if(!$result) {
-                        $changesoutput .= '<p>Error: terms '.htmlentities($wpdb->last_error).'</p>';
+                        $changesoutput .= '<p>Error: terms '.esc_html($wpdb->last_error).'</p>';
                     }
                 }
             }
@@ -91,7 +91,7 @@ function quickplayground_sync() {
                     $result = $wpdb->replace($wpdb->term_relationships,$row);
                     $changesoutput .= "<p>$wpdb->last_query</p>";
                     if(!$result) {
-                        $changesoutput .= '<p>Error: term_relationships '.htmlentities($wpdb->last_error).'</p>';
+                        $changesoutput .= '<p>Error: term_relationships '.esc_html($wpdb->last_error).'</p>';
                     }
                 }
             }
@@ -101,7 +101,7 @@ function quickplayground_sync() {
                     $result = $wpdb->replace($wpdb->term_taxonomy,$row);
                     $changesoutput .= "<p>$wpdb->last_query</p>";
                     if(!$result) {
-                        $changesoutput .= '<p>Error: term_taxonomy '.htmlentities($wpdb->last_error).'</p>';
+                        $changesoutput .= '<p>Error: term_taxonomy '.esc_html($wpdb->last_error).'</p>';
                     }
                 }
             }
@@ -110,7 +110,7 @@ function quickplayground_sync() {
         }
 
         if(empty($_POST))
-            printf('<pre>%s</pre>',htmlentities(var_export($changes,true)));
+            printf('<pre>%s</pre>',esc_html(var_export($changes,true)));
 
     }//end if changes
 

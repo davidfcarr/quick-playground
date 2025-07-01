@@ -1,0 +1,191 @@
+# Copyright (C) 2025 David F. Carr
+# This file is distributed under the GPL2.
+msgid ""
+msgstr ""
+"Project-Id-Version: Quick Playground 0.9.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/quick-playground\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2025-07-01T11:16:40+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.10.0\n"
+"X-Domain: quick-playground\n"
+
+#. Plugin Name of the plugin
+#: C:\Users\d\Local Sites\delta\app\public\wp-content\plugins\quick-playground\quick-playground.php
+msgid "Quick Playground"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: C:\Users\d\Local Sites\delta\app\public\wp-content\plugins\quick-playground\quick-playground.php
+msgid "https://davidfcarr.com/quick-playground"
+msgstr ""
+
+#. Description of the plugin
+#: C:\Users\d\Local Sites\delta\app\public\wp-content\plugins\quick-playground\quick-playground.php
+msgid "Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites."
+msgstr ""
+
+#. Author of the plugin
+#: C:\Users\d\Local Sites\delta\app\public\wp-content\plugins\quick-playground\quick-playground.php
+msgid "David F. Carr"
+msgstr ""
+
+#: blueprint-builder.php:121
+msgid "Content to Include"
+msgstr ""
+
+#: blueprint-builder.php:124
+msgid "Front Page"
+msgstr ""
+
+#: blueprint-builder.php:134
+msgid "Keep Demo Page"
+msgstr ""
+
+#: blueprint-builder.php:156
+msgid "Demo Blog Post"
+msgstr ""
+
+#: blueprint-builder.php:157
+msgid "Choose Blog Post"
+msgstr ""
+
+#: blueprint-builder.php:169
+msgid "Additional Content Types"
+msgstr ""
+
+#: blueprint-builder.php:170
+msgid "Content types added by plugins"
+msgstr ""
+
+#: blueprint-builder.php:181
+msgid "Use live website content"
+msgstr ""
+
+#: blueprint-builder.php:216
+#: networkadmin.php:52
+msgid "Active"
+msgstr ""
+
+#: blueprint-settings-init.php:36
+msgid "Add New Profile"
+msgstr ""
+
+#: networkadmin.php:11
+#: quick-playground.php:48
+#: quickplayground-sync.php:14
+#: quickplayground_design_clone.php:9
+msgid "Security Error"
+msgstr ""
+
+#: quickplayground-sync.php:20
+msgid "Processing Changes"
+msgstr ""
+
+#: quickplayground-sync.php:24
+msgid "Proposed Changes"
+msgstr ""
+
+#: quickplayground_design_clone.php:13
+msgid "Design and Theme Playground"
+msgstr ""
+
+#: quickplayground_design_clone.php:26
+msgid "Cloning..."
+msgstr ""
+
+#. translators: %s: log page URL
+#: quickplayground_design_clone.php:30
+msgid "Cloning complete. %s"
+msgstr ""
+
+#: quickplayground_design_clone.php:31
+msgid "View log"
+msgstr ""
+
+#: quickplayground_design_clone.php:43
+msgid "All"
+msgstr ""
+
+#: quickplayground_design_clone.php:44
+#: quickplayground_design_clone.php:53
+msgid "Posts"
+msgstr ""
+
+#: quickplayground_design_clone.php:45
+#: quickplayground_design_clone.php:54
+#: quickplayground_design_clone.php:133
+msgid "Taxonomy and Metadata"
+msgstr ""
+
+#: quickplayground_design_clone.php:46
+#: quickplayground_design_clone.php:55
+#: quickplayground_design_clone.php:138
+#: quickplayground_design_clone.php:154
+msgid "Images"
+msgstr ""
+
+#: quickplayground_design_clone.php:47
+msgid "Clone Now"
+msgstr ""
+
+#: quickplayground_design_clone.php:52
+msgid "API endpoints"
+msgstr ""
+
+#: quickplayground_design_clone.php:60
+msgid "Welcome to the Pro version of the Design Playground!"
+msgstr ""
+
+#: quickplayground_design_clone.php:64
+msgid "Upgrade to the Pro version for the ability to easily save changes to this playground environment for future sessions. You can also post selected changes from this playground back to your live website (beta)."
+msgstr ""
+
+#. translators: 1: post title, 2: error message
+#: quickplayground_design_clone.php:85
+msgid "Error updating post: %1$s %2$s"
+msgstr ""
+
+#. translators: 1: post title, 2: post ID
+#: quickplayground_design_clone.php:92
+msgid "Updated post: %1$s ID %2$d"
+msgstr ""
+
+#. translators: 1: post title, 2: error message
+#: quickplayground_design_clone.php:103
+msgid "Error inserting post: %1$s %2$s"
+msgstr ""
+
+#. translators: 1: post title, 2: post ID
+#: quickplayground_design_clone.php:110
+msgid "Inserted post: %1$s ID %2$d"
+msgstr ""
+
+#: quickplayground_design_clone.php:124
+msgid "Design Playground Clone Log"
+msgstr ""
+
+#: quickplayground_design_clone.php:128
+msgid "Posts JSON"
+msgstr ""
+
+#: quickplayground_design_clone.php:142
+msgid "Incoming JSON"
+msgstr ""
+
+#: quickplayground_design_clone.php:144
+msgid "Incoming JSON modified"
+msgstr ""
+
+#: quickplayground_design_clone.php:148
+msgid "Metadata Copy"
+msgstr ""
+
+#: quickplayground_design_clone.php:150
+#: quickplayground_design_clone.php:156
+msgid "JSON"
+msgstr ""

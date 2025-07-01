@@ -8,7 +8,7 @@
             }
             $slugs[] = $slug; // add to slugs to avoid duplicates
 
-            if('theme-plugin-playground' == $slug) {
+            if('quick-playground' == $slug) {
                 continue; // skip excluded plugins
             }
             
@@ -17,12 +17,12 @@
             if(quickplayground_repo_check($slug,'plugin')) {
 
             if(isset($_POST['settings']) || isset($_GET['reset']))
-                printf('<p>Adding public plugin %s</p>',htmlentities($slug));
+                printf('<p>Adding public plugin %s</p>',esc_html($slug));
 
             } else {
                 $public = false;
             if(isset($_POST['settings']) || isset($_GET['reset']))
-                printf('<p>Public plugin %s not found, adding as local zip</p>',htmlentities($slug));
+                printf('<p>Public plugin %s not found, adding as local zip</p>',esc_html($slug));
                 quickplayground_playground_zip_plugin($slug);
             }
             $steps[] = makePluginItem($slug, $public, true);
@@ -35,7 +35,7 @@
         }
         $slugs[] = $slug; // add to slugs to avoid duplicates
 
-        if('theme-plugin-playground' == $slug) {
+        if('quick-playground' == $slug) {
             continue; // skip excluded plugins
         }
         
@@ -44,12 +44,12 @@
         if(quickplayground_repo_check($slug,'plugin')) {
 
             if(isset($_POST['settings']) || isset($_GET['reset']))
-            printf('<p>Adding public plugin %s</p>',htmlentities($slug));
+            printf('<p>Adding public plugin %s</p>',esc_html($slug));
 
         } else {
             $public = false;
             if(isset($_POST['settings']) || isset($_GET['reset']))
-            printf('<p>Public plugin %s not found, adding as local zip</p>',htmlentities($slug));
+            printf('<p>Public plugin %s not found, adding as local zip</p>',esc_html($slug));
             quickplayground_playground_zip_plugin($slug);
         }
         $steps[] = makePluginItem($slug, $public, true);

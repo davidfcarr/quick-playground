@@ -13,7 +13,12 @@ function blueprint_settings_init($profile, $stylesheet) {
         $settings = $result[1];
         $key = playground_premium_enabled();
         $button = quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
-        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p></div>',$button);
+        if(quickplayground_cache_exists($profile) && !empty($settings['playground_no_cache']))
+            $cachemessage = sprintf('<p>Cached content from past playground sessions will be displayed, unless you choose to <a href="%s#cachesettings">disable that feature</a>.</p>',esc_attr(admin_url('admin.php?page=quickplayground_builder')));
+        else
+            $cachemessage = '';
+        
+        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',$button, $cachemessage);
         update_option('playground_clone_settings_'.$profile,$settings);
     }
     else
@@ -33,7 +38,7 @@ function blueprint_settings_init($profile, $stylesheet) {
         }
         $ppoptions .= sprintf('<option value="%s" %s>%s</option>',$value, ($value == $profile) ? ' selected="selected" ' : '', $value);
     }
-    $ppoptions .= sprintf('<option value="add_custom">%s</option>', __('Add New Profile','theme-plugin-playground'));
+    $ppoptions .= sprintf('<option value="add_custom">%s</option>', __('Add New Profile','quick-playground'));
     if(isset($_GET['reset']) || empty($blueprint)) {
         $page_on_front = intval(get_option('page_on_front'));
         $settings = array();
@@ -58,5 +63,5 @@ function blueprint_settings_init($profile, $stylesheet) {
         $settings = $result[1];
         update_option('playground_clone_settings_'.$profile,$settings);
     }    
-    printf('<form method="get" action="%s" class="playground-form" ><input type="hidden" name="page" value="quickplayground" /><div id="switch_add_profile">Profile: <select name="profile">%s</select> <button>Switch</button></div>%s</form>',admin_url('admin.php'),$ppoptions,wp_nonce_field('quickplayground','playground',true,false));
+    printf('<form method="get" action="%s" class="playground-form" ><input type="hidden" name="page" value="quickplayground" /><div id="switch_add_profile">Profile: <select name="profile">%s</select> <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),$ppoptions,wp_nonce_field('quickplayground','playground',true,false));
 }

@@ -52,7 +52,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
   require('getmenus.php');
 	global $wpdb, $playground_uploads, $playground_site_uploads;
     $profile = sanitize_text_field($request['profile']);
-    /*
+    
     if(empty($_GET['nocache'])) {
       $savedfile = $playground_site_uploads.'/quickplayground_posts_'.$profile.'.json';
       if(file_exists($savedfile) && !isset($_GET['refresh'])) {
@@ -63,29 +63,10 @@ class Quick_Playground_Clone extends WP_REST_Controller {
       }
     }
     }
-    */
-
-    $clone['client_ip'] = $_SERVER['REMOTE_ADDR'];
+    
     $clone['profile'] = $profile;
-    $clone['settings'] = get_option('playground_clone_settings_'.$profile,array());
-    $clone['settings']['playground_premium'] = (strpos($profile,'-publicdemo')) ? false : playground_premium_enabled();
-    $clone['settings']['timezone_string'] = get_option('timezone_string');
-    $sql = "SELECT * FROM $wpdb->options WHERE option_name LIKE 'theme_mods_%'";
-    $mods = $wpdb->get_results($sql);
-    if(!empty($mods) && is_array($mods)) {
-      $clone['theme_mods'] = array();
-      foreach($mods as $mod) {
-        $clone['settings'][$mod->option_name] = maybe_unserialize($mod->option_value);
-      }
-    }
-    else {
-      $clone['theme_mods'] = array();
-    } 
-    if($clone['playground_premium'] && !strpos($profile,'-publicdemo')) {
-      $playground_sync_code = wp_generate_password(24,false);
-      update_option('playground_sync_code', $playground_sync_code);
-      $clone['settings']['playground_sync_code'] = $playground_sync_code;
-    }
+    $settings = get_option('playground_clone_settings_'.$profile,array());
+    $settings['playground_premium'] = playground_premium_enabled();
     $template_part = get_block_template( get_stylesheet() . '//header', 'wp_template_part' );
     $header_content = (empty($template_part->content)) ? '' : $template_part->content;
     $clone['nav_id'] = 0;
@@ -95,26 +76,26 @@ class Quick_Playground_Clone extends WP_REST_Controller {
         $clone['nav_id'] = $match[1];
     }
     $moretypes = '';
-    if(!empty($clone['settings']['post_types']) && is_array($clone['settings']['post_types']))
+    if(!empty($settings['post_types']) && is_array($settings['post_types']))
     {
-      foreach($clone['settings']['post_types'] as $t)
+      foreach($settings['post_types'] as $t)
         $t = sanitize_text_field($t);
         $moretypes .= " OR `post_type` = '$t' ";
     }
 
     $sql = "SELECT * FROM $wpdb->posts WHERE post_status='publish' AND (`post_type` = 'rsvpmaker_form' OR `post_type` = 'rsvpmaker_template' OR `post_type` = 'wp_block' OR `post_type` = 'wp_global_styles' OR `post_type` = 'wp_navigation' OR `post_type` = 'wp_template' OR `post_type` = 'wp_template_part' $moretypes)";
-    error_log(var_export($clone['settings'],true));
+    error_log(var_export($settings,true));
     error_log('playground sql '.$sql);
     $posts = $wpdb->get_results($sql);
-    if(!empty($clone['settings']['copy_blogs'])) {
-        $blogs = get_posts(array('numberposts'=>intval($clone['settings']['copy_blogs'])));
+    if(!empty($settings['copy_blogs'])) {
+        $blogs = get_posts(array('numberposts'=>intval($settings['copy_blogs'])));
         $posts = array_merge($blogs, $posts);
     }
-    if(!empty($clone['settings']['copy_pages'])) {
+    if(!empty($settings['copy_pages'])) {
       $pages = get_posts(array('post_type'=>'page','numberposts'=>-1));
       $posts = array_merge($pages, $posts);
     }
-    if(!empty($clone['settings']['key_pages'])) {
+    if(!empty($settings['key_pages'])) {
       $pages = quickplayground_key_pages();
       $posts = array_merge($pages, $posts);
     }
@@ -128,22 +109,22 @@ class Quick_Playground_Clone extends WP_REST_Controller {
     }
     $posts = array_filter($posts); // remove nulls
 
-    if($clone['settings']['page_on_front'] && !in_array($clone['settings']['page_on_front'], $clone['ids'])) {
-        $page = get_post($clone['settings']['page_on_front']);
-        $clone['ids'][] = intval($clone['settings']['page_on_front']);
+    if($settings['page_on_front'] && !in_array($settings['page_on_front'], $clone['ids'])) {
+        $page = get_post($settings['page_on_front']);
+        $clone['ids'][] = intval($settings['page_on_front']);
         if($page) {
             $page->post_status = 'publish'; // ensure it is published, even if it was copied from a draft
             $posts[] = $page;
         }
     }
     
-    if(!empty($clone['settings']['demo_pages']) && is_array($clone['settings']['demo_pages'])) {
-      if($clone['settings']['make_menu']) {
+    if(!empty($settings['demo_pages']) && is_array($settings['demo_pages'])) {
+      if($settings['make_menu']) {
         $clone['make_menu'] = true;
-        $clone['make_menu_ids'] = $clone['settings']['demo_pages'];
+        $clone['make_menu_ids'] = $settings['demo_pages'];
       }
       $clone['demo_pages'] = [];
-        foreach($clone['settings']['demo_pages'] as $page_id) {
+        foreach($settings['demo_pages'] as $page_id) {
             if(in_array($page_id, $clone['ids']))
               continue; // already included
             $page = get_post($page_id);
@@ -154,13 +135,13 @@ class Quick_Playground_Clone extends WP_REST_Controller {
             }
       }
     }
-    elseif(!empty($clone['settings']['make_menu'])) {
+    elseif(!empty($settings['make_menu'])) {
         $clone['make_menu'] = true;
     }
 
-    if(!empty($clone['settings']['demo_posts']) && is_array($clone['settings']['demo_posts'])) {
+    if(!empty($settings['demo_posts']) && is_array($settings['demo_posts'])) {
       $clone['demo_posts'] = [];
-        foreach($clone['settings']['demo_posts'] as $id) {
+        foreach($settings['demo_posts'] as $id) {
             if(in_array($id, $clone['ids']))
               continue; // already included
             $p = get_post($id);
@@ -175,6 +156,93 @@ class Quick_Playground_Clone extends WP_REST_Controller {
     $clone['posts'] = $posts;
     $clone = apply_filters('quickplayground_playground_clone_posts',$clone);
     update_option('playground_ids_'.$profile,$clone['ids']);
+    return new WP_REST_Response($clone, 200);
+}
+}
+
+/**
+ * REST controller for cloning posts and related data for the playground.
+ */
+class Quick_Playground_Clone_Settings extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for cloning posts.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'clone_settings/(?P<profile>[a-z0-9_]+)';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'GET',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+    /**
+     * Permissions check for getting items.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+
+	  return true;
+
+	}
+
+    /**
+     * Handles GET requests for cloning posts and related data.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+  require('getmenus.php');
+	global $wpdb, $playground_uploads, $playground_site_uploads;
+    $profile = sanitize_text_field($request['profile']);
+    
+    if(empty($_GET['nocache'])) {
+      $savedfile = $playground_site_uploads.'/quickplayground_settings_'.$profile.'.json';
+      if(file_exists($savedfile) && !isset($_GET['refresh'])) {
+      $json = file_get_contents($savedfile);
+      if($json && $clone = json_decode($json)) {
+        //$clone['savedfile'] = $savedfile;
+        return new WP_REST_Response($clone, 200);
+      }
+    }
+    }
+    
+    $clone['client_ip'] = $_SERVER['REMOTE_ADDR'];
+    $clone['profile'] = $profile;
+    $settings = get_option('playground_clone_settings_'.$profile,array());
+    $settings['playground_premium'] = playground_premium_enabled();
+    $settings['timezone_string'] = get_option('timezone_string');
+    $sql = "SELECT * FROM $wpdb->options WHERE option_name LIKE 'theme_mods_%'";
+    $mods = $wpdb->get_results($sql);
+    if(!empty($mods) && is_array($mods)) {
+      foreach($mods as $mod) {
+        $settings[$mod->option_name] = maybe_unserialize($mod->option_value);
+      }
+    }
+    if($clone['playground_premium']) {
+      $playground_sync_code = wp_generate_password(24,false);
+      update_option('playground_sync_code', $playground_sync_code);
+      $settings['playground_sync_code'] = $playground_sync_code;
+    }
+    $clone['settings'] = $settings;
+    $clone = apply_filters('quickplayground_playground_clone_settings',$clone);
     return new WP_REST_Response($clone, 200);
 }
 }
@@ -234,13 +302,12 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
   $profile = $request['profile'];
   $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
   $savedfile = $playground_site_uploads.'/quickplayground_meta_'.$profile.'.json';
-  /*
-  if(file_exists($savedfile)) {
+  
+  if(file_exists($savedfile) && empty($_GET['nocache'])) {
     $json = file_get_contents($savedfile);
     if($json && $clone = json_decode($json))
       return new WP_REST_Response($clone, 200);
   }
-  */
   
     $clone = [];
     $clone['savedfile'] = $savedfile;
@@ -323,7 +390,7 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
   $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
   $savedfile = $playground_site_uploads.'/quickplayground_images_'.$profile.'.json';
   
-  if(file_exists($savedfile)) {
+  if(file_exists($savedfile) && empty($_GET['nocache'])) {
     $json = file_get_contents($savedfile);
     if($json)
     $saved = json_decode($json, true);
@@ -418,19 +485,19 @@ class Quick_Playground_Blueprint extends WP_REST_Controller {
     if(!empty($_GET['key'])) {
       $key = sanitize_text_field($_GET['key']);
       $email = is_multisite() ? get_blog_option(1,'playground_premium_email') : get_option('playground_premium_email');
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('is_demo'=>false,'playground_premium'=>$key));
+      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_is_demo'=>false,'playground_premium_enabled'=>$key,'playground_premium_expiration'=>4070908800));
     }
     else {
-      $email = $key = '';
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('is_demo'=>true,'playground_premium'=>false));
+      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_premium_enabled'=>false));
+    }
+    if(!empty($_GET['is_demo'])) {
+      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_is_demo'=>true));
     }
     if(!empty($_GET['nocache'])) {
       $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_no_cache'=>true));
     }
-    $blueprint = quickplayground_fix_variables($blueprint,empty($key),$email);
-
-    if(playground_premium_enabled())
-      $blueprint = apply_filters('quickplayground_blueprint',$blueprint);
+    $blueprint = quickplayground_fix_variables($blueprint,empty($key) ? '' : $key,$email);
+    $blueprint = apply_filters('quickplayground_blueprint',$blueprint);
 
     return new WP_REST_Response($blueprint, 200);
 	}
@@ -570,6 +637,69 @@ class Quick_Playground_Save_Posts extends WP_REST_Controller {
     $savedfile = $playground_site_uploads.'/quickplayground_posts_'.$profile.'.json';
     $data = $request->get_json_params();
     $data = apply_filters('quickplayground_saved_posts',$data);
+    $bytes_written = file_put_contents($savedfile,json_encode($data));
+    $sync_response['saved'] = $bytes_written;
+    $sync_response['file'] = $savedfile;
+    return new WP_REST_Response($sync_response, 200);
+	}
+}
+
+/**
+ * REST controller for saving settings in the playground.
+ */
+class Quick_Playground_Save_Settings extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for saving metadata.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'save_settings/(?P<profile>[a-z0-9_]+)';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'GET, POST',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+  
+
+    /**
+     * Permissions check for saving metadata.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+
+	  return true;
+
+	}
+
+    /**
+     * Handles GET and POST requests for saving metadata.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+	global $wpdb, $playground_uploads, $playground_site_uploads;
+    $profile = $request['profile'];
+    $data = $request->get_json_params();
+    $data = apply_filters('quickplayground_saved_settings',$data);
+    $savedfile = $playground_site_uploads.'/quickplayground_settings_'.$profile.'.json';
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
@@ -769,6 +899,8 @@ add_action('rest_api_init', function () {
 	 $hook->register_routes();
 	 $hook = new Quick_Playground_Clone_Taxonomy();
 	 $hook->register_routes();           
+	 $hook = new Quick_Playground_Clone_Settings();
+	 $hook->register_routes();           
 	 $hook = new Quick_Playground_Clone_Images();
 	 $hook->register_routes();           
    $hook = new Quick_Playground_Blueprint();
@@ -777,6 +909,8 @@ add_action('rest_api_init', function () {
 	$hook->register_routes();           
   $hook = new Quick_Playground_Save_Posts();
 	$hook->register_routes();           
+  $hook = new Quick_Playground_Save_Settings();
+	 $hook->register_routes();           
   $hook = new Quick_Playground_Save_Meta();
 	 $hook->register_routes();           
   $hook = new Quick_Playground_Save_Image();

@@ -8,7 +8,7 @@ function quickplayground_find_key_pages() {
     $siteurl = rtrim(get_option('siteurl'),'/');
     $response = wp_remote_get($siteurl);
     if(is_wp_error($response)) {
-        echo $output .=  '<p>Error: '.htmlentities($response->get_error_message()).'</p>';
+        echo $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
         error_log('Error find key pages data: '.$response->get_error_message());
         return;
     }
@@ -43,7 +43,7 @@ function quickplayground_key_pages_checkboxes() {
         $done[] = $slug;
         $page = get_page_by_path($slug, OBJECT,['page', 'post']);
         if($page)
-        printf('<p><input type="checkbox" value="%d"> %s %s %d</p>',$page->ID,$page->post_title,$page->post_status,$page->ID);
+        printf('<p><input type="checkbox" value="%d"> %s %s %d</p>',intval($page->ID),esc_html($page->post_title),esc_html($page->post_status),intval($page->ID));
     }
 }
 

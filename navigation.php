@@ -21,16 +21,16 @@ function quickplayground_setup_navigation() {
         $my_posts = get_posts($args);
 
         if(empty($page_on_front))
-            $nav = sprintf('<!-- wp:navigation-link {"label":"%s","type":"page","url":"%s","kind":"post-type"} /-->', 'Home', site_url()) . "\n";
+            $nav = sprintf('<!-- wp:navigation-link {"label":"%s","type":"page","url":"%s","kind":"post-type"} /-->', 'Home', esc_attr(site_url())) . "\n";
         else
-            $nav = sprintf('<!-- wp:navigation-link {"label":"%s","type":"page","id":%d,"url":"%s","kind":"post-type"} /-->', 'Home', $page_on_front, get_permalink($page_on_front)) . "\n";
+            $nav = sprintf('<!-- wp:navigation-link {"label":"%s","type":"page","id":%d,"url":"%s","kind":"post-type"} /-->', 'Home', intval($page_on_front), esc_attr(get_permalink($page_on_front))) . "\n";
 
         if(!empty($my_posts)) {
-            $nav .= sprintf('<!-- wp:navigation-link {"label":"%s","type":"post","id":%d,"url":"%s","kind":"post-type"} /-->', 'Calendar', $my_posts[0]->ID, get_permalink($my_posts[0]->ID)) . "\n";
+            $nav .= sprintf('<!-- wp:navigation-link {"label":"%s","type":"post","id":%d,"url":"%s","kind":"post-type"} /-->', 'Calendar', intval($my_posts[0]->ID), esc_attr(get_permalink($my_posts[0]->ID))) . "\n";
         }
 
         if(!empty($page_for_posts))
-            $nav .= sprintf('<!-- wp:navigation-link {"label":"%s","type":"page","id":%d,"url":"%s","kind":"post-type"} /-->', 'Blog', $page_for_posts, get_permalink($page_for_posts)) . "\n";
+            $nav .= sprintf('<!-- wp:navigation-link {"label":"%s","type":"page","id":%d,"url":"%s","kind":"post-type"} /-->', 'Blog', intval($page_for_posts), esc_attr(get_permalink($page_for_posts))) . "\n";
 
         $post = array(
             'post_content'   => $nav,

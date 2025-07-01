@@ -45,16 +45,17 @@ unset($temp);
 function quickplayground() {
     if(!empty($_POST) && !wp_verify_nonce( $_POST['playground'], 'quickplayground' ) ) 
     {
-        echo '<h2>Security Error</h2>';
+        echo '<h2>'.__('Security Error','quick-playground').'</h2>';
         return;
     }
 
     global $wpdb, $current_user, $playground_uploads, $playground_uploads_url;
 
     $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';
-    $origin_url = rtrim(get_option('siteurl'),'/');
+    printf('<h2>Quick Playground for %s: %s</h2>',esc_html(get_bloginfo('name')),esc_html($profile));
     $stylesheet = get_stylesheet();
     blueprint_settings_init($profile,$stylesheet);
+    $origin_url = rtrim(get_option('siteurl'),'/');
     $blueprint = get_option('playground_blueprint_'.$profile, array());
     $settings = get_option('playground_clone_settings_'.$profile,array());
     $stylesheet = $settings['clone_stylesheet'] ?? $stylesheet;
@@ -63,10 +64,10 @@ function quickplayground() {
     $playground_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
     $clone_api_url = rest_url('quickplayground/v1/playground_clone/'.$profile);
 
-printf('<h2>Quick Playground for %s: %s</h2>',get_bloginfo('name'),$profile);
-
-    printf('<p>Loading saved blueprint for profile %s with %d steps defined.</p>',htmlentities($profile),sizeof($blueprint['steps']));
+    printf('<p>Loading saved blueprint for profile %s with %d steps defined.</p>',esc_html($profile),sizeof($blueprint['steps']));
 echo $button;
+if(quickplayground_cache_exists($profile))
+    printf('<p>Cached content from past playground sessions will be displayed, unless you choose to <a href="%s#cachesettings">disable that feature</a>.</p>',esc_attr(admin_url('admin.php?page=quickplayground_builder')));
 
 printf('<form method="post" action="%s"><input type="hidden" name="build_profile" value="1"> %s ',admin_url('admin.php?page=quickplayground_builder'), wp_nonce_field('quickplayground','playground',true,false));
 $themeslots = 1;
@@ -74,10 +75,10 @@ quickplayground_theme_options($blueprint, $stylesheet, $themeslots);
 quickplayground_plugin_options($blueprint);
 printf('<input type="hidden" name="keep_settings" value="1" >');
 printf('<p><input type="checkbox" name="settings[key_pages]" value="1" %s > Include key pages and posts (linked to from the home page or menu)</p>',(!isset($settings['key_pages']) || $settings['key_pages']) ? ' checked="checked" ' : '');
-printf('<input type="hidden" name="profile" value="%s" />',$profile);
+printf('<input type="hidden" name="profile" value="%s" />',esc_attr($profile));
 echo '<p><button>Submit</button></p>';
 echo '</form>';
-printf('<p>For more customization options, see the <a href="%s">Playground Builder page</a>.</p>',admin_url('admin.php?page=quickplayground_builder'));
+printf('<p>For more customization options, see the <a href="%s">Playground Builder page</a>.</p>',esc_attr(admin_url('admin.php?page=quickplayground_builder')));
 
 echo '<div class="playground-doc">';
 if($key) {
@@ -98,24 +99,24 @@ if($key) {
     <li>Call custom PHP code in the playground.</li>
     </ul>
     <p><strong>For a limited time, you can get the Pro version just by signing up for the Quick Playground Email List. <a href="%s">Upgrade Now</a>.</strong></p>
-    ',$upgrade_url,$upgrade_url);
+    ',esc_attr($upgrade_url),esc_attr($upgrade_url));
     echo "<p>Your website content and settings are not shared with any external cloud service. The playground is a private instance of WordPress loaded into your web browser.</p>";
 }
 echo '</div>';
-    echo '<div class="playground-theme-previews">';
     $themes = wp_get_themes(['allowed'=>true]);
     if(!empty($themes) && sizeof($themes) > 1) {
         echo '<p>See how your website would look with any of the WordPress themes shown below.</p>';
-    }
+    echo '<div class="playground-theme-previews">';
     foreach($themes as $theme) {
         if($theme->stylesheet == $stylesheet)
             continue;
         $button = quickplayground_get_button(['profile'=>$profile,'key'=>$key,'stylesheet'=>$theme->stylesheet]);
         $blueprint_url = get_playground_api_url(['profile'=>$profile,'key'=>$key,'stylesheet'=>$theme->stylesheet]);
         $screenshot = $theme->get_screenshot(); ///get_stylesheet_directory_uri().'/screenshot.png';
-        printf('<div class="playground-stylesheet"><div style="">Theme: %s</div><div class="playground-theme-screenshot"><img src="%s" width="300" /></div><div class="playground-theme-button">%s<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',$theme->Name,$screenshot,$button,$blueprint_url,quickplayground_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet]));
+        printf('<div class="playground-stylesheet"><div style="">Theme: %s</div><div class="playground-theme-screenshot"><img src="%s" width="300" /></div><div class="playground-theme-button">%s<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',esc_html($theme->Name),esc_attr($screenshot),$button,$blueprint_url,quickplayground_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet]));
     }
     echo '</div>';
+    }
 }
 
 /**
@@ -148,17 +149,18 @@ function get_playground_api_url($args=[]) {
     else {
         $profile = sanitize_text_field($args['profile']);
     }
+    unset($args['profile']);
     global $current_user;
     $playground_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
-    if(!empty($args['stylesheet']))
-        $playground_api_url .= '&stylesheet='.sanitize_text_field($args['stylesheet']);
-    if(!empty($args['key']))
-        $playground_api_url .= '&key='.sanitize_text_field($args['key']);
-    if(!empty($args['nocache']))
-        $playground_api_url .= '&nocache='.$true;
+    foreach($args as $key => $value) {
+        if(!empty($value)) {
+            $playground_api_url .= '&'.sanitize_text_field($key).'='.sanitize_text_field($value);
+        }
+    }
     return $playground_api_url;
 }
 
+add_shortcode('quickplayground_button', 'quickplayground_get_button');
 /**
  * Generates a button to access the playground for a specific profile.
  *
@@ -170,9 +172,9 @@ function get_playground_api_url($args=[]) {
  */
 function quickplayground_get_button($args = ['profile' => 'default']) {
 global $current_user;
-$playground_api_url = empty($args['url']) ? get_playground_api_url($args) : $args['url'];
+$playground_api_url = empty($args['url']) ? get_playground_api_url($args) : sanitize_text_field($args['url']);
 
-$button = sprintf('<a target="_blank" href="%s" style="
+$button = sprintf('<div><a target="_blank" href="%s" style="
   background-color: #004165;
   color: white;
   font-size: 16px;
@@ -217,7 +219,7 @@ $button = sprintf('<a target="_blank" href="%s" style="
 </g>
 </svg>
 &nbsp;&nbsp;&nbsp;  Go To Playground
-</a>','https://playground.wordpress.net/?blueprint-url='.urlencode($playground_api_url)
+</a></div>','https://playground.wordpress.net/?blueprint-url='.urlencode($playground_api_url)
 );
 return $button;
 }
@@ -231,4 +233,19 @@ return $button;
 function quickplayground_get_blueprint_link($args = ['profile'=>'default','stylesheet' => '']) {
 $playground_api_url = get_playground_api_url($args);
 return '<p><a href="https://playground.wordpress.net/?blueprint-url='.urlencode($playground_api_url).'">Public Link</a></p>';
+}
+
+function quickplayground_print_button_shortcode($args = ['profile'=>'default','stylesheet' => '']) {
+$playground_api_url = get_playground_api_url($args);
+echo '<h3>Quick Playground Button Shortcode for Demos</h3>';
+echo '<p>[quickplayground_button url="'.esc_attr($playground_api_url).'"]</p>';
+echo '<p>OR</p>';
+echo '<p>[quickplayground_button ';
+foreach($args as $key => $value) {
+    if(!empty($value)) {
+        echo esc_attr($key).'="'.esc_attr($value).'" ';
+    }
+}
+echo ']</p>';
+echo '<p>Optional attributes: nocache="1" stylesheet="twentytwentyfive" </p>';
 }
