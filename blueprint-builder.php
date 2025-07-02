@@ -9,7 +9,7 @@ global $wpdb, $current_user, $playground_uploads, $playground_uploads_url;
 $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';
 $stylesheet = get_stylesheet();
 printf('<h1>%s: %s</h1>', esc_html(get_bloginfo('name')), esc_html($profile));
-blueprint_settings_init($profile,$stylesheet);
+blueprint_settings_init($profile);
 $playground_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
 $clone_api_url = rest_url('quickplayground/v1/playground_clone/'.$profile);
 $origin_url = rtrim(get_option('siteurl'),'/');
@@ -210,6 +210,41 @@ quickplayground_print_button_shortcode(['profile'=>$profile,'is_demo'=>1]);
  * @param array $blueprint   The current blueprint array.
  * @param bool  $active_only Whether to show only active plugins (default true).
  */
+function quickplayground_plugin_list($blueprint) {
+    $saved_plugins = [];
+    foreach($blueprint['steps'] as $step) {
+        if(is_array($step)) {
+            if('installPlugin' == $step['step']) {
+                if($step['pluginData']['resource'] == 'wordpress.org/plugins')
+                {
+                    $slug = $step['pluginData']['slug'];
+                }
+                else {
+                $slug = $step['pluginData']['url'];
+                if(strpos($slug,'playground'))
+                    continue; 
+                preg_match('/\/([a-z0-9\-]+)\.zip/',$slug,$match);
+                if(empty($match[1]))
+                    continue;
+                $slug = $match[1];
+                }
+            if(strpos($slug,'playground'))
+                continue; 
+            if(!empty($saved_plugins[$i]['options']['activate']) )
+                $slug .= ' (active)';
+            $saved_plugins[] = $slug;
+            }
+        }
+}
+    return $saved_plugins;
+}
+
+/**
+ * Outputs plugin selection options for the playground blueprint form.
+ *
+ * @param array $blueprint   The current blueprint array.
+ * @param bool  $active_only Whether to show only active plugins (default true).
+ */
 function quickplayground_plugin_options($blueprint, $active_only = true) {
     $plausible_plugins = quickplayground_plausible_plugins();
     $default_plugins = is_multisite() ? get_blog_option(1,'playground_default_plugins',array()) : array();
@@ -384,3 +419,4 @@ if($themeslots == 1 && sizeof($saved_themes) > 1) {
 
 }
 }
+

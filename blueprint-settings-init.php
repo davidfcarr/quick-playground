@@ -5,7 +5,7 @@
  * @param string $profile    The profile name.
  * @param string $stylesheet The current theme stylesheet.
  */
-function blueprint_settings_init($profile, $stylesheet) {
+function blueprint_settings_init($profile) {
 
     if(isset($_POST['build_profile'])) {  
         $result = quickplayground_build($_POST,$profile);
@@ -57,11 +57,11 @@ function blueprint_settings_init($profile, $stylesheet) {
         $postvars['settings'] = $settings;
         $postvars['add_theme'][] = get_stylesheet();
         $postvars['profile'] = $profile;
-        $postvars['repo'] = 'https://wordpress.org/plugins/sql-buddy/';
         $result = quickplayground_build($postvars,$profile);
         $blueprint = $result[0];
         $settings = $result[1];
         update_option('playground_clone_settings_'.$profile,$settings);
-    }    
-    printf('<form method="get" action="%s" class="playground-form" ><input type="hidden" name="page" value="quickplayground" /><div id="switch_add_profile">Profile: <select name="profile">%s</select> <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),$ppoptions,wp_nonce_field('quickplayground','playground',true,false));
+    }
+    $page = sanitize_text_field($_GET['page']);    
+    printf('<form method="get" action="%s" class="playground-form" ><input type="hidden" name="page" value="%s" /><div id="switch_add_profile">Profile: <select name="profile">%s</select> <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),esc_attr($page),$ppoptions,wp_nonce_field('quickplayground','playground',true,false));
 }

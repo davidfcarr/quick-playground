@@ -318,18 +318,17 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
     $blog_id = get_current_blog_id();
     $blogusers = get_users(
       array(
-        'blog_id' => $blog_id,
-        'orderby' => 'display_name',
+        'blog_id' => $blog_id
       )
     );
     $one = false;
     $user_ids = [];
     $clone['users'] = $clone['usermeta'] = [];
     foreach($blogusers as $user) {
+    if(1 != $user->ID)
         $clone['users'][] = quickplayground_fake_user($user->ID);
     }
     $clone = apply_filters('quickplayground_playground_clone_meta',$clone);
-
     return new WP_REST_Response($clone, 200);
 }
 }

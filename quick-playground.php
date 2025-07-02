@@ -23,7 +23,6 @@ require_once('quickplayground-sync.php');
 require_once('quickplayground-test.php');
 require_once('blueprint-settings-init.php');
 require_once('filters.php');
-require_once 'faker/src/autoload.php';
 
 if(is_multisite())
     require_once('networkadmin.php');
@@ -54,31 +53,16 @@ function quickplayground() {
     $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';
     printf('<h2>Quick Playground for %s: %s</h2>',esc_html(get_bloginfo('name')),esc_html($profile));
     $stylesheet = get_stylesheet();
-    blueprint_settings_init($profile,$stylesheet);
+    blueprint_settings_init($profile);
     $origin_url = rtrim(get_option('siteurl'),'/');
     $blueprint = get_option('playground_blueprint_'.$profile, array());
     $settings = get_option('playground_clone_settings_'.$profile,array());
     $stylesheet = $settings['clone_stylesheet'] ?? $stylesheet;
     $key = playground_premium_enabled();
-    $button = quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
-    $playground_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
-    $clone_api_url = rest_url('quickplayground/v1/playground_clone/'.$profile);
-
-    printf('<p>Loading saved blueprint for profile %s with %d steps defined.</p>',esc_html($profile),sizeof($blueprint['steps']));
-echo $button;
+    printf('<p>Theme: %s, Plugins: %s. For Customization options, see the <a href="%s">Playground Builder page</a>.</p>',esc_html($stylesheet),esc_html(implode(', ', quickplayground_plugin_list($blueprint))),esc_attr(admin_url('admin.php?page=quickplayground_builder')));
+    echo quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
 if(quickplayground_cache_exists($profile))
     printf('<p>Cached content from past playground sessions will be displayed, unless you choose to <a href="%s#cachesettings">disable that feature</a>.</p>',esc_attr(admin_url('admin.php?page=quickplayground_builder')));
-
-printf('<form method="post" action="%s"><input type="hidden" name="build_profile" value="1"> %s ',admin_url('admin.php?page=quickplayground_builder'), wp_nonce_field('quickplayground','playground',true,false));
-$themeslots = 1;
-quickplayground_theme_options($blueprint, $stylesheet, $themeslots);
-quickplayground_plugin_options($blueprint);
-printf('<input type="hidden" name="keep_settings" value="1" >');
-printf('<p><input type="checkbox" name="settings[key_pages]" value="1" %s > Include key pages and posts (linked to from the home page or menu)</p>',(!isset($settings['key_pages']) || $settings['key_pages']) ? ' checked="checked" ' : '');
-printf('<input type="hidden" name="profile" value="%s" />',esc_attr($profile));
-echo '<p><button>Submit</button></p>';
-echo '</form>';
-printf('<p>For more customization options, see the <a href="%s">Playground Builder page</a>.</p>',esc_attr(admin_url('admin.php?page=quickplayground_builder')));
 
 echo '<div class="playground-doc">';
 if($key) {

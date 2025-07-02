@@ -73,11 +73,12 @@ function rsvpmaker_playground_clone($clone) {
     $t = time();
     $event_table = $wpdb->prefix.'rsvpmaker_event';
     if(!empty($clone['rsvpmakers'])) {
-        foreach($clone['rsvpmakers'] as $r) {
+        foreach($clone['rsvpmakers'] as $index => $r) {
+            $multiplier = 1 + $index;
             $r = (array) $r; // Ensure $r is an array
             if($r['ts_start'] < $t) {
                 $diff = $r['ts_start'] - $t;
-                $addweek = ceil($diff / WEEK_IN_SECONDS) * WEEK_IN_SECONDS;
+                $addweek = ceil($diff / WEEK_IN_SECONDS) * (WEEK_IN_SECONDS * $multiplier);
                 $r['ts_start'] += $addweek;
                 $r['date'] = rsvpmaker_date('Y-m-d H:i:s',$r['ts_start']);
                 $r['ts_end'] += $addweek;
