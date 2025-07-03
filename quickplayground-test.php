@@ -35,4 +35,8 @@ function quickplayground_test() {
     <input type="hidden" name="action" value="quickplayground_test" />
     <button>Update</button></form>',admin_url('admin.php?page=quickplayground_test'),($disable) ? 'checked="checked"' : '',(!$disable) ? 'checked="checked"' : '', $baseurl);
 
+    for($i = 0; $i < 100; $i++) {
+        $fake = quickplayground_fake_user($i);
+        printf('<p>Fake User: %s</p>', var_export($fake, true));
+    }
 }

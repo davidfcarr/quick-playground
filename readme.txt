@@ -48,6 +48,12 @@ How it Works
 
 - If you obtain a Pro license key, a plugin with additional capabilities for saving and syncing content will be loaded into the Playground (not your live website).
 
+Developer Friendly Features
+
+- [Source code on GitHub](https://github.com/davidfcarr/quick-playground)
+
+- [Examples of Using the Filters and Actions](https://github.com/davidfcarr/quick-playground/blob/main/filters.php)
+
 == Installation ==
 
 1. Upload the plugin files to the `/wp-content/plugins/quick-playground` directory, or install the plugin through the WordPress plugins screen directly.
@@ -79,5 +85,3 @@ No, the Playground environment is completely separate from your live website. Ch
 == License ==
 
 This plugin is licensed under the GPLv2 or later. See the [GNU General Public License](https://www.gnu.org/licenses/gpl-2.0.html) for more details.
-
-The Faker library, bundled with the plugin, is included under its own open source license

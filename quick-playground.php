@@ -61,8 +61,7 @@ function quickplayground() {
     $key = playground_premium_enabled();
     printf('<p>Theme: %s, Plugins: %s. For Customization options, see the <a href="%s">Playground Builder page</a>.</p>',esc_html($stylesheet),esc_html(implode(', ', quickplayground_plugin_list($blueprint))),esc_attr(admin_url('admin.php?page=quickplayground_builder')));
     echo quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
-if(quickplayground_cache_exists($profile))
-    printf('<p>Cached content from past playground sessions will be displayed, unless you choose to <a href="%s#cachesettings">disable that feature</a>.</p>',esc_attr(admin_url('admin.php?page=quickplayground_builder')));
+    echo quickplayground_cache_message($profile, $settings);
 
 echo '<div class="playground-doc">';
 if($key) {

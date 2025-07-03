@@ -36,8 +36,16 @@ function quickplayground_toolbar_link( $wp_admin_bar ) {
 
         $args = array(
             'id'    => 'playground',
-            'title' => 'Design Playground',
+            'title' => 'Playground',
             'href'  => admin_url('admin.php?page=quickplayground_clone_page'),
+            'parent' => 'site-name',
+            'meta'  => array( 'class' => 'playground' )
+        );    
+        $wp_admin_bar->add_node( $args );
+        $args = array(
+            'id'    => 'playground-import',
+            'title' => 'Playground Import Log',
+            'href'  => admin_url('admin.php?page=quickplayground_clone_log'),
             'parent' => 'site-name',
             'meta'  => array( 'class' => 'playground' )
         );    
@@ -46,7 +54,7 @@ function quickplayground_toolbar_link( $wp_admin_bar ) {
     else {
         $args = array(
             'id'    => 'playground',
-            'title' => 'Design Playground',
+            'title' => 'Playground',
             'href'  => admin_url('admin.php?page=quickplayground'),
             'parent' => 'site-name',        
             'meta'  => array( 'class' => 'playground' )
@@ -269,26 +277,32 @@ function quickplayground_json_outgoing($json, $image_dir = '') {
  * @param int $id The user ID.
  * @return array  Fake user data.
  */
-function quickplayground_fake_user($id) {
-    $first_names = array(
-        'John', 'Jane', 'Alice', 'Bob', 'Charlie', 'Diana', 'Ethan', 'Fiona',
-        'George', 'Hannah', 'Ian', 'Julia', 'Kevin', 'Laura', 'Mike', 'Nina',
-        'Oscar', 'Paula', 'Quentin', 'Rachel',
-        'Samuel', 'Olivia', 'Liam', 'Emma', 'Noah', 'Ava', 'Mason', 'Sophia',
-        'Logan', 'Isabella', 'Lucas', 'Mia', 'Jackson', 'Amelia', 'Aiden', 'Harper',
-        'Elijah', 'Evelyn', 'Grayson', 'Abigail'
-    );
-    $last_names = array(
-        'Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller',
-        'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White',
-        'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez',
-        'Clark', 'Lewis', 'Lee', 'Walker', 'Hall', 'Allen', 'Young', 'King',
-        'Wright', 'Scott', 'Green', 'Baker', 'Adams', 'Nelson', 'Hill', 'Ramirez',
-        'Campbell', 'Mitchell', 'Roberts', 'Carter'
-    );
-    shuffle($first_names);
-    shuffle($last_names);
-    $user=array('ID'=>$id,'first_name'=>$first_names[0],'last_name'=>$last_names[0]);
+$first_names = $last_names = array();
+function quickplayground_fake_user($id = 0) {
+    global $first_names, $last_names;
+    if(empty($first_names) || empty($last_names)) {
+        $first_names = array(
+            'John', 'Jane', 'Alice', 'Bob', 'Charlie', 'Diana', 'Ethan', 'Fiona',
+            'George', 'Hannah', 'Ian', 'Julia', 'Kevin', 'Laura', 'Mike', 'Nina',
+            'Oscar', 'Paula', 'Quentin', 'Rachel',
+            'Samuel', 'Olivia', 'Liam', 'Emma', 'Noah', 'Ava', 'Mason', 'Sophia',
+            'Logan', 'Isabella', 'Lucas', 'Mia', 'Jackson', 'Amelia', 'Aiden', 'Harper',
+            'Elijah', 'Evelyn', 'Grayson', 'Abigail'
+        );
+        $last_names = array(
+            'Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller',
+            'Wilson', 'Moore', 'Taylor', 'Anderson', 'Thomas', 'Jackson', 'White',
+            'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez',
+            'Clark', 'Lewis', 'Lee', 'Walker', 'Hall', 'Allen', 'Young', 'King',
+            'Wright', 'Scott', 'Green', 'Baker', 'Adams', 'Nelson', 'Hill', 'Ramirez',
+            'Campbell', 'Mitchell', 'Roberts', 'Carter'
+        );
+        shuffle($first_names);
+        shuffle($last_names);
+    }
+    $first_name = array_pop($first_names);
+    $last_name = array_pop($last_names);
+    $user=array('ID'=>$id,'first_name'=>$first_name,'last_name'=>$last_name);
     $user['display_name'] = $user['first_name'].' '.$user['last_name'];
     $user['user_login'] = preg_replace('/[^a-z0-9]/','',strtolower($user['display_name'])).random_int(1,100);
     $user['user_email'] = $user['user_login'] . '@example.com';
@@ -372,4 +386,16 @@ function quickplayground_cache_exists($profile = 'default') {
     global $playground_site_uploads; 
     $savedfile = $playground_site_uploads.'/quickplayground_posts_'.$profile.'.json';
     return file_exists($savedfile);
+}
+
+function quickplayground_cache_message($profile, $settings) {
+    if(quickplayground_cache_exists($profile)) {
+        if(empty($settings['playground_no_cache']))
+            $cachemessage = sprintf('<p>Cached content from past playground sessions will be displayed, unless you choose to <a href="%s#cachesettings">disable that feature</a>.</p>',esc_attr(admin_url('admin.php?page=quickplayground_builder')));
+        else
+            $cachemessage = sprintf('<p>Cached content from past playground sessions will be displayed, but <strong>will not be displayed</strong> unless you choose to <a href="%s#cachesettings">enable that feature</a>. Otherwise, cached content display will be toggled back on the next time you save Playground content.</p>',esc_attr(admin_url('admin.php?page=quickplayground_builder')));
+    }
+    else
+        $cachemessage = '';
+    return $cachemessage;
 }

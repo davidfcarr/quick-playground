@@ -416,23 +416,38 @@ function quickplayground_clone( $target = null ) {
             
     if(!empty($retry)) {
         foreach($retry as $id_img) {
+            try {
             $id = media_sideload_image($id_img['guid'], $id_img['post_id'], 'cloned thumbail', 'id');
-            if($id) {
+            if($id && !is_wp_error($id)) {
             $result = add_post_meta($id_img['post_id'],'_thumbnail_id',$id);                    
             $clone['output'] .= sprintf('<p>On retry, downloaded Thumbnail %s, setting thumbnail for %d to %d %s</p>',esc_html($id_img['guid']),intval($id_img['post_id']),$id,esc_html(var_export($result,true)));
             }
             else
-                $clone['output'] .= sprintf('<p>On retry, error downloading thumbnail %s for %d, returned %s</p>',esc_html($id_img['guid']),intval($id_img['post_id']),esc_html(var_export($id,true)));        
+                $clone['output'] .= sprintf('<p>On retry, error downloading thumbnail %s for %d, returned %s</p>',esc_html($id_img['guid']),intval($id_img['post_id']),esc_html(var_export($id,true)));
+            }        
+            catch (Exception $e) {
+                $clone['output'] .= sprintf('<p>On retry, error downloading thumbnail %s %s</p>',esc_html($id_img['guid']),esc_html($e->getMessage()));
+                error_log($id_img['guid'] .' download error '.$e->getMessage());
+                $retry[] = $id_img;
+            }
         }
     }
 
     if(!empty($clone['site_icon_url'])) {
-        $id = media_sideload_image($clone['site_icon_url'], 0, 'cloned site icon', 'id');
-        update_option('site_icon',$id);
-        update_post_meta($id, '_wp_attachment_context', 'site-icon');
-        $clone['output'] .= sprintf('<p>Downloaded site icon %s, setting site icon to %d</p>',esc_html($clone['site_icon_url']),$id);
+        try {
+            $id = media_sideload_image($clone['site_icon_url'], 0, 'cloned site icon', 'id');
+            if($id && !is_wp_error($id)) {
+            update_option('site_icon',$id);
+            update_post_meta($id, '_wp_attachment_context', 'site-icon');
+            $clone['output'] .= sprintf('<p>Downloaded site icon %s, setting site icon to %d</p>',esc_html($clone['site_icon_url']),$id);
+            }
+        } catch (Exception $e) {
+            $clone['output'] .= sprintf('<p>Error downloading site icon %s %s</p>',esc_html($clone['site_icon_url']),esc_html($e->getMessage()));
+            error_log($clone['site_icon_url'] .' download error '.$e->getMessage());
+        }
     }
     if(!empty($clone['site_logo_url'])) {
+        try {
         $id = media_sideload_image($clone['site_logo_url'], 0, 'cloned site logo', 'id');
         if(!$id || is_wp_error($id)) {
             //retry with a different function
@@ -442,6 +457,12 @@ function quickplayground_clone( $target = null ) {
             $clone['output'] .= sprintf('<p>Downloaded site logo %s, setting site logo to %d</p>',esc_html($clone['site_logo_url']),$id);
             update_option('site_logo',$id);
             update_post_meta($id, '_wp_attachment_context', 'site-logo');
+        }
+            
+        }
+        catch (Exception $e) {
+            $clone['output'] .= sprintf('<p>Error downloading site logo %s %s</p>',esc_html($clone['site_logo_url']),esc_html($e->getMessage()));
+            error_log($clone['site_logo_url'] .' download error '.$e->getMessage());
         }
     }
     update_option('clone_images_log',$clone['output']);

@@ -13,16 +13,17 @@ function blueprint_settings_init($profile) {
         $settings = $result[1];
         $key = playground_premium_enabled();
         $button = quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
-        if(quickplayground_cache_exists($profile) && !empty($settings['playground_no_cache']))
-            $cachemessage = sprintf('<p>Cached content from past playground sessions will be displayed, unless you choose to <a href="%s#cachesettings">disable that feature</a>.</p>',esc_attr(admin_url('admin.php?page=quickplayground_builder')));
-        else
-            $cachemessage = '';
+        $cachemessage = quickplayground_cache_message($profile,$settings);
         
         printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',$button, $cachemessage);
         update_option('playground_clone_settings_'.$profile,$settings);
     }
-    else
+    else {
         $blueprint = get_option('playground_blueprint_'.$profile, array());
+        $settings = get_option('playground_clone_settings_'.$profile,array());
+        echo quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
+        echo quickplayground_cache_message($profile,$settings);
+    }
 
     $pp = get_option('playground_profiles',array('default'));
     if(!in_array($profile,$pp))

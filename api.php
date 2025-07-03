@@ -154,7 +154,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
     }
 
     $clone['posts'] = $posts;
-    $clone = apply_filters('quickplayground_playground_clone_posts',$clone);
+    $clone = apply_filters('quickplayground_playground_clone_posts',$clone, $settings);
     update_option('playground_ids_'.$profile,$clone['ids']);
     return new WP_REST_Response($clone, 200);
 }
@@ -197,9 +197,7 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
      * @return bool True if allowed.
      */
 	public function get_items_permissions_check($request) {
-
-	  return true;
-
+	  	return true;
 	}
 
     /**
@@ -370,9 +368,7 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
      * @return bool True if allowed.
      */
 	public function get_items_permissions_check($request) {
-
-	  return true;
-
+	  	return true;
 	}
 
     /**
@@ -461,9 +457,7 @@ class Quick_Playground_Blueprint extends WP_REST_Controller {
      * @return bool True if allowed.
      */
 	public function get_items_permissions_check($request) {
-
-	  return true;
-
+	  	return true;
 	}
 
     /**
@@ -542,9 +536,7 @@ class Quick_Playground_Sync extends WP_REST_Controller {
      * @return bool True if allowed.
      */
 	public function get_items_permissions_check($request) {
-
-	  return true;
-
+	  	return 'https://playground.wordpress.net/' == $_SERVER['HTTP_REFERER'];
 	}
 
   
@@ -618,9 +610,7 @@ class Quick_Playground_Save_Posts extends WP_REST_Controller {
      * @return bool True if allowed.
      */
 	public function get_items_permissions_check($request) {
-
-	  return true;
-
+	  	return 'https://playground.wordpress.net/' == $_SERVER['HTTP_REFERER'];
 	}
 
     /**
@@ -682,9 +672,7 @@ class Quick_Playground_Save_Settings extends WP_REST_Controller {
      * @return bool True if allowed.
      */
 	public function get_items_permissions_check($request) {
-
-	  return true;
-
+	  	return 'https://playground.wordpress.net/' == $_SERVER['HTTP_REFERER'];
 	}
 
     /**
@@ -745,9 +733,7 @@ class Quick_Playground_Save_Meta extends WP_REST_Controller {
      * @return bool True if allowed.
      */
 	public function get_items_permissions_check($request) {
-
-	  return true;
-
+	  	return 'https://playground.wordpress.net/' == $_SERVER['HTTP_REFERER'];
 	}
 
     /**
@@ -808,9 +794,7 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
      * @return bool True if allowed.
      */
 	public function get_items_permissions_check($request) {
-
-	  return true;
-
+	  	return 'https://playground.wordpress.net/' == $_SERVER['HTTP_REFERER'];
 	}
 
     /**
@@ -892,6 +876,75 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
 	}
 }
 
+class Quick_Playground_Download extends WP_REST_Controller {
+
+	public function register_routes() {
+
+		$namespace = 'quickplayground/v1';
+
+		$path      = 'download/(?P<filename>[A-Za-z0-9_\-\.]+)';
+
+		register_rest_route(
+
+			$namespace,
+
+			'/' . $path,
+
+			array(
+
+				array(
+
+					'methods'             => 'GET,POST',
+
+					'callback'            => array( $this, 'handle' ),
+
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+
+				),
+
+			)
+
+		);
+
+	}
+
+	public function get_items_permissions_check( $request ) {
+
+		return true;
+
+	}
+
+	public function handle( $request ) {
+    global $playground_uploads;
+    $filename = sanitize_text_field($request['filename']);
+    $file = $playground_uploads.'/'.$filename;
+ 
+        if(!file_exists($file)){ // file does not exist
+
+            die($file.' file not found');
+
+        } else {
+
+            header("Cache-Control: public");
+
+            header("Content-Description: File Transfer");
+
+            header("Content-Disposition: attachment; filename=".$filename);
+
+            header("Content-Type: application/zip");
+
+            header("Content-Transfer-Encoding: binary");
+
+            header("Access-Control-Allow-Origin: *");
+
+            // read the file from disk
+
+            readfile($file);
+
+        }
+    }
+}
+
 add_action('rest_api_init', function () {
 
 	 $hook = new Quick_Playground_Clone();
@@ -913,7 +966,8 @@ add_action('rest_api_init', function () {
   $hook = new Quick_Playground_Save_Meta();
 	 $hook->register_routes();           
   $hook = new Quick_Playground_Save_Image();
-	 $hook->register_routes();           
-
+	 $hook->register_routes();
+  $hook = new Quick_Playground_Download();
+	 $hook->register_routes();
 } );
 

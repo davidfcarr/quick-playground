@@ -81,7 +81,7 @@ function playgroundData($slug, $type = 'plugin', $public = true) {
         $data['slug'] = $slug;
     } else {
         $data['resource'] = 'url';
-        $data['url'] = $playground_uploads_url.'/'.$slug.'.zip?t=TIMESTAMP';
+        $data['url'] = rest_url('quickplayground/v1/download/'.$slug.'.zip?t=TIMESTAMP');  //$playground_uploads_url.'/'.$slug.'.zip?t=TIMESTAMP';
     }
     return $data;
 }

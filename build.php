@@ -17,7 +17,6 @@ function quickplayground_build($postvars, $profile = 'default') {
         $slugs = array_merge($slugs,$excluded_plugins);
     if(!empty($default_plugins)) {
         foreach($default_plugins as $slug) {
-        printf('<p>default plugins %s</p>',esc_html($slug));
         $postvars['add_plugin'][] = $slug;
         $postvars['activate_plugin'][] = 1;
         $postvars['ziplocal_plugin'][] = false;
@@ -71,14 +70,7 @@ function quickplayground_build($postvars, $profile = 'default') {
                 }
             }
         }
-        if(isset($postvars['demo_rsvpmakers']) && is_array($postvars['demo_rsvpmakers'])) {
-            foreach($postvars['demo_rsvpmakers'] as $i => $id) {
-                if(!empty($id)) {
-                    $settings['demo_rsvpmakers'][] = intval($id);
-                }
-            }
-        }
-        $settings = apply_filters('quickplayground_new_settings',$settings);
+        $settings = apply_filters('quickplayground_new_settings',$settings, $postvars);
     }
 
     if(isset($postvars['logerrors']))
