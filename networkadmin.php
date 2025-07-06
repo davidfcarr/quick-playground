@@ -13,7 +13,7 @@ function quickplayground_networkadmin() {
     }
     echo '<p>As network administrator, you can specify plugins and themes that should be excluded or required by default.</p>';
 
-    printf('<form method="post" action="">%s',wp_nonce_field('quickplayground','playground',true,false));
+    printf('<form  class="playground-form"  method="post" action="">%s',wp_nonce_field('quickplayground','playground',true,false));
     if(isset($_POST['excluded_plugins'])) {
         $excluded_plugins = array_filter($_POST['excluded_plugins']);
         $excluded_themes = array_filter($_POST['excluded_themes']);

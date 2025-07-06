@@ -1,4 +1,81 @@
 <?php
+/**
+ * REST controller for managing blueprints in the playground.
+ */
+class Quick_Playground_Blueprint extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for blueprints.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'blueprint/(?P<profile>[a-z0-9_]+)';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'GET',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+    /**
+     * Permissions check for getting blueprint items.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+	  	return true;
+	}
+
+    /**
+     * Handles GET requests for retrieving blueprints.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+    quickplayground_playground_zip_plugin("quick-playground");
+    $email = $key = '';
+    $blueprint = get_option('playground_blueprint_'.$request['profile']);
+    if (!$blueprint) {
+        return new WP_REST_Response(array('error'=>'blueprint_not_found'), 404);
+    }
+    if(isset($_GET['stylesheet'])) {
+      $blueprint = quickplayground_swap_theme($blueprint, sanitize_text_field($_GET['stylesheet']));
+    }
+    if(!empty($_GET['key'])) {
+      $key = sanitize_text_field($_GET['key']);
+      $email = is_multisite() ? get_blog_option(1,'playground_premium_email') : get_option('playground_premium_email');
+      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_is_demo'=>false,'playground_premium_enabled'=>$key,'playground_premium_expiration'=>4070908800));
+    }
+    else {
+      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_premium_enabled'=>false));
+    }
+    if(!empty($_GET['is_demo'])) {
+      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_is_demo'=>true));
+    }
+    if(!empty($_GET['nocache'])) {
+      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_no_cache'=>true));
+    }
+    $blueprint = quickplayground_fix_variables($blueprint,empty($key) ? '' : $key,$email);
+    $blueprint = apply_filters('quickplayground_blueprint',$blueprint);
+
+    return new WP_REST_Response($blueprint, 200);
+	}
+
+}
 
 /**
  * REST controller for cloning posts and related data for the playground.
@@ -152,7 +229,6 @@ class Quick_Playground_Clone extends WP_REST_Controller {
             }
       }
     }
-
     $clone['posts'] = $posts;
     $clone = apply_filters('quickplayground_playground_clone_posts',$clone, $settings);
     update_option('playground_ids_'.$profile,$clone['ids']);
@@ -321,6 +397,8 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
     );
     $one = false;
     $user_ids = [];
+    if(sizeof($blogusers) > 30)
+      $blogusers = array_slice($blogusers,0,30);
     $clone['users'] = $clone['usermeta'] = [];
     foreach($blogusers as $user) {
     if(1 != $user->ID)
@@ -421,18 +499,18 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
 }
 
 /**
- * REST controller for managing blueprints in the playground.
+ * REST controller for cloning taxonomy and metadata for the playground.
  */
-class Quick_Playground_Blueprint extends WP_REST_Controller {
+class Quick_Playground_Clone_Custom extends WP_REST_Controller {
 
     /**
-     * Registers REST API routes for blueprints.
+     * Registers REST API routes for cloning taxonomy.
      */
     public function register_routes() {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'blueprint/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_custom/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -451,51 +529,42 @@ class Quick_Playground_Blueprint extends WP_REST_Controller {
 	  }
 
     /**
-     * Permissions check for getting blueprint items.
+     * Permissions check for getting taxonomy items.
      *
      * @param WP_REST_Request $request The REST request.
      * @return bool True if allowed.
      */
 	public function get_items_permissions_check($request) {
-	  	return true;
+
+	  return true;
+
 	}
 
     /**
-     * Handles GET requests for retrieving blueprints.
+     * Handles GET requests for cloning taxonomy and metadata.
      *
      * @param WP_REST_Request $request The REST request.
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-    quickplayground_playground_zip_plugin("quick-playground");
-    $blueprint = get_option('playground_blueprint_'.$request['profile']);
-    if (!$blueprint) {
-        return new WP_REST_Response(array('error'=>'blueprint_not_found'), 404);
-    }
-    if(isset($_GET['stylesheet'])) {
-      $blueprint = quickplayground_swap_theme($blueprint, sanitize_text_field($_GET['stylesheet']));
-    }
-    if(!empty($_GET['key'])) {
-      $key = sanitize_text_field($_GET['key']);
-      $email = is_multisite() ? get_blog_option(1,'playground_premium_email') : get_option('playground_premium_email');
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_is_demo'=>false,'playground_premium_enabled'=>$key,'playground_premium_expiration'=>4070908800));
-    }
-    else {
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_premium_enabled'=>false));
-    }
-    if(!empty($_GET['is_demo'])) {
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_is_demo'=>true));
-    }
-    if(!empty($_GET['nocache'])) {
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_no_cache'=>true));
-    }
-    $blueprint = quickplayground_fix_variables($blueprint,empty($key) ? '' : $key,$email);
-    $blueprint = apply_filters('quickplayground_blueprint',$blueprint);
-
-    return new WP_REST_Response($blueprint, 200);
-	}
-
+  global $playground_uploads, $playground_site_uploads;
+  $profile = $request['profile'];
+  $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
+  $savedfile = $playground_site_uploads.'/quickplayground_custom_'.$profile.'.json';
+  
+  if(file_exists($savedfile) && empty($_GET['nocache'])) {
+    $json = file_get_contents($savedfile);
+    if($json && $clone = json_decode($json))
+      return new WP_REST_Response($clone, 200);
+  }
+  
+    $clone = ['custom_tables'=>[]];
+    $ids = get_option('playground_ids_'.$profile, array());
+    $clone = apply_filters('quickplayground_clone_custom',$clone,$ids);
+    return new WP_REST_Response($clone, 200);
 }
+}
+
 
 /**
  * REST controller for syncing data between the playground and the live site.
@@ -876,6 +945,65 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
 	}
 }
 
+/**
+ * REST controller for saving custom table content in the playground.
+ */
+class Quick_Playground_Save_Custom extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for saving metadata.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'save_custom/(?P<profile>[a-z0-9_]+)';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'GET, POST',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+    /**
+     * Permissions check for saving metadata.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+	  	return 'https://playground.wordpress.net/' == $_SERVER['HTTP_REFERER'];
+	}
+
+    /**
+     * Handles GET and POST requests for saving metadata.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+	global $wpdb, $playground_uploads, $playground_site_uploads;
+    $profile = $request['profile'];
+    $data = $request->get_json_params();
+    $data = apply_filters('quickplayground_saved_custom',$data);
+    $savedfile = $playground_site_uploads.'/quickplayground_custom_'.$profile.'.json';
+    $bytes_written = file_put_contents($savedfile,json_encode($data));
+    $sync_response['saved'] = $bytes_written;
+    $sync_response['file'] = $savedfile;
+    return new WP_REST_Response($sync_response, 200);
+	}
+}
+
 class Quick_Playground_Download extends WP_REST_Controller {
 
 	public function register_routes() {
@@ -955,6 +1083,8 @@ add_action('rest_api_init', function () {
 	 $hook->register_routes();           
 	 $hook = new Quick_Playground_Clone_Images();
 	 $hook->register_routes();           
+	 $hook = new Quick_Playground_Clone_Custom();
+	 $hook->register_routes();           
    $hook = new Quick_Playground_Blueprint();
 	 $hook->register_routes();           
   $hook = new Quick_Playground_Sync();
@@ -966,6 +1096,8 @@ add_action('rest_api_init', function () {
   $hook = new Quick_Playground_Save_Meta();
 	 $hook->register_routes();           
   $hook = new Quick_Playground_Save_Image();
+	 $hook->register_routes();
+  $hook = new Quick_Playground_Save_Custom();
 	 $hook->register_routes();
   $hook = new Quick_Playground_Download();
 	 $hook->register_routes();

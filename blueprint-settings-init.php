@@ -7,11 +7,12 @@
  */
 function blueprint_settings_init($profile) {
 
+    $key = playground_premium_enabled();
+    
     if(isset($_POST['build_profile'])) {  
         $result = quickplayground_build($_POST,$profile);
         $blueprint = $result[0];
         $settings = $result[1];
-        $key = playground_premium_enabled();
         $button = quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
         $cachemessage = quickplayground_cache_message($profile,$settings);
         
@@ -64,5 +65,5 @@ function blueprint_settings_init($profile) {
         update_option('playground_clone_settings_'.$profile,$settings);
     }
     $page = sanitize_text_field($_GET['page']);    
-    printf('<form method="get" action="%s" class="playground-form" ><input type="hidden" name="page" value="%s" /><div id="switch_add_profile">Profile: <select name="profile">%s</select> <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),esc_attr($page),$ppoptions,wp_nonce_field('quickplayground','playground',true,false));
+    printf('<form method="get" action="%s" class="playground-form" ><input type="hidden" name="page" value="quickplayground_builder" /><div id="switch_add_profile">Profile: <select name="profile">%s</select> <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),$ppoptions,wp_nonce_field('quickplayground','playground',true,false));
 }

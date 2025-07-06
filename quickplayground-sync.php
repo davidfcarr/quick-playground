@@ -22,7 +22,7 @@ function quickplayground_sync() {
         }
         else {
             printf('<h2>%s</h2>',esc_html__('Proposed Changes','quick-playground'));
-            printf('<form method="post" action="%s" ><input type="hidden" name="approve" value="1"><div><button>Approve Changes</button></div>%s %s</form>',esc_attr(admin_url('admin.php?page=quickplayground_sync'),wp_nonce_field('quickplayground','playground',true,false),wp_nonce_field('quickplayground','playground',true,false)));
+            printf('<form method="post" class="playground-form"  action="%s" ><input type="hidden" name="approve" value="1"><div><button>Approve Changes</button></div>%s %s</form>',esc_attr(admin_url('admin.php?page=quickplayground_sync'),wp_nonce_field('quickplayground','playground',true,false),wp_nonce_field('quickplayground','playground',true,false)));
         }      
         if(isset($changes['switch_theme'])) {
             printf('<p>%s: Switch theme to <strong>%s</strong></p>',esc_attr($status),esc_html($changes['switch_theme']));

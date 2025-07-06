@@ -22,7 +22,7 @@ $stylesheet = $settings['clone_stylesheet'] ?? $stylesheet;
 <p>This is where you define which themes and plugins you want each WordPress Playground to include. You can create several Playground profiles, associated with different themes, plugins, and options.</p>
 <?php
 
-printf('<form method="post" action="%s"> %s <input type="hidden" name="build_profile" value="1">',esc_attr(admin_url('admin.php?page=quickplayground_builder')), wp_nonce_field('quickplayground','playground',true,false));
+printf('<form class="playground-form" method="post" action="%s"> %s <input type="hidden" name="build_profile" value="1">',esc_attr(admin_url('admin.php?page=quickplayground_builder')), wp_nonce_field('quickplayground','playground',true,false));
 echo '<p><button>Refresh</button></p>';
 echo '<h2>Customization Options</h2>';
 printf('<p>Loading saved blueprint for profile %s with %d steps defined. You can add or modify themes, plugins, and settings below.</p>',esc_html($profile),sizeof($blueprint['steps']));
@@ -135,6 +135,9 @@ if(!empty($settings['demo_pages']) && is_array($settings['demo_pages'])) {
         }
     }
 }
+
+printf('<p>%s <input type="text" name="landingPage" value="%s" style="width: 200px" /><br /><em>%s</em></p>',esc_html__('Landing Page (optional)','quick-playground'),empty($blueprint['landingPage']) ? '' : esc_attr($blueprint['landingPage']),esc_html__('If you want the user to start somewhere other than the home page, enter the path. Example "/wp-admin/" or "/demo-instructions/"','quick-playground'));
+
 for($i = 0; $i < 10; $i++) {
 $classAndID = ($i > 0) ? ' class="hidden_item page" id="page_'.$i.'" ' : ' class="page" id="page_'.$i.'" ';
 printf('<p%s>Demo Page: <select class="select_with_hidden" name="demo_pages[]">%s</select></p>'."\n",$classAndID,'<option value="">Choose Page</option>'.$page_options);
@@ -178,6 +181,19 @@ echo '<p>'.__('Content types added by plugins','quick-playground').'</p>';
 
 printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Name','blogname',esc_attr($settings['blogname']));
 printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Description','blogdescription',esc_attr($settings['blogdescription']));
+if(empty($settings['playgroundmessages'])) {
+    $settings['playgroundmessages']['welcome'] = '';
+    $settings['playgroundmessages']['admin-welcome'] = '';
+}
+foreach($settings['playgroundmessages'] as $key => $value) {
+    printf('<p>Message: %s <br /><textarea name="settings[playgroundmessages][%s]"  cols="100" rows="3">%s</textarea></p>',$key,$key,esc_html($value));
+    if('welcome' == $key)
+    echo '<p><em>Displayed when the Playground first loads.</em></p>';
+    elseif('admin-welcome' == $key)
+    echo '<p><em>Displayed on first visit to the administrator\'s dashboard.</em></p>';
+}
+echo '<p>Custom Message target: <input type="text" name="custom_message_page" /><br /><em>Front End Examples: "home" for the home page, "special-offers" (for mysite.com/special-offers/) or post_type:rsvpmaker (any example of the specified post type)<br >Admin Examples: "dashboard" (/wp-admin/) or "quickplayground_clone_page" (mysite.com/wp-admin/admin.php?page=quickplayground_clone_page)</em><br /><textarea cols="100" rows="3" name="custom_message"></textarea></p>';
+
 printf('<p id="cachesettings"><input name="settings[%s]" type="radio" value="1" %s /> %s ','playground_no_cache',empty($settings['playground_no_cache']) ? '' : ' checked="checked" ', __('Use live website content','quick-playground'));
 printf('<input name="settings[%s]" type="radio" value="0" %s /> %s</p>','playground_no_cache',!empty($settings['playground_no_cache']) ? '' : ' checked="checked" ', __('Use cached playground content','quick-playground'));
 
@@ -230,7 +246,7 @@ function quickplayground_plugin_list($blueprint) {
                 }
             if(strpos($slug,'playground'))
                 continue; 
-            if(!empty($saved_plugins[$i]['options']['activate']) )
+            if(!empty($step['options']['activate']) )
                 $slug .= ' (active)';
             $saved_plugins[] = $slug;
             }
@@ -297,13 +313,18 @@ if(!empty($saved_plugins[$i])) {
     }
     if($slug == 'quick-playground')
         continue; // skip this plugin, it is already included in the playground
-    $active = (!empty($saved_plugins[$i]['options']['activate']) ) ? ' checked="checked" ' : '';
-    if(!empty($slug))
-    printf('<p>Keep Plugin: <input type="checkbox" name="add_plugin[]" value="%s" checked="checked" /> %s <input type="checkbox" name="ziplocal_plugin[%d]" value="1" %s /> Local Zip <input type="checkbox" name="activate_plugin[%d]" value="1" %s /> Activate </p>',esc_attr($slug), esc_attr($slug), $i,$local ? ' checked="checked" ' : '',esc_attr($i),$active);
+    if(!empty($slug)) {
+    //printf('<p>Keep Plugin: <input type="checkbox" name="add_plugin[]" value="%s" checked="checked" /> %s <input type="checkbox" name="zip[%s]" value="1" %s /> Local Zip <input type="checkbox" name="activate[%s]" value="1" %s /> Activate </p>',esc_attr($slug), esc_attr($slug), esc_attr($slug),$local ? ' checked="checked" ' : '',esc_attr($slug),$active);
+    $opt = sprintf('<option value="%s">%s</option><option value="">Remove %s</option>',$slug,$slug,$slug);
+    $activate = (!empty($saved_plugins[$i]['options']['activate']) ) ? '<input type="radio" name="activate_plugin['.intval($i).']" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin['.intval($i).']" value="0" /> Do Not Activate' : '<input type="radio" name="activate_plugin['.intval($i).']" value="1" /> Activate <input type="radio" name="activate_plugin['.intval($i).']" value="0" checked="checked" /> Do Not Activate';
+    $zip = ($local) ? '<input type="radio" name="ziplocal_plugin['.intval($i).']" value="0" /> WordPress.org <input type="radio" name="ziplocal_plugin['.intval($i).']" value="1"  checked="checked" /> Local Zip ' : '<input type="radio" name="ziplocal_plugin['.intval($i).']" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin['.intval($i).']" value="1" /> Local Zip ';
+    $classAndID = ' class="plugin" id="plugin_'.esc_attr($i).'" ';
+    printf('<p%s>Plugin: <select class="select_with_hidden" name="add_plugin[]">%s</select> %s <br />%s  </p>',$classAndID,$opt.$pluginoptions,$zip,$activate);
+    }
 } 
 else {
     $classAndID = ($i > 0 + sizeof($saved_plugins)) ? ' class="hidden_item plugin" id="plugin_'.esc_attr($i).'" ' : ' class="plugin" id="plugin_'.esc_attr($i).'" ';
-    printf('<p%s>Add Plugin: <select class="select_with_hidden" name="add_plugin[]">%s</select>  <input type="radio" name="ziplocal_plugin[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin[%d]" value="1" /> Local Zip <br /><input type="radio" name="activate_plugin[%d]" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin[%d]" value="0" /> Do Not Activate  </p>',esc_attr($classAndID),$pluginoptions,$i,$i,$i,$i);
+    printf('<p%s>Plugin: <select class="select_with_hidden" name="add_plugin[]">%s</select>  <input type="radio" name="ziplocal_plugin[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin[%d]" value="1" /> Local Zip <br /><input type="radio" name="activate_plugin[%d]" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin[%d]" value="0" /> Do Not Activate  </p>',$classAndID,$pluginoptions,$i,$i,$i,$i);
     }
 }
 echo "<p class=\"fineprint\">Make a selection, and another will be revealed</p>\n";
@@ -387,13 +408,13 @@ if(!empty($saved_themes[$i]) && $i > 0) {
         $slug = $match[1];
         $local = 1;
     }
-    printf('<p>Keep %s: <input type="checkbox" name="add_theme[]" value="%s" checked="checked" /> %s <input type="checkbox" name="ziplocal_theme[%d]" value="1" %s /> Local Zip</p>',esc_html($label),esc_attr($slug), esc_attr($slug), esc_attr($i), $local ? ' checked="checked" ' : '');
+    printf('<p>Keep %s: <input type="checkbox" name="add_theme[]" value="%s" checked="checked" /> %s <input type="checkbox" name="zip[%s]" value="1" %s /> Local Zip</p>',esc_html($label),esc_attr($slug), esc_attr($slug), esc_attr($slug), $local ? ' checked="checked" ' : '');
 } 
 else {
 $default_option = ($i == 0) ? $current_theme_option : '';
 $hideafter = (empty($saved_themes)) ? 1 : sizeof($saved_themes);
 $classAndID = ($i > $hideafter ) ? ' class="hidden_item theme" id="theme_'.esc_attr($i).'" ' : ' class="theme" id="theme_'.esc_attr($i).'" ';
-printf('<p%s>%s: <select class="select_with_hidden" name="add_theme[]">%s</select> <input type="radio" name="ziplocal_theme[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_theme[%d]" value="1" /> Local Zip WordPress.org</p>',esc_attr($classAndID),esc_html($label),$default_option.$themeoptions,intval($i),intval($i),intval($i) );
+printf('<p%s>%s: <select class="select_with_hidden" name="add_theme[]">%s</select> <input type="radio" name="ziplocal_theme[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_theme[%d]" value="1" /> Local Zip WordPress.org</p>',$classAndID,esc_html($label),$default_option.$themeoptions,intval($i),intval($i),intval($i) );
 }
 
 }

@@ -22,6 +22,8 @@ The Theme and Plugin Playground plugin provides a safe and convenient way to tes
 
 The plugin takes advantage of WordPress Playground, the innovative software that simulates a complete PHP/WordPress/database server environment running in your web browser for testing and experimentation. Quick Playground simplifies the creation of Playground Blueprints, which define steps such as installing themes and plugins and loading content. No need to hand-code JSON or arrange for code to be served from Github.
 
+This plugin is ideal for developers and designers who want to test new ideas without disrupting their live website.
+
 Features:
 
 - Clone your website's home page and key content for testing purposes. For performance reasons, the plugin does not attempt to clone your entire database.
@@ -30,13 +32,21 @@ Features:
 
 - Test new designs in a WordPress Playground environment.
 
-Pro Version Upgrades 
+- Works on WordPress multisite (clones the individual site, not the whole network). Network administrator can set default themes and plugins to include or exclude.
 
-- Save changes for future playground sessions, allowing you to keep experimenting. You can also create demo environments separate from your live website content, for example to showcase themes, plugins, or hosting services.
+Pro Version Upgrades
 
-- Sync changes back to your live website (experimental feature).
+- Save changes for future playground sessions, allowing you to keep experimenting.
 
-This plugin is ideal for developers and designers who want to test new ideas without disrupting their live website.
+- Create demo environments separate from your live website content, for example to showcase themes, plugins, or hosting services.
+
+- Sync changes back to your live website (experimental feature). For example, you can prototype block theme changes in Playground and copy the updated templates or template parts back to the live site.
+
+Developer Friendly Features
+
+- [Source code on GitHub](https://github.com/davidfcarr/quick-playground)
+
+- [Examples of Using the Filters and Actions](https://github.com/davidfcarr/quick-playground/blob/main/filters.php)
 
 How it Works
 
@@ -48,19 +58,13 @@ How it Works
 
 - If you obtain a Pro license key, a plugin with additional capabilities for saving and syncing content will be loaded into the Playground (not your live website).
 
-Developer Friendly Features
-
-- [Source code on GitHub](https://github.com/davidfcarr/quick-playground)
-
-- [Examples of Using the Filters and Actions](https://github.com/davidfcarr/quick-playground/blob/main/filters.php)
-
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/quick-playground` directory, or install the plugin through the WordPress plugins screen directly.
+1. Upload the plugin files to the `/wp-content/plugins/quick-playground` directory, or install the plugin through the WordPress plugins screen.
 
 2. Activate the plugin through the 'Plugins' screen in WordPress.
 
-3. Navigate to "Quick Playground" (between Appearance and Plugins) in the WordPress administrator's menu to access the plugin's features.
+3. Navigate to "Quick Playground" (between Appearance and Plugins on the dashboard).
 
 == Frequently Asked Questions ==
 

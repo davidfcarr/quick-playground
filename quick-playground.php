@@ -9,23 +9,7 @@
 *  Text Domain: quick-playground
 *  Domain Path: /languages
 */
-
-require_once('clone.php');
-require_once('utility.php');
-require_once('api.php');
-require_once('makeBlueprintItem.php');
-require_once('blueprint-builder.php');
-require_once('premium.php');
-require_once('build.php');
-require_once("key_pages.php");
-require_once('quickplayground_design_clone.php');
-require_once('quickplayground-sync.php');
-require_once('quickplayground-test.php');
-require_once('blueprint-settings-init.php');
-require_once('filters.php');
-
-if(is_multisite())
-    require_once('networkadmin.php');
+require_once('includes.php');
 $temp = wp_upload_dir();
 
 $playground_site_uploads = $temp['basedir'];
@@ -60,8 +44,8 @@ function quickplayground() {
     $stylesheet = $settings['clone_stylesheet'] ?? $stylesheet;
     $key = playground_premium_enabled();
     printf('<p>Theme: %s, Plugins: %s. For Customization options, see the <a href="%s">Playground Builder page</a>.</p>',esc_html($stylesheet),esc_html(implode(', ', quickplayground_plugin_list($blueprint))),esc_attr(admin_url('admin.php?page=quickplayground_builder')));
-    echo quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
-    echo quickplayground_cache_message($profile, $settings);
+    //echo quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
+    //echo quickplayground_cache_message($profile, $settings);
 
 echo '<div class="playground-doc">';
 if($key) {
@@ -88,7 +72,7 @@ if($key) {
 echo '</div>';
     $themes = wp_get_themes(['allowed'=>true]);
     if(!empty($themes) && sizeof($themes) > 1) {
-        echo '<p>See how your website would look with any of the WordPress themes shown below.</p>';
+        echo '<h2>Playground Design Gallery</h2><p>See how your website would look with any of the WordPress themes shown below.</p>';
     echo '<div class="playground-theme-previews">';
     foreach($themes as $theme) {
         if($theme->stylesheet == $stylesheet)
@@ -107,14 +91,24 @@ echo '</div>';
  *
  * @param string $hook The current admin page hook.
  */
-function quickplayground_enqueue_admin_script( $hook ) {
-    if ( !strpos($hook,'quickplayground') ) {
+function quickplayground_enqueue_admin_script( $hook = '' ) {
+    if ( !strpos($hook,'quickplayground') && !quickplayground_is_playground()) {
         return;
     }
     wp_enqueue_script( 'quickplayground_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '1.0' );
-    wp_enqueue_style( 'quickplayground_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.0' );
+    wp_enqueue_style( 'quickplayground_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css?x=123', array(), '1.0' );
 }
+function quickplayground_enqueue_script( $hook = '' ) {
+    if ( quickplayground_is_playground() ) {
+        wp_enqueue_script( 'quickplayground_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '1.0' );
+        wp_enqueue_style( 'quickplayground_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.0' );
+    }
+}
+
 add_action( 'admin_enqueue_scripts', 'quickplayground_enqueue_admin_script' );
+add_action( 'wp_enqueue_scripts', 'quickplayground_enqueue_script' );
+
+
 
 /**
  * Generates the API URL for the playground based on the profile and optional parameters.

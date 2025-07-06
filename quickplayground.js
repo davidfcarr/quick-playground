@@ -20,3 +20,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+  const overlay = document.getElementById("playground-overlay-message");
+  const closeBtn = document.getElementById("playground-overlay-close");
+  console.log('overlay',overlay);
+
+  // Hide after 90 seconds (90000 ms)
+  const timer = setTimeout(() => {
+    overlay.classList.add("fade-out");
+  }, 90000);
+
+  // Manual close
+  closeBtn.addEventListener("click", () => {
+    clearTimeout(timer);
+    overlay.classList.add("fade-out");
+  });
+});

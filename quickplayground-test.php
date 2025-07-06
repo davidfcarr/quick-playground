@@ -17,7 +17,7 @@ function quickplayground_test() {
         update_option('playground_sync_origin', $baseurl);
     }
     echo "is clone $is_clone, baseurl $baseurl";
-    printf('<form method="post" action="%s">
+    printf('<form method="post" action="%s" class="playground-form" >
     <p><input name="is_playground_clone" type="radio" value="1" %s >Clone On <input name="is_playground_clone" type="radio" value="0" %s >Clone Off </p>
    <p> <input name="playground_sync_origin" type="text" value="%s" placeholder="https://example.com/quickplayground" /></p>
     <input type="hidden" name="action" value="quickplayground_test" />
@@ -30,13 +30,20 @@ function quickplayground_test() {
         update_option('disable_playground_premium', $disable);
     }
 
-    printf('<form method="post" action="%s">
+    printf('<form method="post" action="%s" class="playground-form" >
     <p><input name="disable_playground_premium" type="radio" value="1" %s > Disable Pro <input name="disable_playground_premium" type="radio" value="0" %s > Disable Pro Off </p>
     <input type="hidden" name="action" value="quickplayground_test" />
     <button>Update</button></form>',admin_url('admin.php?page=quickplayground_test'),($disable) ? 'checked="checked"' : '',(!$disable) ? 'checked="checked"' : '', $baseurl);
 
-    for($i = 0; $i < 100; $i++) {
-        $fake = quickplayground_fake_user($i);
-        printf('<p>Fake User: %s</p>', var_export($fake, true));
-    }
+    echo '<h2>Custom Tables</h2>';
+    print_r(quickplayground_custom_tables_clone());
+
+    $updated_options = get_option('playground_updated_options');
+    $updated_posts = get_option('playground_updated_posts');
+    $updated_postmeta = get_option('playground_updated_postmeta');
+
+    printf('<p>Playground Updated Posts</p><pre>%s</pre>',var_export($updated_posts,true));
+    printf('<p>Playground Updated Postmeta</p><pre>%s</pre>',var_export($updated_postmeta,true));
+    printf('<p>Playground Updated Options</p><pre>%s</pre>',var_export($updated_options,true));
+    
 }

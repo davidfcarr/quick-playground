@@ -66,6 +66,8 @@ function quickplayground_clone( $target = null ) {
     if($no_cache) $settingsurl .= '&nocache=1';
     $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$playground_profile.'?t='.time();
     if($no_cache) $imgurl .= '&nocache=1';
+    $customurl = $baseurl .'/wp-json/quickplayground/v1/clone_custom/'.$playground_profile.'?t='.time();
+    if($no_cache) $customurl .= '&nocache=1';
 
     error_log('quickplayground_clone called with url: '.$url);  
     if(empty($target) || 'posts' == $target) {
@@ -91,6 +93,7 @@ function quickplayground_clone( $target = null ) {
         error_log('clone array created '.sizeof($clone));
         $clone['output'] = '';
         $clone['output'] .= '<h1>Cloning from '.esc_html($url).'</h1>';
+        $clone['output'] .= sprintf('<p>quickplayground_clone cache %s</p>',var_export($no_cache,true));
         if(!empty($clone['client_ip']))
             error_log('client_ip '.$clone['client_ip']);
 
@@ -188,15 +191,7 @@ function quickplayground_clone( $target = null ) {
             quickmenu_build_navigation($clone['make_menu_ids']);
         }
     } 
-    
-    if(!empty($clone["settings"]))
-    {
-        foreach($clone["settings"] as $setting => $value) {
-            $clone['output'] .= '<p>setting '.esc_html($setting).' = '.esc_html(var_export($value,true)).'</p>';
-            error_log('setting '.$setting.' = '.var_export($value,true));
-            update_option($setting,$value);
-        }
-    }
+
     // incudes posts that might be rsvpmakers
     $clone = apply_filters('playground_clone_posts',$clone);
     update_option('clone_posts_log',$clone['output']);
@@ -209,13 +204,26 @@ function quickplayground_clone( $target = null ) {
         return $clone['output'];
     }
     $clone = json_decode($response['body'],true);
+    
     if(!empty($clone["settings"]))
     {
+    $blueprint_only_settings = ["playground_no_cache",
+        "playground_is_demo",
+        "playground_premium_enabled",
+        "playground_premium_expiration",
+        "origin_stylesheet",
+        "is_playground_clone",
+        "playground_profile",
+        "playground_sync_origin"];
         foreach($clone["settings"] as $setting => $value) {
+            if(in_array($setting,$blueprint_only_settings))
+                continue;
             $clone['output'] .= '<p>setting '.esc_html($setting).' = '.esc_html(var_export($value,true)).'</p>';
             error_log('setting '.$setting.' = '.var_export($value,true));
             update_option($setting,$value);
+            $saved_options[] = $setting;
         }
+        update_option('quickplayground_clone_options',$saved_options);
     }
 
     update_option('clone_settings_log',$clone['output']);
@@ -467,6 +475,40 @@ function quickplayground_clone( $target = null ) {
     }
     update_option('clone_images_log',$clone['output']);
     }
+
+    $clone['output'] = '';
+    if(empty($target) || 'custom' == $target) {
+    try {
+        $response = wp_remote_get($customurl);
+    } catch (Exception $e) {
+        echo '<p>Error fetching: '.esc_html($customurl.' '.$e->getMessage()).'</p>';
+        error_log('Error fetching: '.esc_html($customurl.' '.$e->getMessage()));
+        return;
+    }   
+    if(is_wp_error($response)) {
+        echo '<p>Error: '.esc_html($response->get_error_message()).'</p>';
+        error_log('Error retrieving clone data: '.$response->get_error_message());
+        return;
+    }
+    update_option('clone_custom_json',$response['body']);
+
+    $clone = json_decode($response['body'],true);
+    if(!is_array($clone)) {
+        error_log('error decoding custom clone json');
+        echo '<p>Error decoding custom clone json</p>';
+        return;
+    }
+    $clone = apply_filters('quickplayground_custom_clone_receiver',$clone);
+    if(!empty($clone['custom_tables']))
+        foreach($clone['custom_tables'] as $table => $rows) {
+            foreach($rows as $row) {
+                $wpdb->replace($table,(array) $row);
+                $clone['output'] .= "<p>$wpdb->last_query</p>";
+            }
+        }
+        update_option('clone_custom_log',$clone['output']);
+    }
+
     if(empty($target))
         update_option('playground_sync_date',date('Y-m-d H:i:s'));
    return $clone['output'];

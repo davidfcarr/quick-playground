@@ -6,28 +6,25 @@ textarea {
   font: inherit;
 }
 
-.form-group {
+.playground-form .form-group {
   display: grid;
   gap: 0.5cap;
 }
 
-label {
+.playground-form label {
   text-transform: uppercase;
   font-size: 1rem;
   text-box-trim: trim-both;
   text-box-edge: cap alphabetic;
 }
 
-input {
+.playground-form select, .playground-form option, .playground-form input:not([type="checkbox"], [type="radio"]) {
   background: var(--surface-2);
   color: var(--text-1);
   border: var(--border);
   border-radius: 16px;
   padding: 1ex 2ex;
   accent-color: var(--accent);
-}
-
-input:not([type="checkbox"], [type="radio"]) {
   width: 25%;
 }
 
@@ -52,7 +49,7 @@ label {
   font-size: 1rem;
 }
 
-button {
+.playground-form button {
   cursor: pointer;
   background-color: var(--accent);
   color: var(--text-1);
@@ -101,3 +98,54 @@ ul.playgroundpro {
     padding: 50px;
     margin: 20px;
 }
+
+#playground-overlay-message {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #323232;
+  color: #fff;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  opacity: 1;
+  transition: opacity 1s ease-out;
+  max-width: 600px;
+}
+
+#playground-overlay-message a {
+  color: yellow;
+  font-weight: bold;
+}
+
+#playground-overlay-message button#overlay-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  margin-left: auto;
+  cursor: pointer;
+}
+
+#playground-overlay-message.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#playground-overlay-message button {
+  cursor: pointer;
+  background-color: var(--accent);
+  color: var(--text-1);
+  margin-top: -2em;
+  padding: .5em .75em;
+  border: 0;
+  border-radius: 12px;
+  &:hover,
+  &:focus-visible {
+    background-color: hsl(from var(--accent) h s 30%);
+  }
+}
+

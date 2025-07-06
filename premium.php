@@ -5,7 +5,7 @@
  * @return bool|string Returns the enabled key if valid, or false if not enabled or expired.
  */
 function playground_premium_enabled() {
-    if(get_option('disable_playground_premium',false))
+    if(get_option('disable_playground_premium',false) || isset($_GET['downgrade']))
         return false;
     $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
     $expiration = is_multisite() ? get_blog_option(1,'playground_premium_expiration') : get_option('playground_premium_expiration');
@@ -127,7 +127,7 @@ function quickplayground_pro() {
     if(!$enabled)
     {
     ?>
-    <form method="post" class="playground" action="<?php echo esc_attr(admin_url('admin.php?page=quickplayground_pro'));?>" >
+    <form method="post" class="playground-form" action="<?php echo esc_attr(admin_url('admin.php?page=quickplayground_pro'));?>" >
         <?php wp_nonce_field('quickplayground','playground',true,true); ?>
         <h3>Request a license key by email</h3>
         <p><label>First Name</label> <input type="text" name="first" value="<?php echo esc_attr($current_user->last_name); ?>" /> </p>
@@ -140,7 +140,7 @@ function quickplayground_pro() {
     <?php
     }
     ?>
-    <form method="post" class="playground" action="<?php echo esc_attr(admin_url('admin.php?page=quickplayground_pro'));?>">
+    <form method="post" class="playground-form" action="<?php echo esc_attr(admin_url('admin.php?page=quickplayground_pro'));?>">
         <?php wp_nonce_field('quickplayground','playground',true,true); ?>
         <h3>Enter your license key</h3>
         <p><label>Key</label> <input type="text" name="key" value="<?php echo esc_attr($enabled); ?>" /> </p>

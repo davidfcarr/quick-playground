@@ -13,6 +13,7 @@ function quickplayground_clone_page() {
     echo '<h1>'.esc_html__('Design and Theme Playground','quick-playground').'</h1>';
     $baseurl = get_option('playground_sync_origin');
     $no_cache = get_option('playground_no_cache',false);
+    printf('<p>quickplayground_clone screen cache %s</p>',var_export($no_cache,true));
     $playground_profile = get_option('playground_profile','default');
     
     $url = $baseurl .'/wp-json/quickplayground/v1/playground_clone/'.$playground_profile.'?t='.time();
@@ -24,9 +25,14 @@ function quickplayground_clone_page() {
 
     if(isset($_POST['clonenow'])) {
         echo '<h2>'.esc_html__('Cloning...','quick-playground').' '.esc_html($_POST['target']).'</h2>';
-        if(!empty($_POST['disable_cache'])) {
-            update_option('playground_no_cache',true);
-            delete_option('cache_created');
+        if(!empty($_POST['toggle_cache'])) {
+            if('disable' == $_POST['toggle_cache']) {
+                update_option('playground_no_cache',true);
+                delete_option('cache_created');
+            }
+            if('enable' == $_POST['toggle_cache']) {
+                update_option('playground_no_cache',false);
+            }
         }
         echo wp_kses_post(quickplayground_clone(sanitize_text_field($_POST['target'])));
         echo '<p>'.sprintf(
@@ -36,18 +42,21 @@ function quickplayground_clone_page() {
         ).'</p>';
     }
     $cache_created = intval(get_option('cache_created'),0);
-    if($cache_created) {
+    if($no_cache) {
+        echo "<p>Live content loaded.</p>";
+        $cache_notice = sprintf('<p><input type="checkbox" name="toggle_cache" value="enable" /> '.esc_html__('Fetch cached content instead','quick-playground').'</p>');
+    } 
+    else
+    {
         $cache_notice = '<p>'.sprintf(
             /* translators: 1: cache created time, 2: cache duration */
             esc_html__('By default, Quick Playground will fetch the cached content created on %1$s.','quick-playground'),
             esc_html(date_i18n(get_option('date_format').' '.get_option('time_format'),$cache_created))
-        ).'</p><p><input type="checkbox" name="disable_cache" /> '.esc_html__('Bypass cache and fetch live content','quick-playground').'</p>';
+        ).'</p><p><input type="checkbox" name="toggle_cache" value="disable" /> '.esc_html__('Bypass cache and fetch live content','quick-playground').'</p>';
     }
-    else {
-        $cache_notice = '';
-    } 
+    
     printf(
-        '<form method="post" action=""><input type="hidden" name="clonenow" value="1" />
+        '<form  class="playground-form"  method="post" action=""><input type="hidden" name="clonenow" value="1" />
         <p>
             <input type="radio" name="target" value="" checked="checked" /> %s 
             <input type="radio" name="target" value="posts" /> %s 
@@ -150,9 +159,14 @@ function quickplayground_clone_log() {
         esc_html__('Taxonomy and Metadata', 'quick-playground')
     );
     printf(
-        '<a href="%s">%s</a>',
+        '<a href="%s">%s</a> | ',
         esc_url(admin_url('admin.php?page=quickplayground_clone_log&images=1')),
         esc_html__('Images', 'quick-playground')
+    );
+    printf(
+        '<a href="%s">%s</a>',
+        esc_url(admin_url('admin.php?page=quickplayground_clone_log&custom=1')),
+        esc_html__('Custom', 'quick-playground')
     );
     echo '</p>';
     if(isset($_GET['posts_json'])) {
@@ -172,6 +186,12 @@ function quickplayground_clone_log() {
         echo wp_kses_post(get_option('clone_images_log'));
         echo '<h2>'.esc_html__('JSON','quick-playground').'</h2>';
         echo '<pre>'.esc_html(json_encode(json_decode(get_option('clone_images_json')),JSON_PRETTY_PRINT)).'</pre>';
+    }
+    elseif(isset($_GET['custom'])) {
+        echo '<h2>'.esc_html__('Custom','quick-playground').'</h2>';
+        echo wp_kses_post(get_option('clone_custom_log'));
+        echo '<h2>'.esc_html__('JSON','clone_custom_json').'</h2>';
+        echo '<pre>'.esc_html(json_encode(json_decode(get_option('clone_custom_json')),JSON_PRETTY_PRINT)).'</pre>';
     }
     else {
         echo wp_kses_post(get_option('clone_posts_log'));

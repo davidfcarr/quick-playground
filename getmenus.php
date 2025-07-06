@@ -49,7 +49,7 @@ function quickplayground_get_category_data($clone) {
   LEFT JOIN $wpdb->term_relationships AS tr ON tr.object_id = p.ID
   LEFT JOIN $wpdb->term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
   LEFT JOIN $wpdb->terms AS terms ON terms.term_id = tt.term_id
- WHERE p.ID IN (".implode(',',$ids).") AND (tt.taxonomy = 'category' OR tt.taxonomy = 'wp_theme') AND p.post_status='publish'";
+ WHERE p.ID IN (".implode(',',$ids).") AND p.post_status='publish'"; //AND (tt.taxonomy = 'category' OR tt.taxonomy = 'wp_theme') 
   
     //$sql = "SELECT * FROM $wpdb->term_relationships LEFT JOIN $wpdb->term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id LEFT JOIN $wpdb->terms AS terms ON terms.term_id = tt.term_id WHERE (tt.taxonomy = 'category' OR tt.taxonomy = 'wp_theme') AND p.post_status='publish'";
   $clone['taxsql'] = $sql;
@@ -61,11 +61,11 @@ $cat = $wpdb->get_results($sql);
    foreach($cat as $c) {
     error_log('tax lookup'.var_export($c,true));
     $clone['term_relationships'][] = (object) array('object_id'=>$c->object_id,'term_order'=>$c->term_order,'term_taxonomy_id'=>$c->term_taxonomy_id);
-    if(!in_array($c->term_taxonomy_id,$tax)) {
+    if($c->term_taxonomy_id && !in_array($c->term_taxonomy_id,$tax)) {
       $clone['term_taxonomy'][] = (object) array('term_taxonomy_id'=>$c->term_taxonomy_id,'term_id'=>$c->term_id,'taxonomy'=>$c->taxonomy,'description'=>$c->description,'parent'=>$c->parent,'count'=>$c->count);
       $tax[] = $c->term_taxonomy_id;
     }
-    if(!in_array($c->term_id,$terms)) 
+    if($c->term_id && !in_array($c->term_id,$terms)) 
       {
       $clone['terms'][] = (object) array('term_id'=>$c->term_id,'name'=>$c->name);
       $terms[] = $c->term_id;

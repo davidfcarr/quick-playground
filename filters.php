@@ -32,15 +32,6 @@ function quickplayground_playground_clone_rsvpmakers($clone, $settings) {
                     'post_status' => 'publish',
                 );
                 $clone['posts'][] = $post;
-                $event = array('event'=>$post['ID']);
-                $event['date'] = $r->date;
-                $event['enddate'] = $r->date;
-                $event['ts_start'] = $r->ts_start;
-                $event['ts_end'] = $r->ts_end;
-                $event['timezone'] = $r->timezone;
-                $event['display_type'] = $r->display_type;
-                $event['post_title'] = $r->post_title;
-                $clone['rsvpmakers'][] = $event;
             }
         }
     }
@@ -49,11 +40,80 @@ function quickplayground_playground_clone_rsvpmakers($clone, $settings) {
         $r = intval($r);
         if($post = get_post($r)) {
         $clone['ids'][] = $r;
-        $clone['rsvpmakers'][] = (array) get_rsvpmaker_event($r);
         $clone['posts'][] = (array) $post;
         }
     }
 }
+    return $clone;
+}
+
+add_filter('quickplayground_clone_custom','rsvpmaker_playground_clone_custom',10,2);
+/**
+ * $clone = apply_filters('quickplayground_playground_clone_custom',$clone,$ids);
+ */
+function rsvpmaker_playground_clone_custom($clone, $ids) {
+    global $wpdb;
+    $table = $wpdb->prefix.'rsvpmaker_event';
+    $clone['custom_tables']['wp_rsvpmaker_event'] = [];
+    $clone['custom_tables']['wp_rsvpmaker'] = [];
+    $t = time();
+    $rsvp_id = 1;
+    $events = [];
+    foreach($ids as $id) {
+        if('rsvpmaker' == get_post_type($id)) {
+            $event = $wpdb->get_row("SELECT * FROM $table where event=".intval($id),ARRAY_A);
+            if(!empty($event)) {
+                $events[] = $event;
+                for($loop = 0; $loop < rand(1, 10); $loop++) {
+                    $person = quickplayground_fake_user(0);
+                    $rsvp['id'] = $rsvp_id++;
+                    $rsvp['first'] = $person['first_name'];
+                    $rsvp['last'] = $person['last_name'];
+                    $rsvp['email'] = $person['user_email'];
+                    $rsvp['event'] = $id;
+                    $rsvp['yesno'] = 1;
+                    $rsvp['timestamp'] = date('Y-m-d H:i:s', $t - (DAY_IN_SECONDS * ($loop + 1)));
+                    $rsvp['mobile_phone'] = '954-555-1212';
+                    $rsvp['details'] = serialize($rsvp);
+                    $clone['custom_tables']['wp_rsvpmaker'][] = $rsvp;
+                }
+            }
+        }
+    }
+    $clone['custom_tables']['wp_rsvpmaker_event'] = $events;
+    return $clone;
+}
+
+add_filter('quickplayground_custom_clone_receiver','rsvpmaker_playground_custom_clone_receiver');
+function rsvpmaker_playground_custom_clone_receiver($clone) {
+    if(empty($clone['custom_tables']) || empty($clone['custom_tables']['wp_rsvpmaker_event']))
+        return $clone;
+    $t = time();
+    $events = $clone['custom_tables']['wp_rsvpmaker_event'];
+    $clone['custom_tables']['wp_rsvpmaker_event'] = [];
+    usort($events,'quickplayground_rsvpmaker_datesort');
+    $addtime = 0;
+    $r = $events[0];
+    if($r['ts_start'] < $t) {
+        $diff = $t - $r['ts_start'];
+        $weeks = ceil($diff / WEEK_IN_SECONDS) + 1;
+        $addtime = ($weeks > 6) ? 52 * WEEK_IN_SECONDS : $weeks * WEEK_IN_SECONDS;
+        $clone['addtime'] = $addtime;
+    }
+    foreach($events as $index => $event) {
+        if($addtime && ($event['ts_start'] < $t)) {
+            $event['ts_start'] += $addtime;
+            $event['date'] = rsvpmaker_date('Y-m-d H:i:s',$event['ts_start']);
+            $event['ts_end'] += $addtime;
+            $event['enddate'] = rsvpmaker_date('Y-m-d H:i:s',$event['ts_end']);
+            $clone['output'] .= '<p>advancing date of '.$r['post_title'].' to '.date('r',intval($r['ts_start'])).'</p>';
+        }
+        else {
+            $clone['output'] .= '<p>future date of '.$r['post_title'].' to '.date('r',intval($r['ts_start'])).'</p>';
+        }
+        $clone['custom_tables']['wp_rsvpmaker_event'][] = $event;
+        rsvpmakers_add((object) $event);
+    }
     return $clone;
 }
 
@@ -98,6 +158,7 @@ function rsvpmaker_playground_clone($clone) {
         $result = $wpdb->replace($event_table, $r);
         $clone['output'] .= "<p>$wpdb->last_query</p>";
         if($result) {
+            /*
             $t = time();
             if($i < 6) {
                 $limit = 5 - $i;
@@ -114,6 +175,7 @@ function rsvpmaker_playground_clone($clone) {
                     $wpdb->insert($wpdb->prefix.'rsvpmaker', $rsvp);
                 }
             }
+            */
         }
         else {
             $clone['output'] .= '<p>Error: terms '.esc_html($wpdb->last_error).'</p>';
@@ -123,8 +185,6 @@ function rsvpmaker_playground_clone($clone) {
 }
 
 function quickplayground_rsvpmaker_datesort($a, $b) {
-    $a = (array) $a;
-    $b = (array) $b;
     return ($a['ts_start'] > $b['ts_start']) ? 1 : -1;
 }
 
@@ -209,4 +269,35 @@ $events_dropdown = get_events_dropdown ();
   $classAndID = ($i > 0) ? ' class="hidden_item rsvpmaker" id="rsvpmaker_'.$i.'" ' : ' class="rsvpmaker" id="rsvpmaker_'.$i.'" ';
   printf('<p%s>Demo Event: <select class="select_with_hidden" name="demo_rsvpmakers[]">%s</select></p>'."\n",$classAndID,'<option value="">Choose Event</option>'.$events_dropdown);
   }
+  printf('<p><input type="radio" name="settings[rsvpmaker_prompt]" value="1" %s /> %s <input type="radio" name="settings[rsvpmaker_prompt]" value="0" %s /> %s </p>', empty($settings['rsvpmaker_prompt']) ? '' : ' checked="checked" ',esc_html__('SHOW'), !empty($settings['rsvpmaker_prompt']) ? '' : ' checked="checked" ', esc_html__('DO NOT SHOW RSVPMaker help prompts in demo.' ) );
+}
+
+add_action('wp_footer','quickplayground_clone_footer_message');
+add_action('admin_footer','quickplayground_clone_footer_message');
+function quickplayground_clone_footer_message() {
+    $slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : basename($_SERVER['REQUEST_URI']);
+    $keymessage = array('key'=>$slug,'message'=>'','welcome'=> is_admin() ? 'admin-welcome' : 'welcome');
+    $keymessage = apply_filters('quickplayground_key_message',$keymessage);
+    $result = '';
+    if(!empty($keymessage['message'])) {
+    ?>
+<div id="playground-overlay-message">
+  <span><p><strong>Playground Prompt</strong></p>
+    <?php
+        echo wpautop(wp_kses_post($keymessage['message']));
+  ?>
+  </span>
+  <button id="playground-overlay-close">&times;</button>
+</div>
+<?php
+    }
+}
+
+add_filter('quickplayground_key_message','quickplayground_admin_message');
+
+function quickplayground_admin_message($keymessage) {
+    if(('quickplayground' == $keymessage['key'] || 'quickplayground_builder' == $keymessage['key'])  && !playground_premium_enabled()) {
+        $keymessage['message'] = sprintf('Visit the <a href="%s">Playground Pro page</a> to unlock your 30-day trial of enhanced customization features (and the ability to add these little messages to your demos).',admin_url('admin.php?page=quickplayground_pro'));
+    }
+    return $keymessage;
 }

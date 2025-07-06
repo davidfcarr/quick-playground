@@ -40,13 +40,24 @@ function quickplayground_build($postvars, $profile = 'default') {
     if(!empty($postvars['settings'])) 
     {
         foreach($postvars['settings'] as $key => $value)
-            $settings[$key] = stripslashes($value);
+            $settings[$key] = is_string($value) ? stripslashes($value) : $value;
         if(empty($settings['copy_pages'])) {
             $settings['copy_pages'] = 0;
         }
         if(empty($settings['copy_events'])) {
             $settings['copy_events'] = 0;
         }
+        $newmessages = [];
+        foreach($settings['playgroundmessages'] as $key => $value) {
+            if(!empty(trim($value)))
+                $newmessages[$key] = wp_kses_post(stripslashes($value));
+        }
+        if(!empty($postvars['custom_message_page']) && !empty($postvars['custom_message'])) {
+            $page = trim(sanitize_text_field($postvars['custom_message_page']));
+            $content = wp_kses_post(stripslashes($postvars['custom_message']));
+            $newmessages[$page] = $content;
+        }
+        $settings['playgroundmessages'] = $newmessages;
         $settings['is_playground_clone']=true;
         $settings['playground_profile']=$profile;
         $settings['playground_sync_origin']=$site_origin;
@@ -103,7 +114,12 @@ function quickplayground_build($postvars, $profile = 'default') {
 
                 $public = true;
 
-                $ziplocal = isset($postvars['ziplocal_theme'][$i]) ? intval($postvars['ziplocal_theme'][$i]) : 0;
+                if(isset($postvars['ziplocal_theme'][$i]))
+                    $ziplocal = boolval($postvars['ziplocal_theme'][$i]);
+                elseif(isset($postvars['zip'][$slug]))
+                    $ziplocal = boolval($postvars['zip'][$slug]);
+                else
+                    $ziplocal = false;
 
                 if($ziplocal) {
                     $public = false;
@@ -166,7 +182,12 @@ function quickplayground_build($postvars, $profile = 'default') {
 
                 $public = true;
 
-                $ziplocal = isset($postvars['ziplocal_plugin'][$i]) ? intval($postvars['ziplocal_plugin'][$i]) : 0;
+                if(isset($postvars['ziplocal_plugin'][$i]))
+                    $ziplocal = boolval($postvars['ziplocal_plugin'][$i]);
+                elseif(isset($postvars['zip'][$slug]))
+                    $ziplocal = boolval($postvars['zip'][$slug]);
+                else
+                    $ziplocal = false;
 
                 if($ziplocal) {
                     $public = false;
@@ -195,7 +216,14 @@ function quickplayground_build($postvars, $profile = 'default') {
                     }
 
                 }
-                $steps[] = makePluginItem($slug, $public, isset($postvars['activate_plugin'][$i]) && $postvars['activate_plugin'][$i] == 1);
+                if(isset($postvars['activate_plugin'][$i]))
+                    $activate = boolval($postvars['activate_plugin'][$i]);
+                elseif(isset($postvars['activate'][$slug]))
+                    $activate = boolval($postvars['activate'][$slug]);
+                else
+                    $activate = false;
+
+                $steps[] = makePluginItem($slug, $public, $activate);
             }
 
         }
@@ -239,6 +267,16 @@ function quickplayground_build($postvars, $profile = 'default') {
     $steps[] = makePluginItem("quick-playground", false, true);
 
     $blueprint = array('features'=>array('networking'=>true),'steps'=>$steps);
+    if(!empty($postvars['landingPage'])) {
+        $landingpage = sanitize_text_field($postvars['landingPage']);
+        if(strpos($landingpage,'//'))
+        {
+            $parsed = parse_url($landingpage);
+            if(!empty($parsed['path']))
+                $landingpage = $parsed['path'];
+        }
+        $blueprint['landingPage'] = $landingpage;
+    }
     $blueprint = apply_filters('quickplayground_new_blueprint',$blueprint);
 
     update_option('playground_blueprint_'.$profile, $blueprint);

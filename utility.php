@@ -399,3 +399,34 @@ function quickplayground_cache_message($profile, $settings) {
         $cachemessage = '';
     return $cachemessage;
 }
+
+function quickplayground_is_playground() {
+    return ('playground.wordpress.net' == $_SERVER['SERVER_NAME']);
+}
+
+function quickplayground_custom_tables() {
+    global $wpdb;
+    $core = [$wpdb->options,$wpdb->users,$wpdb->usermeta,$wpdb->posts,$wpdb->postmeta,$wpdb->terms,$wpdb->termmeta,$wpdb->term_relationships,$wpdb->term_taxonomy,$wpdb->comments,$wpdb->commentmeta,$wpdb->links];
+    $custom = [];
+    $tables = $wpdb->get_results('SHOW TABLES',ARRAY_N);
+    foreach($tables as $row) {
+        if(!in_array($row[0],$core))
+        $custom[] = $row[0];
+    }
+    return $custom;
+}
+
+function quickplayground_custom_tables_clone($clone = array()) {
+global $wpdb;
+$custom_tables = quickplayground_custom_tables();
+$clone['custom_tables'] = [];
+if(empty($custom_tables))
+    return $clone;
+foreach($custom_tables as $table) {
+    $results = $wpdb->get_results("SELECT * FROM $table");
+    if(!empty($results))
+        $clone['custom_tables'][$table] = $results;
+}
+return $clone;
+}
+
