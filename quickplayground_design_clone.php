@@ -10,30 +10,39 @@ function quickplayground_clone_page() {
         return;
     }
 
-    echo '<h1>'.esc_html__('Design and Theme Playground','quick-playground').'</h1>';
+    echo '<h1>'.esc_html__('Quick Playground','quick-playground').'</h1>';
+    echo '<h2>'.esc_html__('Design and Plugin Testing','quick-playground').'</h2>';
+    echo '<p>'.esc_html__('Use this screen to manually re-import any content that may not have imported correctly','quick-playground').'</p>';
     $baseurl = get_option('playground_sync_origin');
     $no_cache = get_option('playground_no_cache',false);
-    printf('<p>quickplayground_clone screen cache %s</p>',var_export($no_cache,true));
     $playground_profile = get_option('playground_profile','default');
-    
-    $url = $baseurl .'/wp-json/quickplayground/v1/playground_clone/'.$playground_profile.'?t='.time();
+    $prompts = quickplayground_get_prompts_remote($playground_profile);
+    $url = $baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$playground_profile.'?t='.time();
     if($no_cache) $url .= '&nocache=1';
     $taxurl = $baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$playground_profile.'?t='.time();
     if($no_cache) $taxurl .= '&nocache=1';
     $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$playground_profile.'?t='.time();
     if($no_cache) $imgurl .= '&nocache=1';
 
-    if(isset($_POST['clonenow'])) {
-        echo '<h2>'.esc_html__('Cloning...','quick-playground').' '.esc_html($_POST['target']).'</h2>';
-        if(!empty($_POST['toggle_cache'])) {
+    if(isset($_REQUEST['clonenow'])) {
+        $target = sanitize_text_field($_REQUEST['target']);
+        echo '<h2>'.esc_html__('Cloning...','quick-playground').' '.esc_html($target).'</h2>';
+        if(!empty($_REQUEST['toggle_cache'])) {
             if('disable' == $_POST['toggle_cache']) {
                 update_option('playground_no_cache',true);
                 delete_option('cache_created');
             }
-            if('enable' == $_POST['toggle_cache']) {
+            if('enable' == $_REQUEST['toggle_cache']) {
                 update_option('playground_no_cache',false);
             }
         }
+        if('images' == $target) {
+            $response = quickplayground_get_thumbnails();
+            if(!empty($response['message'])) {
+                echo $response['message'];
+            }
+        }
+
         echo wp_kses_post(quickplayground_clone(sanitize_text_field($_POST['target'])));
         echo '<p>'.sprintf(
             /* translators: %s: log page URL */
@@ -54,7 +63,7 @@ function quickplayground_clone_page() {
             esc_html(date_i18n(get_option('date_format').' '.get_option('time_format'),$cache_created))
         ).'</p><p><input type="checkbox" name="toggle_cache" value="disable" /> '.esc_html__('Bypass cache and fetch live content','quick-playground').'</p>';
     }
-    
+
     printf(
         '<form  class="playground-form"  method="post" action=""><input type="hidden" name="clonenow" value="1" />
         <p>
@@ -62,6 +71,8 @@ function quickplayground_clone_page() {
             <input type="radio" name="target" value="posts" /> %s 
             <input type="radio" name="target" value="taxonomy" /> %s 
             <input type="radio" name="target" value="images" /> %s
+            <input type="radio" name="target" value="settings" /> %s
+            <input type="radio" name="target" value="custom" /> %s
         </p>
         %s
         <p><button class="button button-primary">%s</button></p>%s</form></p>',
@@ -69,6 +80,8 @@ function quickplayground_clone_page() {
         esc_html__('Posts','quick-playground'),
         esc_html__('Taxonomy and Metadata','quick-playground'),
         esc_html__('Images','quick-playground'),
+        esc_html__('Settings','quick-playground'),
+        esc_html__('Custom','quick-playground'),
         $cache_notice,
         esc_html__('Clone Now','quick-playground'),
         wp_nonce_field('quickplayground','playground',true,false)
@@ -81,7 +94,8 @@ function quickplayground_clone_page() {
         esc_html__('Images','quick-playground'), esc_url($imgurl), esc_html($imgurl)
     );
 
-    $premium = playground_premium_enabled();
+    quickplayground_get_thumbnails();
+
     if($premium) {
         echo '<p>'.esc_html__('Welcome to the Pro version of the Design Playground!','quick-playground').'</p>';
         do_action('quickplayground_clone_pro_form');

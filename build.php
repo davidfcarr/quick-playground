@@ -47,17 +47,6 @@ function quickplayground_build($postvars, $profile = 'default') {
         if(empty($settings['copy_events'])) {
             $settings['copy_events'] = 0;
         }
-        $newmessages = [];
-        foreach($settings['playgroundmessages'] as $key => $value) {
-            if(!empty(trim($value)))
-                $newmessages[$key] = wp_kses_post(stripslashes($value));
-        }
-        if(!empty($postvars['custom_message_page']) && !empty($postvars['custom_message'])) {
-            $page = trim(sanitize_text_field($postvars['custom_message_page']));
-            $content = wp_kses_post(stripslashes($postvars['custom_message']));
-            $newmessages[$page] = $content;
-        }
-        $settings['playgroundmessages'] = $newmessages;
         $settings['is_playground_clone']=true;
         $settings['playground_profile']=$profile;
         $settings['playground_sync_origin']=$site_origin;
@@ -255,8 +244,11 @@ function quickplayground_build($postvars, $profile = 'default') {
     }
     $settings['origin_stylesheet'] = get_stylesheet();
     $settings_to_copy = apply_filters('playground_settings_to_copy',array('timezone_string'));
-    foreach($settings_to_copy as $setting)
-        $settings[$setting] = get_option($setting);
+    foreach($settings_to_copy as $setting) {
+        $data = get_option($setting);
+        $data = apply_filters('playground_settings_content',$data,$setting);
+        $settings[$setting] = $data;
+    }
     $steps[] = makeBlueprintItem('setSiteOptions',null, $settings);    
     quickplayground_playground_zip_plugin("quick-playground");
     $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
@@ -265,10 +257,13 @@ function quickplayground_build($postvars, $profile = 'default') {
         $steps[] = makeBlueprintItem('installPlugin', array('pluginData'=>$plugindata), array('activate'=>true));
     }
     $steps[] = makePluginItem("quick-playground", false, true);
+    $steps[] = array("step"=>"defineWpConfigConsts","consts"=>["WP_DEBUG"=>true,"WP_DEBUG_LOG"=>true,"WP_DEBUG_DISPLAY"=>false]);
+    $steps[] = makeCodeItem('quickplayground_clone_init();');
 
     $blueprint = array('features'=>array('networking'=>true),'steps'=>$steps);
     if(!empty($postvars['landingPage'])) {
         $landingpage = sanitize_text_field($postvars['landingPage']);
+        update_option('quickplayground_landing_page_'.$profile,$landingpage);
         if(strpos($landingpage,'//'))
         {
             $parsed = parse_url($landingpage);

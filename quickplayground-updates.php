@@ -12,6 +12,23 @@ function quickplayground_update_tracking() {
     }
 }
 
+function quickplayground_top_ids($fresh = false) {
+    global $wpdb;
+    if(!$fresh) {
+    $top = get_option('quickplayground_top_ids',[]);
+    if(!empty($top['post_modified']))
+        return $top;
+    }
+    $top['posts'] = $wpdb->get_var("SELECT ID FROM $wpdb->posts ORDER BY ID DESC");
+    $top['postmeta'] = $wpdb->get_var("SELECT meta_id FROM $wpdb->postmeta ORDER BY meta_id DESC");
+    $top['terms'] = $wpdb->get_var("SELECT term_id FROM $wpdb->terms ORDER BY term_id DESC");
+    $top['term_taxonomy'] = $wpdb->get_var("SELECT term_taxonomy_id FROM $wpdb->term_taxonomy ORDER BY term_taxonomy_id DESC");
+    $top['post_modified'] = $wpdb->get_var("SELECT post_modified FROM $wpdb->posts ORDER BY post_modified DESC");
+    if(!$fresh)
+        update_option('quickplayground_top_ids',$top);
+    return $top;
+}
+
 /**
 
 */

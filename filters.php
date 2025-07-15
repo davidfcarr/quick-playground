@@ -9,10 +9,13 @@
  */
 add_filter('quickplayground_playground_clone_posts','quickplayground_playground_clone_rsvpmakers', 10, 2);
 function quickplayground_playground_clone_rsvpmakers($clone, $settings) {
+    error_log('quickplayground_playground_clone_rsvpmakers copy events '.intval($settings['copy_events']));
+    $was = sizeof($clone['posts']);
     if(!empty($settings['copy_events']) && function_exists('rsvpmaker_get_future_events')) {
         $clone['next_event'] = 0;
         $clone['rsvpmakers'] = [];
-        $rsvpmakers = rsvpmaker_get_future_events(['limit'=>intval($clone['settings']['copy_events'])]);
+        $rsvpmakers = rsvpmaker_get_future_events(['limit'=>intval($settings['copy_events'])]);
+        error_log('retrived rsvpmakers '.sizeof($rsvpmakers));
         if(!empty($rsvpmakers) ) {
             $clone['next_event'] = $rsvpmakers[0]->ID;
             foreach($rsvpmakers as $r) {
@@ -44,6 +47,8 @@ function quickplayground_playground_clone_rsvpmakers($clone, $settings) {
         }
     }
 }
+    $diff = sizeof($clone['posts']) - $was;
+    error_log('added '.$diff.' rsvpmaker posts ');
     return $clone;
 }
 
@@ -73,8 +78,8 @@ function rsvpmaker_playground_clone_custom($clone, $ids) {
                     $rsvp['event'] = $id;
                     $rsvp['yesno'] = 1;
                     $rsvp['timestamp'] = date('Y-m-d H:i:s', $t - (DAY_IN_SECONDS * ($loop + 1)));
-                    $rsvp['mobile_phone'] = '954-555-1212';
-                    $rsvp['details'] = serialize($rsvp);
+                    $details = array_merge($rsvp,['mobile_phone'=>'954-555-1212']);
+                    $rsvp['details'] = serialize($details);
                     $clone['custom_tables']['wp_rsvpmaker'][] = $rsvp;
                 }
             }
@@ -88,32 +93,39 @@ add_filter('quickplayground_custom_clone_receiver','rsvpmaker_playground_custom_
 function rsvpmaker_playground_custom_clone_receiver($clone) {
     if(empty($clone['custom_tables']) || empty($clone['custom_tables']['wp_rsvpmaker_event']))
         return $clone;
+    echo "<p>starting rsvpmaker_playground_custom_clone_receiver</p>";
     $t = time();
     $events = $clone['custom_tables']['wp_rsvpmaker_event'];
+    $events = array_filter($events, function($event) { return !empty($event['event']) && !empty($event['ts_start']); } );
+    printf('<p>Unsorted events %s</p>',var_export($events,true));
     $clone['custom_tables']['wp_rsvpmaker_event'] = [];
     usort($events,'quickplayground_rsvpmaker_datesort');
+    printf('<p>Sorted events %s</p>',var_export($events,true));
     $addtime = 0;
     $r = $events[0];
+    printf('<p>First event %s</p>',var_export($r,true));
     if($r['ts_start'] < $t) {
         $diff = $t - $r['ts_start'];
         $weeks = ceil($diff / WEEK_IN_SECONDS) + 1;
         $addtime = ($weeks > 6) ? 52 * WEEK_IN_SECONDS : $weeks * WEEK_IN_SECONDS;
         $clone['addtime'] = $addtime;
+        printf('<p>Addtime %d First event %d</p>',$addtime,$weeks);
     }
     foreach($events as $index => $event) {
+        $event = (array) $event;
         if($addtime && ($event['ts_start'] < $t)) {
             $event['ts_start'] += $addtime;
             $event['date'] = rsvpmaker_date('Y-m-d H:i:s',$event['ts_start']);
             $event['ts_end'] += $addtime;
             $event['enddate'] = rsvpmaker_date('Y-m-d H:i:s',$event['ts_end']);
-            $clone['output'] .= '<p>advancing date of '.$r['post_title'].' to '.date('r',intval($r['ts_start'])).'</p>';
-        }
-        else {
-            $clone['output'] .= '<p>future date of '.$r['post_title'].' to '.date('r',intval($r['ts_start'])).'</p>';
+            echo $out = '<p>advancing date of '.$r['post_title'].' to '.date('r',intval($r['ts_start'])).'</p>';
+            $clone['output'] .= $out;
         }
         $clone['custom_tables']['wp_rsvpmaker_event'][] = $event;
-        rsvpmakers_add((object) $event);
+        if(function_exists('rsvpmakers_add'))
+            rsvpmakers_add((object) $event);
     }
+    printf('<p>end rsvpmaker_playground_custom_clone_receiver %s</p>',var_export($clone['custom_tables']['wp_rsvpmaker_event'],true));
     return $clone;
 }
 
@@ -122,8 +134,10 @@ function rsvpmaker_playground_custom_clone_receiver($clone) {
  *
  * @param array $clone The clone data array.
  * @return array Modified clone data array with output log.
- * $clone = apply_filters('playground_clone_posts',$clone);
+ * $clone = apply_filters('playground_clone_posts',$clone); 
  */
+/*
+now handled as part of custom import stage
 add_filter('playground_clone_posts','rsvpmaker_playground_clone');
 function rsvpmaker_playground_clone($clone) {
     global $wpdb;
@@ -147,6 +161,12 @@ function rsvpmaker_playground_clone($clone) {
     }
     foreach($clone['rsvpmakers'] as $index => $r) {
         $r = (array) $r; // Ensure $r is an array
+        if(empty($r))
+            continue;
+        if(empty($r['event']) && empty($r['ID']))
+            continue;
+        if(empty($r['event']) && !empty($r['ID']))
+            $r['event'] = $r['ID'];
         if($addtime) {
             $r['ts_start'] += $addtime;
             $r['date'] = rsvpmaker_date('Y-m-d H:i:s',$r['ts_start']);
@@ -154,37 +174,23 @@ function rsvpmaker_playground_clone($clone) {
             $r['enddate'] = rsvpmaker_date('Y-m-d H:i:s',$r['ts_end']);
             $clone['output'] .= '<p>advancing date of '.$r['post_title'].' to '.date('r',intval($r['ts_start'])).'</p>';
         }
-        rsvpmakers_add((object) $r);
-        $result = $wpdb->replace($event_table, $r);
+        //filter unwanted fields
+        $event = ['event'=>$r['event'],'ts_start'=>$r['ts_start'],'ts_end'=>$r['ts_end'],'date'=>$r['date'],'enddate'=>$r['enddate'],'post_title'=>$r['post_title'],'timezone'=>$r['timezone'],'display_type'=>$r['display_type']];
+        printf('<p>Event Clone %s</p>',var_export($event,true));
+        rsvpmakers_add((object) $event);
+        $result = $wpdb->replace($event_table, $event);
         $clone['output'] .= "<p>$wpdb->last_query</p>";
-        if($result) {
-            /*
-            $t = time();
-            if($i < 6) {
-                $limit = 5 - $i;
-                for($loop = 0; $loop < $limit; $loop++) {
-                    $person = quickplayground_fake_user(0);
-                    $rsvp['first'] = $person['first_name'];
-                    $rsvp['last'] = $person['last_name'];
-                    $rsvp['email'] = $person['user_email'];
-                    $rsvp['event'] = $r['event'];
-                    $rsvp['yesno'] = 1;
-                    $rsvp['timestamp'] = date('Y-m-d H:i:s', $t - (DAY_IN_SECONDS * ($loop + 1)));
-                    $rsvp['mobile_phone'] = '954-555-1212';
-                    $rsvp['details'] = serialize($rsvp);
-                    $wpdb->insert($wpdb->prefix.'rsvpmaker', $rsvp);
-                }
-            }
-            */
-        }
-        else {
+        if(!$result) {
             $clone['output'] .= '<p>Error: terms '.esc_html($wpdb->last_error).'</p>';
         }
     }
     return $clone;
 }
+*/
 
 function quickplayground_rsvpmaker_datesort($a, $b) {
+    if(empty($a['ts_start']) || empty($b['ts_start']))
+        return -1;
     return ($a['ts_start'] > $b['ts_start']) ? 1 : -1;
 }
 
@@ -201,6 +207,18 @@ function rsvpmaker_settings_for_playground($settings_list) {
         $settings_list[] = 'RSVPMAKER_Options';
     }
     return $settings_list;
+}
+
+//        $data = apply_filters('playground_settings_content',$data,$setting);
+add_filter('playground_settings_content','playground_rsvpmaker_settings_filter',10,2);
+function playground_rsvpmaker_settings_filter($data,$setting) {
+    if('RSVPMAKER_Options' == $setting) {
+        unset($data['smtp_password']);
+        unset($data['smtp_server']);
+        unset($data['smtp_useremail']);
+        unset($data['smtp_username']);
+    }
+    return $data;
 }
 
 add_filter('quickplayground_clone_save_posts','quickplayground_clone_save_rsvpmaker_posts',10,1);
@@ -275,10 +293,49 @@ $events_dropdown = get_events_dropdown ();
 add_action('wp_footer','quickplayground_clone_footer_message');
 add_action('admin_footer','quickplayground_clone_footer_message');
 function quickplayground_clone_footer_message() {
+    $images_loaded = get_option('quickplayground_images_loaded');
+    $is_clone = get_option('is_playground_clone');
+    if($is_clone && empty($images_loaded)) {
+    $url = rest_url('quickplayground/v1/thumbnails');
+    $keymessage['message'] = '<div id="img_loading_message">Loading additional images...</div>';
+    $javascript = "<script>
+    fetch('".$url."')
+  .then(response => {
+    // First .then(): Handles the Response object
+    // Check if the response was successful (e.g., status code 200-299)
+    if (response.ok) {
+      // If successful, parse the response body (e.g., as JSON)
+      return response.json(); 
+    } else {
+      // If not successful, throw an error to be caught by .catch()
+      throw new Error('Network response was not ok.');
+    }
+  })
+  .then(data => {
+    // Second .then(): Handles the parsed data (e.g., JSON object)
+    console.log(data); // Work with the fetched data
+    document.getElementById('img_loading_message').innerHTML = data.message;
+    if(!data.error)
+    window.location.reload();
+  })
+  .catch(error => {
+    // .catch(): Handles any errors in the fetch or parsing process
+    console.error('There was a problem with the fetch operation:', error);
+  });
+    </script>";
+    update_option('quickplayground_images_loaded',true);
+    }
+    else {
     $slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : basename($_SERVER['REQUEST_URI']);
+    if(is_home() || is_front_page())
+        $slug = 'home';
+    elseif(('index.php' == $slug) || ('index.php' == $slug))
+        $slug = 'dashboard';
+    $slug = preg_replace('/[^a-z0-9\_]/','-',$slug);
     $keymessage = array('key'=>$slug,'message'=>'','welcome'=> is_admin() ? 'admin-welcome' : 'welcome');
     $keymessage = apply_filters('quickplayground_key_message',$keymessage);
-    $result = '';
+    $javascript = '';
+    }
     if(!empty($keymessage['message'])) {
     ?>
 <div id="playground-overlay-message">
@@ -290,7 +347,10 @@ function quickplayground_clone_footer_message() {
   <button id="playground-overlay-close">&times;</button>
 </div>
 <?php
+echo $javascript;
     }
+    //initialize top ids
+    $top = quickplayground_top_ids();
 }
 
 add_filter('quickplayground_key_message','quickplayground_admin_message');
@@ -301,3 +361,16 @@ function quickplayground_admin_message($keymessage) {
     }
     return $keymessage;
 }
+
+add_action('http_api_debug','playground_http_log',10,5);
+function playground_http_log($response, $context, $class, $parsed_args, $url) {
+    if(quickplayground_is_playground()) {
+        error_log('called '.$url .' context '.var_export($context,true).' args '.var_export($parsed_args,true));
+    }
+}
+
+function quick_cors_http_header(){
+    if(strpos($_SERVER['REQUEST_URI'],'quickplayground') || strpos($_SERVER['REQUEST_URI'],'uploads'))
+    header("Access-Control-Allow-Origin: *");
+}
+add_action('init','quick_cors_http_header');

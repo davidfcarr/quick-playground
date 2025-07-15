@@ -27,7 +27,7 @@ function quickplayground_repo_check($urlOrSlug, $type = 'plugin') {
  *
  * @param WP_Admin_Bar $wp_admin_bar The WP_Admin_Bar instance.
  */
-add_action( 'admin_bar_menu', 'quickplayground_toolbar_link', 9999 );
+add_action( 'admin_bar_menu', 'quickplayground_toolbar_link',50 );
 function quickplayground_toolbar_link( $wp_admin_bar ) {
     if(get_option('is_playground_clone',false))
     {
@@ -430,3 +430,49 @@ foreach($custom_tables as $table) {
 return $clone;
 }
 
+function quickplayground_get_prompts($profile) {
+    global $playground_uploads;
+    $baseurl = get_option('playground_sync_origin');
+    $file = $playground_uploads.'/quickplayground_prompts_'.$profile.'.json';
+    $json = file_get_contents($file);
+    $prompts = ['welcome'=>'','admin-welcome'=>''];
+    if(!empty($json))
+    {
+        $data = json_decode($json,true);
+        if(is_array($data) || !empty($data))
+            $prompts = $data;
+    }
+    return $prompts;
+}
+
+function quickplayground_set_prompts($prompts,$profile) {
+    global $playground_uploads;
+    $file = $playground_uploads.'/quickplayground_prompts_'.$profile.'.json';
+    $json = json_encode($prompts);
+    $return = file_put_contents($file,$json);
+    return $return;
+}
+
+function quickplayground_get_prompts_remote($profile) {
+    $baseurl = get_option('playground_sync_origin');
+    $url = $baseurl.'/wp-content/uploads/quickplayground_prompts_'.$profile.'.json?t='.time();
+    $response = wp_remote_get($url);
+    if(is_wp_error($response)) {
+        echo '<p>Error: '.esc_html($response->get_error_message()).$url.'</p>';
+    } else {
+        $promptjson = $response['body'];
+    }
+    if(empty($promptjson))
+        $data = ['welcome'=>'','admin-welcome'=>''];
+    else
+        $data = json_decode($promptjson,true);
+    return $data;
+}
+
+/*
+Try registering to attend one of the gourmet dinner events listed below. The event listing with featured images was created with customizations to the WordPress Query Loop block. The website design is based on the Twenty Twenty-Four theme, with template customizations including the featured image cover block at the top of each event page.
+
+This is the administrator's dashboard. To edit events, see the RSVP Events menu. For Playground options including saving your work, visit the Quick Playground menu.
+
+This is an example of an event promo and registration page created with the RSVPMaker plugin. You are the administrator of this Playground website, so you can use the Edit RSVP Event menu on the black bar at the top of the screen to edit event content, change options (date, time, pricing) and view the RSVP Report.
+*/

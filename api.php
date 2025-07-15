@@ -89,7 +89,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'playground_clone/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_posts/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -173,7 +173,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
       $posts = array_merge($pages, $posts);
     }
     if(!empty($settings['key_pages'])) {
-      $pages = quickplayground_key_pages();
+      $pages = quickplayground_key_pages($profile);
       $posts = array_merge($pages, $posts);
     }
     
@@ -187,12 +187,18 @@ class Quick_Playground_Clone extends WP_REST_Controller {
     $posts = array_filter($posts); // remove nulls
 
     if($settings['page_on_front'] && !in_array($settings['page_on_front'], $clone['ids'])) {
-        $page = get_post($settings['page_on_front']);
-        $clone['ids'][] = intval($settings['page_on_front']);
+        $front_page = intval($settings['page_on_front']);
+        $page = get_post($front_page);
+        $clone['ids'][] = $front_page;
         if($page) {
             $page->post_status = 'publish'; // ensure it is published, even if it was copied from a draft
             $posts[] = $page;
         }
+    }
+
+    if($front_page && $thumbnail_id = get_post_meta($front_page,'_thumbnail_id',true)) {
+      $sql = "SELECT * FROM $wpdb->posts WHERE ID = ".$thumbnail_id." AND post_type = 'attachment' ";
+      $clone['front_page_thumbnail'] = $wpdb->get_row($sql);
     }
     
     if(!empty($settings['demo_pages']) && is_array($settings['demo_pages'])) {
@@ -310,7 +316,7 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
         $settings[$mod->option_name] = maybe_unserialize($mod->option_value);
       }
     }
-    if($clone['playground_premium']) {
+    if(isset($clone['playground_premium'])) {
       $playground_sync_code = wp_generate_password(24,false);
       update_option('playground_sync_code', $playground_sync_code);
       $settings['playground_sync_code'] = $playground_sync_code;
@@ -319,6 +325,167 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
     $clone = apply_filters('quickplayground_playground_clone_settings',$clone);
     return new WP_REST_Response($clone, 200);
 }
+}
+
+/**
+ * REST controller for cloning images and attachments for the playground.
+ */
+class Quick_Playground_Clone_Images extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for cloning images.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'clone_images/(?P<profile>[a-z0-9_]+)';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'GET',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+    /**
+     * Permissions check for getting image items.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+	  	return true;
+	}
+
+    /**
+     * Handles GET requests for cloning images and attachments.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+  global $playground_uploads, $playground_site_uploads;
+	global $wpdb;
+  $profile = $request['profile'];
+  $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
+  $savedfile = $playground_site_uploads.'/quickplayground_images_'.$profile.'.json';
+  
+  if(file_exists($savedfile) && empty($_GET['nocache'])) {
+    $json = file_get_contents($savedfile);
+    if($json)
+    $saved = json_decode($json, true);
+  }
+    $clone['savedfile'] = $savedfile;
+    $clone['saved'] = (empty($saved)) ? 'none' : var_export($saved,true);
+    $site_logo = get_option('site_logo');
+    if(!empty($site_logo)) {
+        $sql = "SELECT * FROM $wpdb->posts WHERE ID = ".intval($site_logo)." AND post_type = 'attachment' ";
+        $attachment = $wpdb->get_row($sql);
+        $clone['site_logo'] = $attachment;
+    }
+    $site_icon = get_option('site_icon');
+    if(!empty($site_icon)) {
+        $sql = "SELECT * FROM $wpdb->posts WHERE ID = ".intval($site_icon)." AND post_type = 'attachment' ";
+        $attachment = $wpdb->get_row($sql);
+        $clone['site_icon'] = $attachment;
+    }
+    $clone['thumbnails'] = [];
+    $attachment_ids = [];
+    $ids = get_option('playground_ids_'.$profile, array());
+    $front = get_option('page_on_front');
+    if($front) {
+      $key = array_search($front, $ids);
+      if ($key !== false) {
+          unset($ids[$key]);
+      }
+    }
+    $keyimages = quickplayground_find_key_images();
+    if(!empty($ids) && is_array($ids)) {      
+    $sql = "SELECT * FROM $wpdb->posts WHERE post_type = 'attachment' AND post_mime_type IN ('image/jpeg','image/png','image/gif','image/bmp','image/webp','image/avif') AND post_status = 'inherit' AND post_parent IN (".implode(',',$ids).")  ORDER BY post_date DESC ";
+    $attachments = $wpdb->get_results($sql);
+    $sql = "SELECT posts.* FROM $wpdb->postmeta meta JOIN $wpdb->posts posts ON meta.meta_value = posts.ID WHERE meta.post_id IN (".implode(',',$ids).") and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC "; 
+    $clone['thumbnails'] = $wpdb->get_results($sql);
+    $thumbs = [];
+    $clone['keyattachments'] = [];
+    $clone['attachments'] = [];
+    foreach($clone['thumbnails'] as $t)
+      $thumbs[] = $t->ID;
+    if(!empty($attachments)) {
+      foreach($attachments as $attachment) {
+        if(in_array($attachment->ID,$thumbs))
+          continue;
+          if(in_array($attachment->guid,$keyimages))
+            $clone['keyattachments'][] = $attachment;
+          else
+            $clone['attachments'][] = $attachment;
+      }
+    }
+    $clone = apply_filters('quickplayground_playground_clone_images',$clone);
+    return new WP_REST_Response($clone, 200);
+  }
+  }
+}
+
+/**
+ * REST controller for delayed cloning images and attachments for the playground.
+ */
+class Quick_Playground_Thumbnails extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for cloning images.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'thumbnails';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'GET',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+    /**
+     * Permissions check for getting image items.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+	  	return true;
+	}
+
+    /**
+     * Handles GET requests for cloning images and attachments.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+    quickplayground_get_thumbnails();
+    return new WP_REST_Response($response, 200);
+  }
 }
 
 /**
@@ -410,96 +577,7 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
 }
 
 /**
- * REST controller for cloning images and attachments for the playground.
- */
-class Quick_Playground_Clone_Images extends WP_REST_Controller {
-
-    /**
-     * Registers REST API routes for cloning images.
-     */
-    public function register_routes() {
-
-	  $namespace = 'quickplayground/v1';
-
-	  $path = 'clone_images/(?P<profile>[a-z0-9_]+)';
-
-	  register_rest_route( $namespace, '/' . $path, [
-
-		array(
-
-		  'methods'             => 'GET',
-
-		  'callback'            => array( $this, 'get_items' ),
-
-		  'permission_callback' => array( $this, 'get_items_permissions_check' )
-
-			  ),
-
-		  ]);     
-
-	  }
-
-    /**
-     * Permissions check for getting image items.
-     *
-     * @param WP_REST_Request $request The REST request.
-     * @return bool True if allowed.
-     */
-	public function get_items_permissions_check($request) {
-	  	return true;
-	}
-
-    /**
-     * Handles GET requests for cloning images and attachments.
-     *
-     * @param WP_REST_Request $request The REST request.
-     * @return WP_REST_Response The response object.
-     */
-  public function get_items($request) {
-  global $playground_uploads, $playground_site_uploads;
-  require('getmenus.php');
-	global $wpdb;
-  $profile = $request['profile'];
-  $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
-  $savedfile = $playground_site_uploads.'/quickplayground_images_'.$profile.'.json';
-  
-  if(file_exists($savedfile) && empty($_GET['nocache'])) {
-    $json = file_get_contents($savedfile);
-    if($json)
-    $saved = json_decode($json, true);
-  }
-    $clone['savedfile'] = $savedfile;
-    $clone['saved'] = (empty($saved)) ? 'none' : var_export($saved,true);
-    $clone['site_icon_url'] = get_site_icon_url();
-    $ids = get_option('playground_ids_'.$profile, array());
-    if(!empty($ids) && is_array($ids)) {
-    $sql = "SELECT post_id, guid FROM $wpdb->postmeta meta JOIN $wpdb->posts posts ON meta.meta_value = posts.ID WHERE meta.post_id IN (".implode(',',$ids).") and meta.meta_key='_thumbnail_id' "; 
-    $thumbnails = $wpdb->get_results($sql);
-    if(empty($thumbnails))
-      $thumbnails = array();
-    $clone['thumbnails'] = $thumbnails;
-    }
-    if(!empty($saved) && !empty($saved['thumbnails'])) {
-      $clone['thumbnails'] = array_merge($clone['thumbnails'], $saved['thumbnails']);
-    }
-    $sql = "SELECT * FROM $wpdb->posts WHERE post_type = 'attachment' AND post_mime_type IN ('image/jpeg','image/png','image/gif','image/bmp','image/webp','image/avif') AND post_status = 'inherit' AND post_parent IN (".implode(',',$ids).")";
-    $clone['attachments'] = $wpdb->get_results($sql);
-    $site_logo = get_option('site_logo');
-    if(!empty($site_logo)) {
-      $sql = "SELECT guid FROM $wpdb->posts WHERE ID = ".intval($site_logo)." AND post_type = 'attachment' ";
-      $clone['site_logo_sql'] = $sql;
-      $clone['site_logo_url'] = $wpdb->get_var($sql);
-    }
-    if(!empty($saved) && !empty($saved['attachments'])) {
-      $clone['attachments'] = array_merge($clone['attachments'], $saved['attachments']);
-    } 
-    $clone = apply_filters('quickplayground_playground_clone_images',$clone);
-    return new WP_REST_Response($clone, 200);
-}
-}
-
-/**
- * REST controller for cloning taxonomy and metadata for the playground.
+ * REST controller for cloning custom data for the playground.
  */
 class Quick_Playground_Clone_Custom extends WP_REST_Controller {
 
@@ -878,10 +956,6 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
     $playground_saved = get_option('playground_saved_images',array());
     $data = $request->get_json_params();
     $savedfile = $playground_site_uploads.'/quickplayground_images_'.$profile.'.json';
-    $stored = file_get_contents($savedfile);
-    if($stored) {
-      $saved = json_decode($stored, true);
-    }
     if(is_string($data))
       $data = json_decode($data, true);
     if(!is_array($data))
@@ -926,9 +1000,6 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
     $sync_response['saved'] = $playground_saved;
     }
     if(!empty($data['attachments']) && is_array($data['attachments'])) {
-    if(!empty($saved) && !empty($saved['attachments']) && is_array($saved['attachments'])) {
-      $data['attachments'] = array_merge($saved['attachments'], $data['attachments']);
-    }
     foreach($data['attachments'] as $attachment) {
       if(!empty($attachment['ID']) && !empty($attachment['guid'])) {
         $id = intval($attachment['ID']);
@@ -998,6 +1069,64 @@ class Quick_Playground_Save_Custom extends WP_REST_Controller {
     $data = apply_filters('quickplayground_saved_custom',$data);
     $savedfile = $playground_site_uploads.'/quickplayground_custom_'.$profile.'.json';
     $bytes_written = file_put_contents($savedfile,json_encode($data));
+    $sync_response['saved'] = $bytes_written;
+    $sync_response['file'] = $savedfile;
+    return new WP_REST_Response($sync_response, 200);
+	}
+}
+
+class Quick_Playground_Save_Prompts extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for saving posts.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'save_prompts/(?P<profile>[a-z0-9_]+)';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'POST',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+  
+
+    /**
+     * Permissions check for saving posts.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+	  	return 'https://playground.wordpress.net/' == $_SERVER['HTTP_REFERER'];
+	}
+
+    /**
+     * Handles POST requests for saving posts data.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+
+	global $wpdb, $playground_uploads, $playground_site_uploads;
+    $profile = $request['profile'];
+    $savedfile = $playground_site_uploads.'/quickplayground_prompts_'.$profile.'.json';
+    //$data = $request->get_json_params();
+    $bytes_written = file_put_contents($savedfile,trim(stripslashes($request->get_body()),'"'));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
     return new WP_REST_Response($sync_response, 200);
@@ -1083,6 +1212,8 @@ add_action('rest_api_init', function () {
 	 $hook->register_routes();           
 	 $hook = new Quick_Playground_Clone_Images();
 	 $hook->register_routes();           
+	 $hook = new Quick_Playground_Thumbnails();
+	 $hook->register_routes();           
 	 $hook = new Quick_Playground_Clone_Custom();
 	 $hook->register_routes();           
    $hook = new Quick_Playground_Blueprint();
@@ -1098,6 +1229,8 @@ add_action('rest_api_init', function () {
   $hook = new Quick_Playground_Save_Image();
 	 $hook->register_routes();
   $hook = new Quick_Playground_Save_Custom();
+	 $hook->register_routes();
+  $hook = new Quick_Playground_Save_Prompts();
 	 $hook->register_routes();
   $hook = new Quick_Playground_Download();
 	 $hook->register_routes();

@@ -64,6 +64,7 @@ function blueprint_settings_init($profile) {
         $settings = $result[1];
         update_option('playground_clone_settings_'.$profile,$settings);
     }
-    $page = sanitize_text_field($_GET['page']);    
-    printf('<form method="get" action="%s" class="playground-form" ><input type="hidden" name="page" value="quickplayground_builder" /><div id="switch_add_profile">Profile: <select name="profile">%s</select> <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),$ppoptions,wp_nonce_field('quickplayground','playground',true,false));
+    $page = sanitize_text_field($_GET['page']);
+    $pagechoice = 'quickplayground_builder' == $page ? '<input type="radio" name="page" value="quickplayground" /> Gallery <input type="radio" name="page" value="quickplayground_builder" checked="checked" /> Builder ' : '<input type="radio" name="page" value="quickplayground" checked="checked" /> Gallery <input type="radio" name="page" value="quickplayground_builder" /> Builder ';
+    printf('<form method="get" action="%s" class="playground-form" > <div id="switch_add_profile">Profile: <select name="profile">%s</select> %s <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),$ppoptions,$pagechoice,wp_nonce_field('quickplayground','playground',true,false));
 }

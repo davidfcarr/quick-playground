@@ -11,7 +11,7 @@ $stylesheet = get_stylesheet();
 printf('<h1>%s: %s</h1>', esc_html(get_bloginfo('name')), esc_html($profile));
 blueprint_settings_init($profile);
 $playground_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
-$clone_api_url = rest_url('quickplayground/v1/playground_clone/'.$profile);
+$clone_api_url = rest_url('quickplayground/v1/clone_posts/'.$profile);
 $origin_url = rtrim(get_option('siteurl'),'/');
 $blueprint = get_option('playground_blueprint_'.$profile, array());
 $settings = get_option('playground_clone_settings_'.$profile,array());
@@ -181,18 +181,6 @@ echo '<p>'.__('Content types added by plugins','quick-playground').'</p>';
 
 printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Name','blogname',esc_attr($settings['blogname']));
 printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Description','blogdescription',esc_attr($settings['blogdescription']));
-if(empty($settings['playgroundmessages'])) {
-    $settings['playgroundmessages']['welcome'] = '';
-    $settings['playgroundmessages']['admin-welcome'] = '';
-}
-foreach($settings['playgroundmessages'] as $key => $value) {
-    printf('<p>Message: %s <br /><textarea name="settings[playgroundmessages][%s]"  cols="100" rows="3">%s</textarea></p>',$key,$key,esc_html($value));
-    if('welcome' == $key)
-    echo '<p><em>Displayed when the Playground first loads.</em></p>';
-    elseif('admin-welcome' == $key)
-    echo '<p><em>Displayed on first visit to the administrator\'s dashboard.</em></p>';
-}
-echo '<p>Custom Message target: <input type="text" name="custom_message_page" /><br /><em>Front End Examples: "home" for the home page, "special-offers" (for mysite.com/special-offers/) or post_type:rsvpmaker (any example of the specified post type)<br >Admin Examples: "dashboard" (/wp-admin/) or "quickplayground_clone_page" (mysite.com/wp-admin/admin.php?page=quickplayground_clone_page)</em><br /><textarea cols="100" rows="3" name="custom_message"></textarea></p>';
 
 printf('<p id="cachesettings"><input name="settings[%s]" type="radio" value="1" %s /> %s ','playground_no_cache',empty($settings['playground_no_cache']) ? '' : ' checked="checked" ', __('Use live website content','quick-playground'));
 printf('<input name="settings[%s]" type="radio" value="0" %s /> %s</p>','playground_no_cache',!empty($settings['playground_no_cache']) ? '' : ' checked="checked" ', __('Use cached playground content','quick-playground'));

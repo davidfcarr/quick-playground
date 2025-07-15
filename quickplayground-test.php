@@ -1,6 +1,48 @@
 <?php
 function quickplayground_test() {
-    global $wpdb;
+    $top = quickplayground_top_ids();
+    $fresh = quickplayground_top_ids(true);
+    foreach($fresh as $slug => $f) {
+        $changed = $f > $top[$slug] ? 'changed' : 'unchanged';
+        printf('<p>%s is %s by test %s > %s</p>',$slug, $changed, $f, $top[$slug]);
+    }
+    return;
+    global $wpdb, $playground_uploads;
+    $sync_origin = 'https://www.clubawesome.org';//get_option('playground_sync_origin');
+    $mysite_url = rtrim(get_option('siteurl'),'/');
+    //reset
+    $wpdb->query("DELETE FROM $wpdb->posts WHERE post_type='attachment'");
+
+    $json = file_get_contents('https://www.clubawesome.org/wp-json/quickplayground/v1/clone_posts/default?nocache=1');
+    $clone = json_decode($json,true);
+    if(!empty($clone['site_logo'])) {
+        $result = quickplayground_sideload($clone['site_logo']);
+        if(is_wp_error($result)) {
+            $out = "<p>Error downloading ".$clone['site_icon']['guid']."</p>";
+        }
+        else
+            $out = $result;
+        $clone = quickplayground_clone_output($clone, $out);
+    }
+    if(!empty($clone['site_icon'])) {
+        $result = quickplayground_sideload($clone['site_icon']);
+        if(is_wp_error($result)) {
+            $out = "<p>Error downloading ".$clone['site_icon']['guid']."</p>";
+        }
+        else
+            $out = $result;
+        $clone = quickplayground_clone_output($clone, $out);
+    }
+    if(!empty($clone['front_page_thumbnail'])) {
+        $result = quickplayground_sideload($clone['front_page_thumbnail']);
+        if(is_wp_error($result)) {
+            $out = "<p>Error downloading ".$clone['front_page_thumbnail']['guid']."</p>";
+        }
+        else
+            $out = $result;
+        $clone = quickplayground_clone_output($clone, $out);
+    }
+
     $baseurl = get_option('playground_sync_origin');
     $is_clone = get_option('is_playground_clone');
     if(isset($_POST['is_playground_clone']))
