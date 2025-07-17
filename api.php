@@ -71,10 +71,10 @@ class Quick_Playground_Blueprint extends WP_REST_Controller {
     }
     $blueprint = quickplayground_fix_variables($blueprint,empty($key) ? '' : $key,$email);
     $blueprint = apply_filters('quickplayground_blueprint',$blueprint);
-
-    return new WP_REST_Response($blueprint, 200);
+    $response = new WP_REST_Response( $blueprint, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 	}
-
 }
 
 /**
@@ -135,8 +135,9 @@ class Quick_Playground_Clone extends WP_REST_Controller {
       if(file_exists($savedfile) && !isset($_GET['refresh'])) {
       $json = file_get_contents($savedfile);
       if($json && $clone = json_decode($json)) {
-        //$clone['savedfile'] = $savedfile;
-        return new WP_REST_Response($clone, 200);
+        $response = new WP_REST_Response( $clone, 200 );
+        $response->header( "Access-Control-Allow-Origin", "*" );
+        return $response;
       }
     }
     }
@@ -238,7 +239,9 @@ class Quick_Playground_Clone extends WP_REST_Controller {
     $clone['posts'] = $posts;
     $clone = apply_filters('quickplayground_playground_clone_posts',$clone, $settings);
     update_option('playground_ids_'.$profile,$clone['ids']);
-    return new WP_REST_Response($clone, 200);
+    $response = new WP_REST_Response( $clone, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 }
 }
 
@@ -298,8 +301,9 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
       if(file_exists($savedfile) && !isset($_GET['refresh'])) {
       $json = file_get_contents($savedfile);
       if($json && $clone = json_decode($json)) {
-        //$clone['savedfile'] = $savedfile;
-        return new WP_REST_Response($clone, 200);
+        $response = new WP_REST_Response( $clone, 200 );
+        $response->header( "Access-Control-Allow-Origin", "*" );
+        return $response;
       }
     }
     }
@@ -323,7 +327,9 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
     }
     $clone['settings'] = $settings;
     $clone = apply_filters('quickplayground_playground_clone_settings',$clone);
-    return new WP_REST_Response($clone, 200);
+    $response = new WP_REST_Response( $clone, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 }
 }
 
@@ -430,105 +436,12 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
             $clone['attachments'][] = $attachment;
       }
     }
-    $clone = apply_filters('quickplayground_playground_clone_images',$clone);
-    return new WP_REST_Response($clone, 200);
+    $response = new WP_REST_Response( $clone, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
   }
   }
 }
-
-/**
- * REST controller for delayed cloning images and attachments for the playground.
- */
-class Quick_Playground_Thumbnails extends WP_REST_Controller {
-
-    /**
-     * Registers REST API routes for cloning images.
-     */
-    public function register_routes() {
-
-	  $namespace = 'quickplayground/v1';
-
-	  $path = 'thumbnails';
-
-	  register_rest_route( $namespace, '/' . $path, [
-
-		array(
-
-		  'methods'             => 'GET',
-
-		  'callback'            => array( $this, 'get_items' ),
-
-		  'permission_callback' => array( $this, 'get_items_permissions_check' )
-
-			  ),
-
-		  ]);     
-
-	  }
-
-    /**
-     * Permissions check for getting image items.
-     *
-     * @param WP_REST_Request $request The REST request.
-     * @return bool True if allowed.
-     */
-	public function get_items_permissions_check($request) {
-	  	return true;
-	}
-
-    /**
-     * Handles GET requests for cloning images and attachments.
-     *
-     * @param WP_REST_Request $request The REST request.
-     * @return WP_REST_Response The response object.
-     */
-  public function get_items($request) {
-    quickplayground_get_thumbnails();
-    return new WP_REST_Response($response, 200);
-  }
-}
-
-/**
- * REST controller for cloning taxonomy and metadata for the playground.
- */
-class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
-
-    /**
-     * Registers REST API routes for cloning taxonomy.
-     */
-    public function register_routes() {
-
-	  $namespace = 'quickplayground/v1';
-
-	  $path = 'clone_taxonomy/(?P<profile>[a-z0-9_]+)';
-
-	  register_rest_route( $namespace, '/' . $path, [
-
-		array(
-
-		  'methods'             => 'GET',
-
-		  'callback'            => array( $this, 'get_items' ),
-
-		  'permission_callback' => array( $this, 'get_items_permissions_check' )
-
-			  ),
-
-		  ]);     
-
-	  }
-
-    /**
-     * Permissions check for getting taxonomy items.
-     *
-     * @param WP_REST_Request $request The REST request.
-     * @return bool True if allowed.
-     */
-	public function get_items_permissions_check($request) {
-
-	  return true;
-
-	}
 
     /**
      * Handles GET requests for cloning taxonomy and metadata.
@@ -546,8 +459,11 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
   
   if(file_exists($savedfile) && empty($_GET['nocache'])) {
     $json = file_get_contents($savedfile);
-    if($json && $clone = json_decode($json))
-      return new WP_REST_Response($clone, 200);
+    if($json && $clone = json_decode($json)) {
+        $response = new WP_REST_Response( $clone, 200 );
+        $response->header( "Access-Control-Allow-Origin", "*" );
+        return $response;
+    }
   }
   
     $clone = [];
@@ -572,7 +488,9 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
         $clone['users'][] = quickplayground_fake_user($user->ID);
     }
     $clone = apply_filters('quickplayground_playground_clone_meta',$clone);
-    return new WP_REST_Response($clone, 200);
+    $response = new WP_REST_Response( $clone, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 }
 }
 
@@ -632,14 +550,19 @@ class Quick_Playground_Clone_Custom extends WP_REST_Controller {
   
   if(file_exists($savedfile) && empty($_GET['nocache'])) {
     $json = file_get_contents($savedfile);
-    if($json && $clone = json_decode($json))
-      return new WP_REST_Response($clone, 200);
+    if($json && $clone = json_decode($json)) {
+        $response = new WP_REST_Response( $clone, 200 );
+        $response->header( "Access-Control-Allow-Origin", "*" );
+        return $response;
+    }
   }
   
     $clone = ['custom_tables'=>[]];
     $ids = get_option('playground_ids_'.$profile, array());
     $clone = apply_filters('quickplayground_clone_custom',$clone,$ids);
-    return new WP_REST_Response($clone, 200);
+    $response = new WP_REST_Response( $clone,200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 }
 }
 
@@ -714,7 +637,9 @@ class Quick_Playground_Sync extends WP_REST_Controller {
 
     $sync_response['data'] = $data;
 
-    return new WP_REST_Response($sync_response, 200);
+    $response = new WP_REST_Response( $sync_response, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 	}
 }
 
@@ -776,7 +701,9 @@ class Quick_Playground_Save_Posts extends WP_REST_Controller {
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
-    return new WP_REST_Response($sync_response, 200);
+    $response = new WP_REST_Response( $sync_response, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 	}
 }
 
@@ -837,7 +764,9 @@ class Quick_Playground_Save_Settings extends WP_REST_Controller {
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
-    return new WP_REST_Response($sync_response, 200);
+    $response = new WP_REST_Response( $sync_response, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 	}
 }
 
@@ -898,7 +827,9 @@ class Quick_Playground_Save_Meta extends WP_REST_Controller {
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
-    return new WP_REST_Response($sync_response, 200);
+    $response = new WP_REST_Response( $sync_response, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 	}
 }
 
@@ -1012,7 +943,9 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
     }
-    return new WP_REST_Response($sync_response, 200);
+    $response = new WP_REST_Response( $sync_response, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 	}
 }
 
@@ -1071,7 +1004,9 @@ class Quick_Playground_Save_Custom extends WP_REST_Controller {
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
-    return new WP_REST_Response($sync_response, 200);
+    $response = new WP_REST_Response( $sync_response, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 	}
 }
 
@@ -1129,7 +1064,9 @@ class Quick_Playground_Save_Prompts extends WP_REST_Controller {
     $bytes_written = file_put_contents($savedfile,trim(stripslashes($request->get_body()),'"'));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
-    return new WP_REST_Response($sync_response, 200);
+    $response = new WP_REST_Response( $sync_response, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
 	}
 }
 
@@ -1212,8 +1149,6 @@ add_action('rest_api_init', function () {
 	 $hook->register_routes();           
 	 $hook = new Quick_Playground_Clone_Images();
 	 $hook->register_routes();           
-	 $hook = new Quick_Playground_Thumbnails();
-	 $hook->register_routes();           
 	 $hook = new Quick_Playground_Clone_Custom();
 	 $hook->register_routes();           
    $hook = new Quick_Playground_Blueprint();
@@ -1235,4 +1170,3 @@ add_action('rest_api_init', function () {
   $hook = new Quick_Playground_Download();
 	 $hook->register_routes();
 } );
-

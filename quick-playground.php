@@ -46,7 +46,6 @@ function quickplayground() {
     printf('<p>Theme: %s, Plugins: %s. For Customization options, see the <a href="%s">Playground Builder page</a>.</p>',esc_html($stylesheet),esc_html(implode(', ', quickplayground_plugin_list($blueprint))),esc_attr(admin_url('admin.php?page=quickplayground_builder')));
     //echo quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
     //echo quickplayground_cache_message($profile, $settings);
-
 echo '<div class="playground-doc">';
 if($key) {
     echo "<p>Quick Playground allows you to test themes, plugins, design ideas, and configuration settings on a virtual WordPress Playground copy of your website, without worrying about breaking your live site.</p>";

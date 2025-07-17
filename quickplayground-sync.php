@@ -48,7 +48,6 @@ function quickplayground_sync() {
                         foreach($saved['meta']['postmeta'] as $m) {
                             if($value == $m['post_id']) {
                             update_post_meta($value,$m['meta_key'],$m['meta_value']);
-                            //printf('<p>meta %d %s %s</p>',$value,$m['meta_key'],var_export($m['meta_value'],true));
                             }
                         }
                     }                   

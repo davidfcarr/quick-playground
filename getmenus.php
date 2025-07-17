@@ -51,8 +51,6 @@ function quickplayground_get_category_data($clone) {
   LEFT JOIN $wpdb->terms AS terms ON terms.term_id = tt.term_id
  WHERE p.ID IN (".implode(',',$ids).") AND p.post_status='publish'"; //AND (tt.taxonomy = 'category' OR tt.taxonomy = 'wp_theme') 
   
-    //$sql = "SELECT * FROM $wpdb->term_relationships LEFT JOIN $wpdb->term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id LEFT JOIN $wpdb->terms AS terms ON terms.term_id = tt.term_id WHERE (tt.taxonomy = 'category' OR tt.taxonomy = 'wp_theme') AND p.post_status='publish'";
-  $clone['taxsql'] = $sql;
 $cat = $wpdb->get_results($sql);
  $terms = [];
  $tax = [];

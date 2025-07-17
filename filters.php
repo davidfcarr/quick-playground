@@ -129,65 +129,6 @@ function rsvpmaker_playground_custom_clone_receiver($clone) {
     return $clone;
 }
 
-/**
- * Inserts RSVPmaker event data into the database during the playground cloning process. Runs within playground. Adds demo RSVPs to events
- *
- * @param array $clone The clone data array.
- * @return array Modified clone data array with output log.
- * $clone = apply_filters('playground_clone_posts',$clone); 
- */
-/*
-now handled as part of custom import stage
-add_filter('playground_clone_posts','rsvpmaker_playground_clone');
-function rsvpmaker_playground_clone($clone) {
-    global $wpdb;
-    $t = time();
-    $clone['output'] .= '<p>checking for rsvpmaker events</p>';
-    if(empty($clone['rsvpmakers']) || !function_exists('rsvpmaker_get_future_events')) {
-        $clone['output'] .= '<p>no rsvpmaker events to clone</p>';
-        return $clone;
-    }
-    else {
-        $clone['output'] .= '<p>found '.sizeof($clone['rsvpmakers']).' to clone</p>';
-    }
-    $event_table = $wpdb->prefix.'rsvpmaker_event';
-    usort($clone['rsvpmakers'],'quickplayground_rsvpmaker_datesort');
-    $addtime = 0;
-    $r = (array) $clone['rsvpmakers'][0];
-    if($r['ts_start'] < $t) {
-        $diff = $t - $r['ts_start'];
-        $weeks = ceil($diff / WEEK_IN_SECONDS) + 1;
-        $addtime = ($weeks > 6) ? 52 * WEEK_IN_SECONDS : $weeks * WEEK_IN_SECONDS;
-    }
-    foreach($clone['rsvpmakers'] as $index => $r) {
-        $r = (array) $r; // Ensure $r is an array
-        if(empty($r))
-            continue;
-        if(empty($r['event']) && empty($r['ID']))
-            continue;
-        if(empty($r['event']) && !empty($r['ID']))
-            $r['event'] = $r['ID'];
-        if($addtime) {
-            $r['ts_start'] += $addtime;
-            $r['date'] = rsvpmaker_date('Y-m-d H:i:s',$r['ts_start']);
-            $r['ts_end'] += $addtime;
-            $r['enddate'] = rsvpmaker_date('Y-m-d H:i:s',$r['ts_end']);
-            $clone['output'] .= '<p>advancing date of '.$r['post_title'].' to '.date('r',intval($r['ts_start'])).'</p>';
-        }
-        //filter unwanted fields
-        $event = ['event'=>$r['event'],'ts_start'=>$r['ts_start'],'ts_end'=>$r['ts_end'],'date'=>$r['date'],'enddate'=>$r['enddate'],'post_title'=>$r['post_title'],'timezone'=>$r['timezone'],'display_type'=>$r['display_type']];
-        printf('<p>Event Clone %s</p>',var_export($event,true));
-        rsvpmakers_add((object) $event);
-        $result = $wpdb->replace($event_table, $event);
-        $clone['output'] .= "<p>$wpdb->last_query</p>";
-        if(!$result) {
-            $clone['output'] .= '<p>Error: terms '.esc_html($wpdb->last_error).'</p>';
-        }
-    }
-    return $clone;
-}
-*/
-
 function quickplayground_rsvpmaker_datesort($a, $b) {
     if(empty($a['ts_start']) || empty($b['ts_start']))
         return -1;
@@ -293,39 +234,15 @@ $events_dropdown = get_events_dropdown ();
 add_action('wp_footer','quickplayground_clone_footer_message');
 add_action('admin_footer','quickplayground_clone_footer_message');
 function quickplayground_clone_footer_message() {
-    $images_loaded = get_option('quickplayground_images_loaded');
-    $is_clone = get_option('is_playground_clone');
-    if($is_clone && empty($images_loaded)) {
-    $url = rest_url('quickplayground/v1/thumbnails');
-    $keymessage['message'] = '<div id="img_loading_message">Loading additional images...</div>';
-    $javascript = "<script>
-    fetch('".$url."')
-  .then(response => {
-    // First .then(): Handles the Response object
-    // Check if the response was successful (e.g., status code 200-299)
-    if (response.ok) {
-      // If successful, parse the response body (e.g., as JSON)
-      return response.json(); 
-    } else {
-      // If not successful, throw an error to be caught by .catch()
-      throw new Error('Network response was not ok.');
-    }
-  })
-  .then(data => {
-    // Second .then(): Handles the parsed data (e.g., JSON object)
-    console.log(data); // Work with the fetched data
-    document.getElementById('img_loading_message').innerHTML = data.message;
-    if(!data.error)
-    window.location.reload();
-  })
-  .catch(error => {
-    // .catch(): Handles any errors in the fetch or parsing process
-    console.error('There was a problem with the fetch operation:', error);
-  });
-    </script>";
-    update_option('quickplayground_images_loaded',true);
+    if(!get_option('is_playground_clone'))
+        return;
+    $loading_images = quickplayground_get_thumbnails_footer();
+    if($loading_images) {
+        $startup = true;
+        $keymessage['message'] = $loading_images;
     }
     else {
+    $is_clone = get_option('is_playground_clone');
     $slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : basename($_SERVER['REQUEST_URI']);
     if(is_home() || is_front_page())
         $slug = 'home';
@@ -334,8 +251,7 @@ function quickplayground_clone_footer_message() {
     $slug = preg_replace('/[^a-z0-9\_]/','-',$slug);
     $keymessage = array('key'=>$slug,'message'=>'','welcome'=> is_admin() ? 'admin-welcome' : 'welcome');
     $keymessage = apply_filters('quickplayground_key_message',$keymessage);
-    $javascript = '';
-    }
+    }    
     if(!empty($keymessage['message'])) {
     ?>
 <div id="playground-overlay-message">
@@ -347,10 +263,16 @@ function quickplayground_clone_footer_message() {
   <button id="playground-overlay-close">&times;</button>
 </div>
 <?php
-echo $javascript;
-    }
-    //initialize top ids
+    if($startup) {
     $top = quickplayground_top_ids();
+    echo "<script>
+    setTimeout(() => {
+        window.location.reload();
+    }, 5000);
+    </script>";
+    }
+    }
+    else sprintf('quickplayground_get_thumbnails_footer() returned %s',var_export($loading_images,true));
 }
 
 add_filter('quickplayground_key_message','quickplayground_admin_message');
@@ -368,9 +290,3 @@ function playground_http_log($response, $context, $class, $parsed_args, $url) {
         error_log('called '.$url .' context '.var_export($context,true).' args '.var_export($parsed_args,true));
     }
 }
-
-function quick_cors_http_header(){
-    if(strpos($_SERVER['REQUEST_URI'],'quickplayground') || strpos($_SERVER['REQUEST_URI'],'uploads'))
-    header("Access-Control-Allow-Origin: *");
-}
-add_action('init','quick_cors_http_header');

@@ -1,8 +1,6 @@
 <?php
-//add_action('init', 'quickplayground_clone_init');
-
 /**
- * Initializes the Quick Playground clone process on 'init' action.
+ * Initializes the Quick Playground clone process. Called by playground blueprint
  */
 function quickplayground_clone_init() {
     if(isset($_GET['clonetest'])) {
@@ -14,11 +12,6 @@ function quickplayground_clone_init() {
         //wp_schedule_single_event( time() + 300, 'quickplayground_load_images');
         //add_action('wp_footer','quickplayground_load_images');
     }
-}
-
-function quickplayground_load_images() {
-    echo '<p>Attempting to load images.</p>';
-    quickplayground_clone_images('images');
 }
 
 /**
@@ -664,7 +657,7 @@ function quickplayground_clone_images($target) {
     if(!empty($clone['thumbnails'])) {
         $newthumb = [];
         foreach($clone['thumbnails'] as $index => $thumb) {
-            if($index < 3) {
+            if($index < 5) {
                 $result = quickplayground_sideload($thumb);
                 $clone = quickplayground_clone_output($clone, '<p>quickplayground_sideload returned</p><div>'.$result.'</div>');
                 if(is_wp_error($result)) {
@@ -765,7 +758,6 @@ require_once(ABSPATH . 'wp-admin/includes/media.php');
 	$file_array['tmp_name'] = download_url( $url );
     $post_id = $post_data['post_parent'];
     //save downloaded file, keeping original date folders
-    //media_handle_sideload( string[] $file_array, int $post_id, string $desc = null, array $post_data = array() ): int|WP_Error
     $attachment_id = quickplayground_media_handle_sideload( $file_array, $post_id, $desc, $post_data );
 	if ( is_wp_error( $attachment_id ) ) {
         error_log("error downloading $url ".$temp_id->get_error_message());
@@ -880,20 +872,22 @@ function quickplayground_insert_attachment( $args, $file = false, $parent_post_i
 	return $attachment_id;//wp_insert_post( $data, $wp_error, $fire_after_hooks );
 }
 
-function quickplayground_get_thumbnails() {
+function quickplayground_get_thumbnails_footer() {
     $clone = get_option('quickplayground_clone_images',[]);
-    $response = ['message'=>''];
+    if(!$clone)
+        return;
     $successful = 0;
+    $out = '<p>Playground is downloading additional images</p>';
     if(!empty($clone['thumbnails'])) {
-      $response['message'] .= '<p>'.sizeof($clone['thumbnails']).' saved thumbnails</p>';
+      $out .= '<p>'.sizeof($clone['thumbnails']).' saved thumbnails</p>';
       foreach($clone['thumbnails'] as $thumb) {
         $result = quickplayground_sideload($thumb);
         if(is_wp_error($result)) {
-            $response['message'] .= "<p>Error downloading ".$thumb['guid']."</p>";
-            $response['error'] = true;
+            $out .= "<p>Error downloading ".$thumb['guid']."</p>";
         }
         else {
-          $successful++;
+        $out .= "<p>Downloaded ".$thumb['guid']."</p>";
+        $successful++;
         }
       }
     }
@@ -901,11 +895,11 @@ function quickplayground_get_thumbnails() {
     if(!empty($logo)) {
     $result = quickplayground_sideload($logo,['update_option'=>'site_logo']);
     if(is_wp_error($result)) {
-        $response['message'] .= "<p>Error downloading ".$thumb['guid']."</p>";
-        $response['error'] = true;
+        $out .= "<p>Error downloading ".$thumb['guid']."</p>";
     }
     else {
-      $response['message'] .= ' set site logo to '.$logo['ID'];
+    $out .= "<p>Downloaded ".$thumb['guid']."</p>";
+      $out .= ' set site logo to '.$logo['ID'];
       update_option('site_logo',$logo['ID']);
       $successful++;
     }
@@ -915,17 +909,18 @@ function quickplayground_get_thumbnails() {
     if(!empty($icon)) {
     $result = quickplayground_sideload($icon,['update_option'=>'site_icon']);
     if(is_wp_error($result)) {
-        $response['message'] .= "<p>Error downloading ".$thumb['guid']."</p>";
-        $response['error'] = true;
+        $out .= "<p>Error downloading ".$thumb['guid']."</p>";
     }
     else {
+    $out .= "<p>Downloaded ".$thumb['guid']."</p>";
       update_option('site_icon',$icon['ID']);
       $successful++;
     }
     }
 
-    $response['message'] .= sprintf('<p>%d successful image downloads</p>',$successful);
+    $out .= sprintf('<p>%d successful image downloads</p>',$successful);
     $log = get_option('clone_images_log');
-    update_option('clone_images_log',$response['message']."\n".$log);
-    return $response;
+    update_option('clone_images_log',$log."\n".$out);
+    delete_option('quickplayground_clone_images');
+    return "<p>Downloaded $successful additional images. Page should reload automatically.</p>";
 }

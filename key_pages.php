@@ -10,6 +10,7 @@ function quickplayground_find_key_pages($profile = 'default') {
     $landingpage = get_option('quickplayground_landing_page_'.$profile);
         if($landingpage && !strpos($landingpage,'wp-admin')) {
         $url = site_url($landingpage);
+        echo "<p>Trying $url</p>";
         $response = wp_remote_get($url);
         if(is_wp_error($response)) {
             echo $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
@@ -17,7 +18,7 @@ function quickplayground_find_key_pages($profile = 'default') {
             return;
         }
         $home_html = $response['body'];
-        $parse = parse_url($siteurl);
+        $parse = parse_url($url);
         $domain = $parse['host'];
         $pattern = '/<a[^>]+href\s*=\s*(?:["\'](?<url>[^"\']*)["\'])/';
         preg_match_all($pattern, $home_html, $matches);
@@ -25,7 +26,8 @@ function quickplayground_find_key_pages($profile = 'default') {
             if(!strpos($match,'.php') && strpos($match,$domain) !== false)
             {
             $match = basename($match);
-            if(!empty($match) && $match != $domain)
+            printf('<p>match %s</p>',$match);
+            if(!empty($match) && $match != $domain && !in_array($match,$keypages))
                 $keypages[] = $match;
             }
         }
@@ -46,7 +48,8 @@ function quickplayground_find_key_pages($profile = 'default') {
         if(!strpos($match,'.php') && strpos($match,$domain) !== false)
         {
         $match = basename($match);
-        if(!empty($match) && $match != $domain)
+        
+        if(!empty($match) && $match != $domain && !in_array($match,$keypages))
             $keypages[] = $match;
         }
     }

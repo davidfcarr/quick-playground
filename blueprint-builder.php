@@ -206,6 +206,10 @@ printf('<p>Clone Images API URL: <br /><a href="%s" target="_blank">%s</a></p>',
 printf('<p>Demo playground button code</p><p><textarea cols="100" rows="5">%s</textarea></p>',esc_html(quickplayground_get_button(['profile',$profile,'is_demo'=>1])));
 quickplayground_get_blueprint_link(['profile'=>$profile,'is_demo'=>1]);
 quickplayground_print_button_shortcode(['profile'=>$profile,'is_demo'=>1]);
+
+$pages = quickplayground_find_key_pages();
+print_r($pages);
+
 }
 
 /**
