@@ -443,6 +443,48 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
   }
 }
 
+/**
+ * REST controller for cloning taxonomy and metadata for the playground.
+ */
+class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for cloning taxonomy.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'clone_taxonomy/(?P<profile>[a-z0-9_]+)';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'GET',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+    /**
+     * Permissions check for getting taxonomy items.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+
+	  return true;
+
+	}
+
     /**
      * Handles GET requests for cloning taxonomy and metadata.
      *
