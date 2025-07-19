@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * Initializes and manages playground blueprint settings and profiles.
  *
@@ -10,22 +11,22 @@ function blueprint_settings_init($profile) {
     $key = playground_premium_enabled();
     
     if(isset($_POST['build_profile'])) {  
-        $result = quickplayground_build($_POST,$profile);
+        $result = qckply_build($_POST,$profile);
         $blueprint = $result[0];
         $settings = $result[1];
-        $button = quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
-        $cachemessage = quickplayground_cache_message($profile,$settings);
-        
-        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',$button, $cachemessage);
-        update_option('playground_clone_settings_'.$profile,$settings);
+        $button = qckply_get_button(['profile'=>$profile, 'key'=>$key]);
+        $cachemessage = qckply_cache_message($profile,$settings);
+        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',$button, wp_kses_post($cachemessage));
+        update_option('quickplay_clone_settings_'.$profile,$settings);
+        if(!empty($_POST['reset_cache']))
+            qckply_delete_caches($_POST['reset_cache'],$profile);
     }
     else {
         $blueprint = get_option('playground_blueprint_'.$profile, array());
-        $settings = get_option('playground_clone_settings_'.$profile,array());
-        echo quickplayground_get_button(['profile'=>$profile, 'key'=>$key]);
-        echo quickplayground_cache_message($profile,$settings);
+        $settings = get_option('quickplay_clone_settings_'.$profile,array());
+        echo qckply_get_button(['profile'=>$profile, 'key'=>$key]);
+        echo wp_kses_post(qckply_cache_message($profile,$settings));
     }
-
     $pp = get_option('playground_profiles',array('default'));
     if(!in_array($profile,$pp))
     {
@@ -40,7 +41,7 @@ function blueprint_settings_init($profile) {
         }
         $ppoptions .= sprintf('<option value="%s" %s>%s</option>',$value, ($value == $profile) ? ' selected="selected" ' : '', $value);
     }
-    $ppoptions .= sprintf('<option value="add_custom">%s</option>', __('Add New Profile','quick-playground'));
+    $ppoptions .= sprintf('<option value="add_custom">%s</option>', esc_html__('Add New Profile','quick-playground'));
     if(isset($_GET['reset']) || empty($blueprint)) {
         $page_on_front = intval(get_option('page_on_front'));
         $settings = array();
@@ -59,12 +60,12 @@ function blueprint_settings_init($profile) {
         $postvars['settings'] = $settings;
         $postvars['add_theme'][] = get_stylesheet();
         $postvars['profile'] = $profile;
-        $result = quickplayground_build($postvars,$profile);
+        $result = qckply_build($postvars,$profile);
         $blueprint = $result[0];
         $settings = $result[1];
-        update_option('playground_clone_settings_'.$profile,$settings);
+        update_option('quickplay_clone_settings_'.$profile,$settings);
     }
     $page = sanitize_text_field($_GET['page']);
-    $pagechoice = 'quickplayground_builder' == $page ? '<input type="radio" name="page" value="quickplayground" /> Gallery <input type="radio" name="page" value="quickplayground_builder" checked="checked" /> Builder ' : '<input type="radio" name="page" value="quickplayground" checked="checked" /> Gallery <input type="radio" name="page" value="quickplayground_builder" /> Builder ';
-    printf('<form method="get" action="%s" class="playground-form" > <div id="switch_add_profile">Profile: <select name="profile">%s</select> %s <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),$ppoptions,$pagechoice,wp_nonce_field('quickplayground','playground',true,false));
+    $pagechoice = 'qckply_builder' == $page ? '<input type="radio" name="page" value="quickplayground" /> Gallery <input type="radio" name="page" value="qckply_builder" checked="checked" /> Builder ' : '<input type="radio" name="page" value="quickplayground" checked="checked" /> Gallery <input type="radio" name="page" value="qckply_builder" /> Builder ';
+    printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile">Profile: <select name="profile">%s</select> %s <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()),wp_nonce_field('quickplayground','playground',true,false));
 }

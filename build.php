@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * Builds a playground blueprint and settings array based on provided variables and profile.
  *
@@ -6,11 +7,11 @@
  * @param string $profile  The profile name (default: 'default').
  * @return array           Array containing the blueprint and settings.
  */
-function quickplayground_build($postvars, $profile = 'default') {
+function qckply_build($postvars, $profile = 'default') {
     $site_origin = rtrim(get_option('siteurl'),'/');
-    $default_plugins = is_multisite() ? get_blog_option(1,'playground_default_plugins',array()) : array();
-    $excluded_plugins = is_multisite() ? get_blog_option(1,'playground_excluded_plugins',array()) : array();
-    $default_themes = is_multisite() ? get_blog_option(1,'playground_default_themes',array()) : array();
+    $default_plugins = is_multisite() ? get_blog_option(1,'qckply_default_plugins',array()) : array();
+    $excluded_plugins = is_multisite() ? get_blog_option(1,'qckply_excluded_plugins',array()) : array();
+    $default_themes = is_multisite() ? get_blog_option(1,'qckply_default_themes',array()) : array();
     $slugs = ['quick-playground'];
     $themeslugs = [];
     if(!empty($excluded_plugins))
@@ -32,7 +33,7 @@ function quickplayground_build($postvars, $profile = 'default') {
         }
     }
 
-    $settings = get_option('playground_clone_settings_'.$profile,array());
+    $settings = get_option('quickplay_clone_settings_'.$profile,array());
     unset($settings['demo_pages']);
     unset($settings['demo_posts']);
     unset($settings['demo_rsvpmakers']);
@@ -47,10 +48,10 @@ function quickplayground_build($postvars, $profile = 'default') {
         if(empty($settings['copy_events'])) {
             $settings['copy_events'] = 0;
         }
-        $settings['is_playground_clone']=true;
-        $settings['playground_profile']=$profile;
-        $settings['playground_sync_origin']=$site_origin;
-        $settings['playground_site_dir'] = is_multisite() ? '/sites/'.get_current_blog_id() : '';
+        $settings['is_qckply_clone']=true;
+        $settings['qckply_profile']=$profile;
+        $settings['qckply_sync_origin']=$site_origin;
+        $settings['qckply_site_dir'] = is_multisite() ? '/sites/'.get_current_blog_id() : '';
         $settings['demo_pages'] = [];
         $settings['key_pages'] = empty($settings['key_pages']) ? 0 : 1; // 0 if not checked
         if(isset($postvars['post_types']))
@@ -70,7 +71,7 @@ function quickplayground_build($postvars, $profile = 'default') {
                 }
             }
         }
-        $settings = apply_filters('quickplayground_new_settings',$settings, $postvars);
+        $settings = apply_filters('qckply_new_settings',$settings, $postvars);
     }
 
     if(isset($postvars['logerrors']))
@@ -114,22 +115,22 @@ function quickplayground_build($postvars, $profile = 'default') {
                     $public = false;
             if(isset($_POST['show_details']) || isset($_GET['reset']))
                     printf('<p>Adding local theme %s</p>',esc_html($slug));
-                    quickplayground_playground_zip_theme($slug);
+                    qckply_zip_theme($slug);
                 } else {
-                    if(quickplayground_repo_check($slug,'theme')) {
+                    if(qckply_repo_check($slug,'theme')) {
             if(isset($_POST['show_details']) || isset($_GET['reset']))
                         printf('<p>Adding public theme %s</p>',esc_html($slug));
                     } else {
                         $public = false;
             if(isset($_POST['show_details']) || isset($_GET['reset']))
                         printf('<p>Public theme %s not found, adding as local zip</p>',esc_html($slug));
-                        quickplayground_playground_zip_theme($slug);
+                        qckply_zip_theme($slug);
                     }
                 }
             if($i < 1) {
                 if(isset($_POST['show_details']) || isset($_GET['reset']))
                 printf('<p>Default theme %s</p>',esc_html($slug));
-                $settings['clone_stylesheet'] = $slug;
+                $settings['qckply_clone_stylesheet'] = $slug;
                 $themetest = wp_get_theme($slug);
                 $parent_theme = $themetest->parent();
                 if(!empty($parent_theme)) {
@@ -150,14 +151,14 @@ function quickplayground_build($postvars, $profile = 'default') {
 
         $public = true;
 
-        if(quickplayground_repo_check($slug,'theme')) {
+        if(qckply_repo_check($slug,'theme')) {
             if(isset($_POST['show_details']) || isset($_GET['reset']))
                 printf('<p>Adding public theme %s</p>',esc_html($slug));
         } else {
             $public = false;
             if(isset($_POST['show_details']) || isset($_GET['reset'])) 
                 printf('<p>Public theme %s not found, adding as local zip</p>',esc_html($slug));
-            quickplayground_playground_zip_theme($slug);
+            qckply_zip_theme($slug);
         }
         $steps[] = makeThemeItem($slug, $public, $activate);
     }
@@ -180,7 +181,7 @@ function quickplayground_build($postvars, $profile = 'default') {
 
                 if($ziplocal) {
                     $public = false;
-                    $did_zip = quickplayground_playground_zip_plugin($slug);
+                    $did_zip = qckply_zip_plugin($slug);
                     if(!$did_zip) {
                     if(isset($_POST['show_details']) || isset($_GET['reset']))
                         printf('<p>Unable to add as local plugin %s</p>',esc_html($slug));
@@ -188,13 +189,13 @@ function quickplayground_build($postvars, $profile = 'default') {
                     }
                 } else {
 
-                    if(quickplayground_repo_check($slug,'plugin')) {
+                    if(qckply_repo_check($slug,'plugin')) {
 
                     if(isset($_POST['show_details']) || isset($_GET['reset']))
                         printf('<p>Adding public plugin %s</p>',esc_html($slug));
                     } else {
                         $public = false;
-                        $did_zip = quickplayground_playground_zip_plugin($slug);
+                        $did_zip = qckply_zip_plugin($slug);
                         if(!$did_zip) {
                         if(isset($_POST['show_details']) || isset($_GET['reset']))
                             printf('<p>Unable to add as local plugin %s</p>',esc_html($slug));
@@ -243,40 +244,44 @@ function quickplayground_build($postvars, $profile = 'default') {
         }
     }
     $settings['origin_stylesheet'] = get_stylesheet();
-    $settings_to_copy = apply_filters('playground_settings_to_copy',array('timezone_string'));
+    $settings_to_copy = apply_filters('qckply_settings_to_copy',array('timezone_string'));
     foreach($settings_to_copy as $setting) {
         $data = get_option($setting);
-        $data = apply_filters('playground_settings_content',$data,$setting);
+        $data = apply_filters('qckply_settings_content',$data,$setting);
         $settings[$setting] = $data;
     }
     $steps[] = makeBlueprintItem('setSiteOptions',null, $settings);    
-    quickplayground_playground_zip_plugin("quick-playground");
+    qckply_zip_plugin("quick-playground");
     $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
     if($enabled) {
         $plugindata = ProPlaygroundData();
         $steps[] = makeBlueprintItem('installPlugin', array('pluginData'=>$plugindata), array('activate'=>true));
     }
     $steps[] = makePluginItem("quick-playground", false, true);
-    $steps[] = array("step"=>"defineWpConfigConsts","consts"=>["WP_DEBUG"=>true,"WP_DEBUG_LOG"=>true,"WP_DEBUG_DISPLAY"=>false]);
-    $steps[] = makeCodeItem('quickplayground_clone_init();');
+    $steps[] = array("step"=>"defineWpConfigConsts","consts"=>["WP_DEBUG"=>true,"WP_DEBUG_LOG"=>true,"WP_DEBUG_DISPLAY"=>true]);
+    $steps[] = makeCodeItem('qckply_clone("posts");');
 
     $blueprint = array('features'=>array('networking'=>true),'steps'=>$steps);
     if(!empty($postvars['landingPage'])) {
         $landingpage = sanitize_text_field($postvars['landingPage']);
-        update_option('quickplayground_landing_page_'.$profile,$landingpage);
+        update_option('qckply_landing_page_'.$profile,$landingpage);
         if(strpos($landingpage,'//'))
         {
             $parsed = parse_url($landingpage);
             if(!empty($parsed['path']))
                 $landingpage = $parsed['path'];
         }
-        $blueprint['landingPage'] = $landingpage;
+        $blueprint['landingPage'] = $landingpage.'?qckply_clone=1';
     }
-    $blueprint = apply_filters('quickplayground_new_blueprint',$blueprint);
+    else
+        $blueprint['landingPage'] = '/?qckply_clone=1';
+
+
+    $blueprint = apply_filters('qckply_new_blueprint',$blueprint);
 
     update_option('playground_blueprint_'.$profile, $blueprint);
-    update_option('playground_clone_settings_'.$profile, $settings);
-    printf('<div class="notice notice-success"><p>Blueprint saved for profile %s with %d steps defined.</p></div>',esc_html($profile),sizeof($blueprint['steps']));
+    update_option('quickplay_clone_settings_'.$profile, $settings);
+    printf('<div class="notice notice-success"><p>Blueprint saved for profile %s with %d steps defined.</p></div>',esc_html($profile),esc_html(sizeof($blueprint['steps'])));
     if(!empty($postvars['show_blueprint'])) {
     echo '<pre>'.esc_html(json_encode($blueprint, JSON_PRETTY_PRINT)).'</pre>';
     }
@@ -290,22 +295,22 @@ function quickplayground_build($postvars, $profile = 'default') {
  * @param string $slug      The theme slug to activate.
  * @return array            Modified blueprint array.
  */
-function quickplayground_swap_theme($blueprint, $slug) {
+function qckply_swap_theme($blueprint, $slug) {
     $slug = trim($slug);
     if(empty($slug)) {
         return $blueprint;
     }
     $public = true;
-    if(!quickplayground_repo_check($slug,'theme')) {
+    if(!qckply_repo_check($slug,'theme')) {
         $public = false;
-        quickplayground_playground_zip_theme($slug);
+        qckply_zip_theme($slug);
     }
     $steps = [];
     $themetest = wp_get_theme($slug);
     $parent_theme = $themetest->parent();
     if(!empty($parent_theme)) {
         $parent = $parent_theme->get_stylesheet();
-        quickplayground_playground_zip_theme($parent);
+        qckply_zip_theme($parent);
         $steps[] = makeThemeItem($parent, false, false);
     }
     $match = false;
@@ -329,7 +334,7 @@ function quickplayground_swap_theme($blueprint, $slug) {
     }
     if(!$match)
         $steps[] = makeThemeItem($slug, $public, true);
-    $steps[] = makeBlueprintItem('setSiteOptions',null, ['clone_stylesheet' => $slug]);
+    $steps[] = makeBlueprintItem('setSiteOptions',null, ['qckply_clone_stylesheet' => $slug]);
     $blueprint['steps'] = $steps;
     return $blueprint;
 }
@@ -341,7 +346,7 @@ function quickplayground_swap_theme($blueprint, $slug) {
  * @param array $settings  Associative array of settings to update.
  * @return array           Modified blueprint array.
  */
-function quickplayground_change_blueprint_setting($blueprint, $settings) {
+function qckply_change_blueprint_setting($blueprint, $settings) {
     $public = true;
     $steps = [];
     $match = false;

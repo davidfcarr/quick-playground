@@ -1,5 +1,5 @@
 <?php
-
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * Creates a blueprint step array for the given step, variables, and options.
  *
@@ -74,14 +74,14 @@ function makeCodeItem($code) {
  * @return array         Data array for the resource.
  */
 function playgroundData($slug, $type = 'plugin', $public = true) {
-    global $playground_uploads_url;
+    global $qckply_uploads_url;
     $data = array();
     if($public) {
         $data['resource'] = ('plugin' === $type) ? 'wordpress.org/plugins' : 'wordpress.org/themes';
         $data['slug'] = $slug;
     } else {
         $data['resource'] = 'url';
-        $data['url'] = rest_url('quickplayground/v1/download/'.$slug.'.zip?t=TIMESTAMP');  //$playground_uploads_url.'/'.$slug.'.zip?t=TIMESTAMP';
+        $data['url'] = rest_url('quickplayground/v1/download/'.$slug.'.zip?t=TIMESTAMP');  //$qckply_uploads_url.'/'.$slug.'.zip?t=TIMESTAMP';
     }
     return $data;
 }

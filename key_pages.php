@@ -1,19 +1,19 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * Finds key pages by scraping the home page for internal links.
  *
  * @return array Array of key page slugs.
  */
-function quickplayground_find_key_pages($profile = 'default') {
+function qckply_find_key_pages($profile = 'default') {
     $siteurl = rtrim(get_option('siteurl'),'/');
     $keypages = [];
-    $landingpage = get_option('quickplayground_landing_page_'.$profile);
+    $landingpage = get_option('qckply_landing_page_'.$profile);
         if($landingpage && !strpos($landingpage,'wp-admin')) {
         $url = site_url($landingpage);
-        echo "<p>Trying $url</p>";
         $response = wp_remote_get($url);
         if(is_wp_error($response)) {
-            echo $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
+            $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
             error_log('Error find key pages data: '.$response->get_error_message());
             return;
         }
@@ -26,7 +26,6 @@ function quickplayground_find_key_pages($profile = 'default') {
             if(!strpos($match,'.php') && strpos($match,$domain) !== false)
             {
             $match = basename($match);
-            printf('<p>match %s</p>',$match);
             if(!empty($match) && $match != $domain && !in_array($match,$keypages))
                 $keypages[] = $match;
             }
@@ -35,7 +34,7 @@ function quickplayground_find_key_pages($profile = 'default') {
 
     $response = wp_remote_get($siteurl);
     if(is_wp_error($response)) {
-        echo $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
+        $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
         error_log('Error find key pages data: '.$response->get_error_message());
         return;
     }
@@ -62,8 +61,8 @@ function quickplayground_find_key_pages($profile = 'default') {
 /**
  * Outputs checkboxes for each key page found, for use in a form.
  */
-function quickplayground_key_pages_checkboxes() {
-    $keypages = quickplayground_find_key_pages();
+function qckply_key_pages_checkboxes() {
+    $keypages = qckply_find_key_pages();
     $done = [];
     foreach($keypages as $slug) {
         if(in_array($slug,$done))
@@ -80,8 +79,8 @@ function quickplayground_key_pages_checkboxes() {
  *
  * @return array Array of WP_Post objects for key pages.
  */
-function quickplayground_key_pages($profile = 'default') {
-    $keypages = quickplayground_find_key_pages($profile);
+function qckply_key_pages($profile = 'default') {
+    $keypages = qckply_find_key_pages($profile);
     $kp = [];
     $done = [];
     foreach($keypages as $slug) {
@@ -95,11 +94,11 @@ function quickplayground_key_pages($profile = 'default') {
     return $kp;
 }
 
-function quickplayground_find_key_images() {
+function qckply_find_key_images() {
     $siteurl = rtrim(get_option('siteurl'),'/');
     $response = wp_remote_get($siteurl);
     if(is_wp_error($response)) {
-        echo $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
+        $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
         error_log('Error find key pages data: '.$response->get_error_message());
         return;
     }

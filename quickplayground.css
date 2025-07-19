@@ -6,19 +6,19 @@ textarea {
   font: inherit;
 }
 
-.playground-form .form-group {
+.qckply-form .form-group {
   display: grid;
   gap: 0.5cap;
 }
 
-.playground-form label {
+.qckply-form label {
   text-transform: uppercase;
   font-size: 1rem;
   text-box-trim: trim-both;
   text-box-edge: cap alphabetic;
 }
 
-.playground-form select, .playground-form option, .playground-form input:not([type="checkbox"], [type="radio"]) {
+.qckply-form select, .qckply-form option, .qckply-form input:not([type="checkbox"], [type="radio"]) {
   background: var(--surface-2);
   color: var(--text-1);
   border: var(--border);
@@ -44,12 +44,12 @@ a {
   color: hsl(from var(--accent) h s 30%);
 }
 
-label {
+.qckply-form label {
   text-transform: uppercase;
   font-size: 1rem;
 }
 
-.playground-form button {
+.qckply-form button {
   cursor: pointer;
   background-color: var(--accent);
   color: var(--text-1);
@@ -149,3 +149,18 @@ ul.playgroundpro {
   }
 }
 
+.qckply-form select,
+.qckply-form select:focus,
+.qckply-form select:active,
+.qckply-form option,
+.qckply-form option:focus,
+.qckply-form option:active {
+  color: var(--text-1); /* or #fff */
+  background: var(--surface-2); /* or your desired background */
+}
+
+.qckply-form select:focus-visible,
+.qckply-form option:focus-visible {
+  color: var(--text-1);
+  background: var(--surface-2);
+}

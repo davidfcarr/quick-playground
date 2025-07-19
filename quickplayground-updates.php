@@ -1,21 +1,22 @@
 <?php
-add_action('init','quickplayground_update_tracking');
-function quickplayground_update_tracking() {
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+add_action('init','qckply_update_tracking');
+function qckply_update_tracking() {
     //if we're in a playground and the initial import is done
-    if(quickplayground_is_playground() && get_option('playground_sync_date',false)) {
-    add_action('wp_after_insert_post','quickplayground_post_updated');
-    add_action('post_updated','quickplayground_post_updated');
-    add_action('updated_option','quickplayground_updated_option');
-    add_action('added_option','quickplayground_updated_option');
-    add_action('added_post_meta','quickplayground_updated_postmeta', 10, 4);
-    add_action('updated_postmeta','quickplayground_updated_postmeta', 10, 4);
+    if(qckply_is_playground() && get_option('qckply_sync_date',false)) {
+    add_action('wp_after_insert_post','qckply_post_updated');
+    add_action('post_updated','qckply_post_updated');
+    add_action('updated_option','qckply_updated_option');
+    add_action('added_option','qckply_updated_option');
+    add_action('added_post_meta','qckply_updated_postmeta', 10, 4);
+    add_action('updated_postmeta','qckply_updated_postmeta', 10, 4);
     }
 }
 
-function quickplayground_top_ids($fresh = false) {
+function qckply_top_ids($fresh = false) {
     global $wpdb;
     if(!$fresh) {
-    $top = get_option('quickplayground_top_ids',[]);
+    $top = get_option('qckply_top_ids',[]);
     if(!empty($top['post_modified']))
         return $top;
     }
@@ -25,44 +26,44 @@ function quickplayground_top_ids($fresh = false) {
     $top['term_taxonomy'] = $wpdb->get_var("SELECT term_taxonomy_id FROM $wpdb->term_taxonomy ORDER BY term_taxonomy_id DESC");
     $top['post_modified'] = $wpdb->get_var("SELECT post_modified FROM $wpdb->posts ORDER BY post_modified DESC");
     if(!$fresh)
-        update_option('quickplayground_top_ids',$top);
+        update_option('qckply_top_ids',$top);
     return $top;
 }
 
 /**
 
 */
-function quickplayground_post_updated($post_id) {
-    $updated = get_option('playground_updated_posts',array());
+function qckply_post_updated($post_id) {
+    $updated = get_option('qckply_updated_posts',array());
     if(!in_array($post_id,$updated)) {
         $updated[] = $post_id;
-        update_option('playground_updated_posts',$updated);
+        update_option('qckply_updated_posts',$updated);
     }
 }
 
 /**
 */
-function quickplayground_updated_option($option) {
+function qckply_updated_option($option) {
     if(strpos($option,'layground_updated'))
         return;
     $excluded = ['cron','wp_user_roles','fresh_site','users_can_register'];
     if(in_array($option,$excluded) || strpos($option,'transient'))
         return;
-    $updated = get_option('playground_updated_options',array());
+    $updated = get_option('qckply_updated_options',array());
     $updated[] = $option;
-    update_option('playground_updated_options',$updated);
+    update_option('qckply_updated_options',$updated);
 }
 
 /**
 
 */
-function quickplayground_updated_postmeta($meta_id, $post_id, $meta_key, $meta_value) {
+function qckply_updated_postmeta($meta_id, $post_id, $meta_key, $meta_value) {
     $excluded = ['_edit_lock'];
     if(in_array($meta_key,$excluded))
         return;
-    $updated = get_option('playground_updated_postmeta',array());
+    $updated = get_option('qckply_updated_postmeta',array());
     //key to overwrite previous entries
     $idkey = $post_id.$meta_key;
     $updated[$idkey] = array('post_id'=>$post_id,'meta_key'=>$meta_key);
-    update_option('playground_updated_postmeta',$updated);
+    update_option('qckply_updated_postmeta',$updated);
 }

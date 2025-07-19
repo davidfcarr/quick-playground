@@ -78,7 +78,7 @@ msgstr ""
 #: networkadmin.php:11
 #: quick-playground.php:48
 #: quickplayground-sync.php:14
-#: quickplayground_design_clone.php:9
+#: qckply_design_clone.php:9
 msgid "Security Error"
 msgstr ""
 
@@ -90,102 +90,102 @@ msgstr ""
 msgid "Proposed Changes"
 msgstr ""
 
-#: quickplayground_design_clone.php:13
+#: qckply_design_clone.php:13
 msgid "Design and Theme Playground"
 msgstr ""
 
-#: quickplayground_design_clone.php:26
+#: qckply_design_clone.php:26
 msgid "Cloning..."
 msgstr ""
 
 #. translators: %s: log page URL
-#: quickplayground_design_clone.php:30
+#: qckply_design_clone.php:30
 msgid "Cloning complete. %s"
 msgstr ""
 
-#: quickplayground_design_clone.php:31
+#: qckply_design_clone.php:31
 msgid "View log"
 msgstr ""
 
-#: quickplayground_design_clone.php:43
+#: qckply_design_clone.php:43
 msgid "All"
 msgstr ""
 
-#: quickplayground_design_clone.php:44
-#: quickplayground_design_clone.php:53
+#: qckply_design_clone.php:44
+#: qckply_design_clone.php:53
 msgid "Posts"
 msgstr ""
 
-#: quickplayground_design_clone.php:45
-#: quickplayground_design_clone.php:54
-#: quickplayground_design_clone.php:133
+#: qckply_design_clone.php:45
+#: qckply_design_clone.php:54
+#: qckply_design_clone.php:133
 msgid "Taxonomy and Metadata"
 msgstr ""
 
-#: quickplayground_design_clone.php:46
-#: quickplayground_design_clone.php:55
-#: quickplayground_design_clone.php:138
-#: quickplayground_design_clone.php:154
+#: qckply_design_clone.php:46
+#: qckply_design_clone.php:55
+#: qckply_design_clone.php:138
+#: qckply_design_clone.php:154
 msgid "Images"
 msgstr ""
 
-#: quickplayground_design_clone.php:47
+#: qckply_design_clone.php:47
 msgid "Clone Now"
 msgstr ""
 
-#: quickplayground_design_clone.php:52
+#: qckply_design_clone.php:52
 msgid "API endpoints"
 msgstr ""
 
-#: quickplayground_design_clone.php:60
+#: qckply_design_clone.php:60
 msgid "Welcome to the Pro version of the Design Playground!"
 msgstr ""
 
-#: quickplayground_design_clone.php:64
+#: qckply_design_clone.php:64
 msgid "Upgrade to the Pro version for the ability to easily save changes to this playground environment for future sessions. You can also post selected changes from this playground back to your live website (beta)."
 msgstr ""
 
 #. translators: 1: post title, 2: error message
-#: quickplayground_design_clone.php:85
+#: qckply_design_clone.php:85
 msgid "Error updating post: %1$s %2$s"
 msgstr ""
 
 #. translators: 1: post title, 2: post ID
-#: quickplayground_design_clone.php:92
+#: qckply_design_clone.php:92
 msgid "Updated post: %1$s ID %2$d"
 msgstr ""
 
 #. translators: 1: post title, 2: error message
-#: quickplayground_design_clone.php:103
+#: qckply_design_clone.php:103
 msgid "Error inserting post: %1$s %2$s"
 msgstr ""
 
 #. translators: 1: post title, 2: post ID
-#: quickplayground_design_clone.php:110
+#: qckply_design_clone.php:110
 msgid "Inserted post: %1$s ID %2$d"
 msgstr ""
 
-#: quickplayground_design_clone.php:124
+#: qckply_design_clone.php:124
 msgid "Design Playground Clone Log"
 msgstr ""
 
-#: quickplayground_design_clone.php:128
+#: qckply_design_clone.php:128
 msgid "Posts JSON"
 msgstr ""
 
-#: quickplayground_design_clone.php:142
+#: qckply_design_clone.php:142
 msgid "Incoming JSON"
 msgstr ""
 
-#: quickplayground_design_clone.php:144
+#: qckply_design_clone.php:144
 msgid "Incoming JSON modified"
 msgstr ""
 
-#: quickplayground_design_clone.php:148
+#: qckply_design_clone.php:148
 msgid "Metadata Copy"
 msgstr ""
 
-#: quickplayground_design_clone.php:150
-#: quickplayground_design_clone.php:156
+#: qckply_design_clone.php:150
+#: qckply_design_clone.php:156
 msgid "JSON"
 msgstr ""

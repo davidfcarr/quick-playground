@@ -1,11 +1,12 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * Retrieves navigation menu data and related posts, relationships, and taxonomy for cloning.
  *
  * @param array $clone The clone data array.
  * @return array       Modified clone data array with menu information.
  */
-function quickplayground_get_menu_data($clone) {
+function qckply_get_menu_data($clone) {
     global $wpdb;
 
     $menus = $wpdb->get_results("SELECT t.* 
@@ -39,7 +40,7 @@ return $clone;
  * @param array $clone The clone data array.
  * @return array       Modified clone data array with category/theme taxonomy information.
  */
-function quickplayground_get_category_data($clone) {
+function qckply_get_category_data($clone) {
     if(empty($clone['ids']))
       return $clone;
     global $wpdb;

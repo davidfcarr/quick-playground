@@ -8,7 +8,7 @@ Requires at least: 5.8
 
 Tested up to: 6.8
 
-Stable tag: 0.9.0  
+Stable tag: 0.9.1  
 
 License: GPLv2 or later  
 
@@ -82,9 +82,9 @@ No, the Playground environment is completely separate from your live website. Ch
 
 == Changelog ==
 
-= 1.0.0 =  
+= 0.9.1 =  
 
-* Initial release.
+* Pre-release revisions.
 
 == License ==
 

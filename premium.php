@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * Checks if Playground Pro features are enabled and not expired.
  *
@@ -53,11 +54,11 @@ function playground_premium_status_message() {
 /**
  * Displays and processes the Playground Pro admin page, including license key and registration form.
  */
-function quickplayground_pro() {
+function qckply_pro() {
     global $current_user;
-    if(!empty($_POST) && !wp_verify_nonce( $_POST['playground'], 'quickplayground' ) ) 
+    if(!empty($_POST) && !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_POST['playground'])), 'quickplayground' ) ) 
     {
-        echo '<h2>Security Error</h2>';
+        echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
         return;
     }
     if(isset($_GET['reset'])) {
@@ -127,7 +128,7 @@ function quickplayground_pro() {
     if(!$enabled)
     {
     ?>
-    <form method="post" class="playground-form" action="<?php echo esc_attr(admin_url('admin.php?page=quickplayground_pro'));?>" >
+    <form method="post" class="qckply-form" action="<?php echo esc_attr(admin_url('admin.php?page=qckply_pro'));?>" >
         <?php wp_nonce_field('quickplayground','playground',true,true); ?>
         <h3>Request a license key by email</h3>
         <p><label>First Name</label> <input type="text" name="first" value="<?php echo esc_attr($current_user->last_name); ?>" /> </p>
@@ -140,7 +141,7 @@ function quickplayground_pro() {
     <?php
     }
     ?>
-    <form method="post" class="playground-form" action="<?php echo esc_attr(admin_url('admin.php?page=quickplayground_pro'));?>">
+    <form method="post" class="qckply-form" action="<?php echo esc_attr(admin_url('admin.php?page=qckply_pro'));?>">
         <?php wp_nonce_field('quickplayground','playground',true,true); ?>
         <h3>Enter your license key</h3>
         <p><label>Key</label> <input type="text" name="key" value="<?php echo esc_attr($enabled); ?>" /> </p>

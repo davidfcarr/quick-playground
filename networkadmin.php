@@ -1,34 +1,35 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * Displays and processes the network admin settings page for Quick Playground.
  *
  * Allows the network administrator to specify plugins and themes that should be excluded or required by default
  * for playground sites. Handles saving and displaying options for excluded and default plugins/themes.
  */
-function quickplayground_networkadmin() {
-    if(!empty($_POST) && !wp_verify_nonce( $_POST['playground'], 'quickplayground' ) ) 
+function qckply_networkadmin() {
+    if(!empty($_POST) && !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_POST['playground'])), 'quickplayground' ) ) 
     {
-        echo '<h2>'.__('Security Error','quick-playground').'</h2>';
+        echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
         return;
     }
     echo '<p>As network administrator, you can specify plugins and themes that should be excluded or required by default.</p>';
 
-    printf('<form  class="playground-form"  method="post" action="">%s',wp_nonce_field('quickplayground','playground',true,false));
+    printf('<form  class="qckply-form"  method="post" action="">%s',wp_nonce_field('quickplayground','playground',true,false));
     if(isset($_POST['excluded_plugins'])) {
         $excluded_plugins = array_filter($_POST['excluded_plugins']);
         $excluded_themes = array_filter($_POST['excluded_themes']);
         $default_plugins = array_filter($_POST['default_plugins']);
         $default_themes = array_filter($_POST['default_themes']);
-        update_blog_option(1,'playground_excluded_plugins',$excluded_plugins);
-        update_blog_option(1,'playground_excluded_themes',$excluded_themes);
-        update_blog_option(1,'playground_default_plugins',$default_plugins);
-        update_blog_option(1,'playground_default_themes',$default_themes);
+        update_blog_option(1,'qckply_excluded_plugins',$excluded_plugins);
+        update_blog_option(1,'qckply_excluded_themes',$excluded_themes);
+        update_blog_option(1,'qckply_default_plugins',$default_plugins);
+        update_blog_option(1,'qckply_default_themes',$default_themes);
     }
     else {
-        $excluded_plugins = get_blog_option(1,'playground_excluded_plugins',array());
-        $excluded_themes = get_blog_option(1,'playground_excluded_themes',array());
-        $default_plugins = get_blog_option(1,'playground_default_plugins',array());
-        $default_themes = get_blog_option(1,'playground_default_themes',array());
+        $excluded_plugins = get_blog_option(1,'qckply_excluded_plugins',array());
+        $excluded_themes = get_blog_option(1,'qckply_excluded_themes',array());
+        $default_plugins = get_blog_option(1,'qckply_default_plugins',array());
+        $default_themes = get_blog_option(1,'qckply_default_themes',array());
     }
     if(!function_exists('get_plugins'))
         require_once(ABSPATH.'/wp-admin/includes/plugins.php');
@@ -71,26 +72,26 @@ function quickplayground_networkadmin() {
     foreach($excluded_plugins as $p)
         printf('<p><input type="checkbox" name="excluded_plugins[]" value="%s" checked="checked"> %s</p>',esc_attr($p), esc_html($p));
     for($i = 0; $i < 10; $i++) {
-    printf('<p>Exclude Plugin: <select name="excluded_plugins[]">%s</select></p>',$active_pluginoptions.$pluginoptions);
+    printf('<p>Exclude Plugin: <select name="excluded_plugins[]">%s</select></p>',wp_kses($active_pluginoptions.$pluginoptions, qckply_kses_allowed()));
     }
     echo '<h2>Excluded Themes</h2>';
     foreach($excluded_themes as $p)
         printf('<p><input type="checkbox" name="excluded_themes[]" value="%s" checked="checked"> %s</p>',esc_attr($p), esc_html($p));
     for($i = 0; $i < 10; $i++) {
-    printf('<p>Exclude Theme: <select name="excluded_themes[]">%s</select></p>',$themeoptions);
+    printf('<p>Exclude Theme: <select name="excluded_themes[]">%s</select></p>',wp_kses($themeoptions, qckply_kses_allowed()));
     }
     echo '<h2>Default Plugins</h2>';
     foreach($default_plugins as $p)
         printf('<p><input type="checkbox" name="default_plugins[]" value="%s" checked="checked"> %s</p>',esc_attr($p),esc_html($p));
     for($i = 0; $i < 10; $i++) {
-    printf('<p>Default Plugin: <select name="default_plugins[]">%s</select></p>',$active_pluginoptions.$pluginoptions);
+    printf('<p>Default Plugin: <select name="default_plugins[]">%s</select></p>',wp_kses($active_pluginoptions.$pluginoptions, qckply_kses_allowed()));
     }
     echo '<h2>Default Themes</h2>';
     foreach($default_themes as $p)
         printf('<p><input type="checkbox" name="default_themes[]" value="%s" checked="checked"> %s</p>',esc_attr($p),esc_html($p));
 
     for($i = 0; $i < 10; $i++) {
-    printf('<p>Default Theme: <select name="default_themes[]">%s</select></p>',$themeoptions);
+    printf('<p>Default Theme: <select name="default_themes[]">%s</select></p>',wp_kses($themeoptions, qckply_kses_allowed()));
     }
     echo '<button>Save Options</button></form>';
 

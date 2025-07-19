@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * REST controller for managing blueprints in the playground.
  */
@@ -46,31 +47,31 @@ class Quick_Playground_Blueprint extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-    quickplayground_playground_zip_plugin("quick-playground");
+    qckply_zip_plugin("quick-playground");
     $email = $key = '';
     $blueprint = get_option('playground_blueprint_'.$request['profile']);
     if (!$blueprint) {
         return new WP_REST_Response(array('error'=>'blueprint_not_found'), 404);
     }
     if(isset($_GET['stylesheet'])) {
-      $blueprint = quickplayground_swap_theme($blueprint, sanitize_text_field($_GET['stylesheet']));
+      $blueprint = qckply_swap_theme($blueprint, sanitize_text_field($_GET['stylesheet']));
     }
     if(!empty($_GET['key'])) {
       $key = sanitize_text_field($_GET['key']);
       $email = is_multisite() ? get_blog_option(1,'playground_premium_email') : get_option('playground_premium_email');
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_is_demo'=>false,'playground_premium_enabled'=>$key,'playground_premium_expiration'=>4070908800));
+      $blueprint = qckply_change_blueprint_setting($blueprint, array('qckply_is_demo'=>false,'playground_premium_enabled'=>$key,'playground_premium_expiration'=>4070908800));
     }
     else {
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_premium_enabled'=>false));
+      $blueprint = qckply_change_blueprint_setting($blueprint, array('playground_premium_enabled'=>false));
     }
     if(!empty($_GET['is_demo'])) {
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_is_demo'=>true));
+      $blueprint = qckply_change_blueprint_setting($blueprint, array('qckply_is_demo'=>true));
     }
     if(!empty($_GET['nocache'])) {
-      $blueprint = quickplayground_change_blueprint_setting($blueprint, array('playground_no_cache'=>true));
+      $blueprint = qckply_change_blueprint_setting($blueprint, array('qckply_no_cache'=>true));
     }
-    $blueprint = quickplayground_fix_variables($blueprint,empty($key) ? '' : $key,$email);
-    $blueprint = apply_filters('quickplayground_blueprint',$blueprint);
+    $blueprint = qckply_fix_variables($blueprint,empty($key) ? '' : $key,$email);
+    $blueprint = apply_filters('qckply_blueprint',$blueprint);
     $response = new WP_REST_Response( $blueprint, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -89,7 +90,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'clone_posts/(?P<profile>[a-z0-9_]+)';
+	  $path = 'qckply_clone_posts/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -127,11 +128,11 @@ class Quick_Playground_Clone extends WP_REST_Controller {
      */
   public function get_items($request) {
   require('getmenus.php');
-	global $wpdb, $playground_uploads, $playground_site_uploads;
+	global $wpdb, $qckply_uploads, $qckply_site_uploads;
     $profile = sanitize_text_field($request['profile']);
     
     if(empty($_GET['nocache'])) {
-      $savedfile = $playground_site_uploads.'/quickplayground_posts_'.$profile.'.json';
+      $savedfile = $qckply_site_uploads.'/quickplayground_posts_'.$profile.'.json';
       if(file_exists($savedfile) && !isset($_GET['refresh'])) {
       $json = file_get_contents($savedfile);
       if($json && $clone = json_decode($json)) {
@@ -143,7 +144,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
     }
     
     $clone['profile'] = $profile;
-    $settings = get_option('playground_clone_settings_'.$profile,array());
+    $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $settings['playground_premium'] = playground_premium_enabled();
     $template_part = get_block_template( get_stylesheet() . '//header', 'wp_template_part' );
     $header_content = (empty($template_part->content)) ? '' : $template_part->content;
@@ -174,7 +175,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
       $posts = array_merge($pages, $posts);
     }
     if(!empty($settings['key_pages'])) {
-      $pages = quickplayground_key_pages($profile);
+      $pages = qckply_key_pages($profile);
       $posts = array_merge($pages, $posts);
     }
     
@@ -186,6 +187,8 @@ class Quick_Playground_Clone extends WP_REST_Controller {
         $clone['ids'][] = $post->ID;
     }
     $posts = array_filter($posts); // remove nulls
+
+    $front_page = 0;
 
     if($settings['page_on_front'] && !in_array($settings['page_on_front'], $clone['ids'])) {
         $front_page = intval($settings['page_on_front']);
@@ -203,7 +206,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
     }
     
     if(!empty($settings['demo_pages']) && is_array($settings['demo_pages'])) {
-      if($settings['make_menu']) {
+      if(!empty($settings['make_menu'])) {
         $clone['make_menu'] = true;
         $clone['make_menu_ids'] = $settings['demo_pages'];
       }
@@ -214,7 +217,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
             $page = get_post($page_id);
             if($page) {
                 $page->post_status = 'publish'; // ensure it is published
-                $clone['demo_pages'][] = $page;
+                $posts[] = $page;
                 $clone['ids'][] = $page->ID;
             }
       }
@@ -231,14 +234,14 @@ class Quick_Playground_Clone extends WP_REST_Controller {
             $p = get_post($id);
             if($p) {
                 $p->post_status = 'publish'; // ensure it is published
-                $clone['demo_posts'][] = $p;
+                $posts[] = $p;
                 $clone['ids'][] = $p->ID;
             }
       }
     }
     $clone['posts'] = $posts;
-    $clone = apply_filters('quickplayground_playground_clone_posts',$clone, $settings);
-    update_option('playground_ids_'.$profile,$clone['ids']);
+    $clone = apply_filters('qckply_qckply_clone_posts',$clone, $settings);
+    update_option('qckply_ids_'.$profile,$clone['ids']);
     $response = new WP_REST_Response( $clone, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -248,7 +251,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
 /**
  * REST controller for cloning posts and related data for the playground.
  */
-class Quick_Playground_Clone_Settings extends WP_REST_Controller {
+class Quick_Playground_qckply_clone_Settings extends WP_REST_Controller {
 
     /**
      * Registers REST API routes for cloning posts.
@@ -257,7 +260,7 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'clone_settings/(?P<profile>[a-z0-9_]+)';
+	  $path = 'qckply_clone_settings/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -293,11 +296,11 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
      */
   public function get_items($request) {
   require('getmenus.php');
-	global $wpdb, $playground_uploads, $playground_site_uploads;
+	global $wpdb, $qckply_uploads, $qckply_site_uploads;
     $profile = sanitize_text_field($request['profile']);
     
     if(empty($_GET['nocache'])) {
-      $savedfile = $playground_site_uploads.'/quickplayground_settings_'.$profile.'.json';
+      $savedfile = $qckply_site_uploads.'/quickplayground_settings_'.$profile.'.json';
       if(file_exists($savedfile) && !isset($_GET['refresh'])) {
       $json = file_get_contents($savedfile);
       if($json && $clone = json_decode($json)) {
@@ -308,9 +311,9 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
     }
     }
     
-    $clone['client_ip'] = $_SERVER['REMOTE_ADDR'];
+    $clone['client_ip'] = sanitize_text_field($_SERVER['REMOTE_ADDR']);
     $clone['profile'] = $profile;
-    $settings = get_option('playground_clone_settings_'.$profile,array());
+    $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $settings['playground_premium'] = playground_premium_enabled();
     $settings['timezone_string'] = get_option('timezone_string');
     $sql = "SELECT * FROM $wpdb->options WHERE option_name LIKE 'theme_mods_%'";
@@ -321,12 +324,12 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
       }
     }
     if(isset($clone['playground_premium'])) {
-      $playground_sync_code = wp_generate_password(24,false);
-      update_option('playground_sync_code', $playground_sync_code);
-      $settings['playground_sync_code'] = $playground_sync_code;
+      $qckply_sync_code = wp_generate_password(24,false);
+      update_option('qckply_sync_code', $qckply_sync_code);
+      $settings['qckply_sync_code'] = $qckply_sync_code;
     }
     $clone['settings'] = $settings;
-    $clone = apply_filters('quickplayground_playground_clone_settings',$clone);
+    $clone = apply_filters('qckply_qckply_clone_settings',$clone);
     $response = new WP_REST_Response( $clone, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -336,7 +339,7 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
 /**
  * REST controller for cloning images and attachments for the playground.
  */
-class Quick_Playground_Clone_Images extends WP_REST_Controller {
+class Quick_Playground_qckply_clone_Images extends WP_REST_Controller {
 
     /**
      * Registers REST API routes for cloning images.
@@ -345,7 +348,7 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'clone_images/(?P<profile>[a-z0-9_]+)';
+	  $path = 'qckply_clone_images/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -380,11 +383,11 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-  global $playground_uploads, $playground_site_uploads;
+  global $qckply_uploads, $qckply_site_uploads;
 	global $wpdb;
   $profile = $request['profile'];
   $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
-  $savedfile = $playground_site_uploads.'/quickplayground_images_'.$profile.'.json';
+  $savedfile = $qckply_site_uploads.'/quickplayground_images_'.$profile.'.json';
   
   if(file_exists($savedfile) && empty($_GET['nocache'])) {
     $json = file_get_contents($savedfile);
@@ -407,7 +410,7 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
     }
     $clone['thumbnails'] = [];
     $attachment_ids = [];
-    $ids = get_option('playground_ids_'.$profile, array());
+    $ids = get_option('qckply_ids_'.$profile, array());
     $front = get_option('page_on_front');
     if($front) {
       $key = array_search($front, $ids);
@@ -415,7 +418,7 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
           unset($ids[$key]);
       }
     }
-    $keyimages = quickplayground_find_key_images();
+    $keyimages = qckply_find_key_images();
     if(!empty($ids) && is_array($ids)) {      
     $sql = "SELECT * FROM $wpdb->posts WHERE post_type = 'attachment' AND post_mime_type IN ('image/jpeg','image/png','image/gif','image/bmp','image/webp','image/avif') AND post_status = 'inherit' AND post_parent IN (".implode(',',$ids).")  ORDER BY post_date DESC ";
     $attachments = $wpdb->get_results($sql);
@@ -446,7 +449,7 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
 /**
  * REST controller for cloning taxonomy and metadata for the playground.
  */
-class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
+class Quick_Playground_qckply_clone_Taxonomy extends WP_REST_Controller {
 
     /**
      * Registers REST API routes for cloning taxonomy.
@@ -455,7 +458,7 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'clone_taxonomy/(?P<profile>[a-z0-9_]+)';
+	  $path = 'qckply_clone_taxonomy/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -492,12 +495,12 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-  global $playground_uploads, $playground_site_uploads;
+  global $qckply_uploads, $qckply_site_uploads;
   require('getmenus.php');
 	global $wpdb;
   $profile = $request['profile'];
   $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
-  $savedfile = $playground_site_uploads.'/quickplayground_meta_'.$profile.'.json';
+  $savedfile = $qckply_site_uploads.'/quickplayground_meta_'.$profile.'.json';
   
   if(file_exists($savedfile) && empty($_GET['nocache'])) {
     $json = file_get_contents($savedfile);
@@ -510,10 +513,10 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
   
     $clone = [];
     $clone['savedfile'] = $savedfile;
-    $clone['ids'] = get_option('playground_ids_'.$profile, array());
-    $clone = quickplayground_get_category_data($clone);
-    $clone = quickplayground_get_menu_data($clone);
-    $clone['postmeta'] = quickplayground_postmeta($clone['ids']);
+    $clone['ids'] = get_option('qckply_ids_'.$profile, array());
+    $clone = qckply_get_category_data($clone);
+    $clone = qckply_get_menu_data($clone);
+    $clone['postmeta'] = qckply_postmeta($clone['ids']);
     $blog_id = get_current_blog_id();
     $blogusers = get_users(
       array(
@@ -527,9 +530,9 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
     $clone['users'] = $clone['usermeta'] = [];
     foreach($blogusers as $user) {
     if(1 != $user->ID)
-        $clone['users'][] = quickplayground_fake_user($user->ID);
+        $clone['users'][] = qckply_fake_user($user->ID);
     }
-    $clone = apply_filters('quickplayground_playground_clone_meta',$clone);
+    $clone = apply_filters('qckply_qckply_clone_meta',$clone);
     $response = new WP_REST_Response( $clone, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -539,7 +542,7 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
 /**
  * REST controller for cloning custom data for the playground.
  */
-class Quick_Playground_Clone_Custom extends WP_REST_Controller {
+class Quick_Playground_qckply_clone_Custom extends WP_REST_Controller {
 
     /**
      * Registers REST API routes for cloning taxonomy.
@@ -548,7 +551,7 @@ class Quick_Playground_Clone_Custom extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'clone_custom/(?P<profile>[a-z0-9_]+)';
+	  $path = 'qckply_clone_custom/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -585,10 +588,10 @@ class Quick_Playground_Clone_Custom extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-  global $playground_uploads, $playground_site_uploads;
+  global $qckply_uploads, $qckply_site_uploads;
   $profile = $request['profile'];
   $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
-  $savedfile = $playground_site_uploads.'/quickplayground_custom_'.$profile.'.json';
+  $savedfile = $qckply_site_uploads.'/quickplayground_custom_'.$profile.'.json';
   
   if(file_exists($savedfile) && empty($_GET['nocache'])) {
     $json = file_get_contents($savedfile);
@@ -600,8 +603,8 @@ class Quick_Playground_Clone_Custom extends WP_REST_Controller {
   }
   
     $clone = ['custom_tables'=>[]];
-    $ids = get_option('playground_ids_'.$profile, array());
-    $clone = apply_filters('quickplayground_clone_custom',$clone,$ids);
+    $ids = get_option('qckply_ids_'.$profile, array());
+    $clone = apply_filters('qckply_clone_custom',$clone,$ids);
     $response = new WP_REST_Response( $clone,200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -665,8 +668,8 @@ class Quick_Playground_Sync extends WP_REST_Controller {
 
     $data = $request->get_json_params();
     $to = get_option('playground_premium_email', $post['email']);
-    $subject = 'Request to sync design playground with '.$_SERVER['SERVER_NAME'];
-    $confirm_url = admin_url('admin.php?page=quickplayground_sync');
+    $subject = 'Request to sync design playground with '.sanitize_text_field($_SERVER['SERVER_NAME']);
+    $confirm_url = admin_url('admin.php?page=qckply_sync');
     $body = '<p>Click this link to review and confirm changes from the playground as proposed changes to your live website: <a href="'.$confirm_url.'">Confirm Sync</a> (login required).</p>';
 
     $headers = array('Content-Type: text/html; charset=UTF-8');
@@ -735,11 +738,11 @@ class Quick_Playground_Save_Posts extends WP_REST_Controller {
      */
   public function get_items($request) {
 
-	global $wpdb, $playground_uploads, $playground_site_uploads;
+	global $wpdb, $qckply_uploads, $qckply_site_uploads;
     $profile = $request['profile'];
-    $savedfile = $playground_site_uploads.'/quickplayground_posts_'.$profile.'.json';
+    $savedfile = $qckply_site_uploads.'/quickplayground_posts_'.$profile.'.json';
     $data = $request->get_json_params();
-    $data = apply_filters('quickplayground_saved_posts',$data);
+    $data = apply_filters('qckply_saved_posts',$data);
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
@@ -798,11 +801,11 @@ class Quick_Playground_Save_Settings extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-	global $wpdb, $playground_uploads, $playground_site_uploads;
+	global $wpdb, $qckply_uploads, $qckply_site_uploads;
     $profile = $request['profile'];
     $data = $request->get_json_params();
-    $data = apply_filters('quickplayground_saved_settings',$data);
-    $savedfile = $playground_site_uploads.'/quickplayground_settings_'.$profile.'.json';
+    $data = apply_filters('qckply_saved_settings',$data);
+    $savedfile = $qckply_site_uploads.'/quickplayground_settings_'.$profile.'.json';
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
@@ -861,11 +864,11 @@ class Quick_Playground_Save_Meta extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-	global $wpdb, $playground_uploads, $playground_site_uploads;
+	global $wpdb, $qckply_uploads, $qckply_site_uploads;
     $profile = $request['profile'];
     $data = $request->get_json_params();
-    $data = apply_filters('quickplayground_saved_meta',$data);
-    $savedfile = $playground_site_uploads.'/quickplayground_meta_'.$profile.'.json';
+    $data = apply_filters('qckply_saved_meta',$data);
+    $savedfile = $qckply_site_uploads.'/quickplayground_meta_'.$profile.'.json';
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
@@ -924,17 +927,17 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-	global $wpdb, $playground_uploads,$playground_site_uploads;
+	global $wpdb, $qckply_uploads,$qckply_site_uploads;
     $profile = $request['profile'];
-    $playground_saved = get_option('playground_saved_images',array());
+    $qckply_saved = get_option('qckply_saved_images',array());
     $data = $request->get_json_params();
-    $savedfile = $playground_site_uploads.'/quickplayground_images_'.$profile.'.json';
+    $savedfile = $qckply_site_uploads.'/quickplayground_images_'.$profile.'.json';
     if(is_string($data))
       $data = json_decode($data, true);
     if(!is_array($data))
       $data = (array) $data;
     if(!empty($data['path']) && !empty($data['base64'])) {
-      $savedfile = $playground_site_uploads.$data['path'];
+      $savedfile = $qckply_site_uploads.$data['path'];
       $sync_response['savedfile'] = $savedfile;
       $ext = pathinfo($savedfile,PATHINFO_EXTENSION);
       $allowed = array('jpg','jpeg','jpe',
@@ -960,7 +963,7 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
           $size = wp_getimagesize($savedfile);
           if(!empty($size)) {
             $sync_response['image_validated'] = true;
-            $playground_saved[] = $data->path;
+            $qckply_saved[] = $data->path;
             $sync_response['file'] = $savedfile;
           }
           else {
@@ -970,7 +973,7 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
           }
         }
       }
-    $sync_response['saved'] = $playground_saved;
+    $sync_response['saved'] = $qckply_saved;
     }
     if(!empty($data['attachments']) && is_array($data['attachments'])) {
     foreach($data['attachments'] as $attachment) {
@@ -980,7 +983,7 @@ class Quick_Playground_Save_Image extends WP_REST_Controller {
         $sync_response['attachments'][$id] = $guid;
       }
     }
-    $savedfile = $playground_site_uploads.'/quickplayground_images_'.$profile.'.json';
+    $savedfile = $qckply_site_uploads.'/quickplayground_images_'.$profile.'.json';
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
@@ -1038,11 +1041,11 @@ class Quick_Playground_Save_Custom extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-	global $wpdb, $playground_uploads, $playground_site_uploads;
+	global $wpdb, $qckply_uploads, $qckply_site_uploads;
     $profile = $request['profile'];
     $data = $request->get_json_params();
-    $data = apply_filters('quickplayground_saved_custom',$data);
-    $savedfile = $playground_site_uploads.'/quickplayground_custom_'.$profile.'.json';
+    $data = apply_filters('qckply_saved_custom',$data);
+    $savedfile = $qckply_site_uploads.'/quickplayground_custom_'.$profile.'.json';
     $bytes_written = file_put_contents($savedfile,json_encode($data));
     $sync_response['saved'] = $bytes_written;
     $sync_response['file'] = $savedfile;
@@ -1099,9 +1102,9 @@ class Quick_Playground_Save_Prompts extends WP_REST_Controller {
      */
   public function get_items($request) {
 
-	global $wpdb, $playground_uploads, $playground_site_uploads;
+	global $wpdb, $qckply_uploads, $qckply_site_uploads;
     $profile = $request['profile'];
-    $savedfile = $playground_site_uploads.'/quickplayground_prompts_'.$profile.'.json';
+    $savedfile = $qckply_site_uploads.'/quickplayground_prompts_'.$profile.'.json';
     //$data = $request->get_json_params();
     $bytes_written = file_put_contents($savedfile,trim(stripslashes($request->get_body()),'"'));
     $sync_response['saved'] = $bytes_written;
@@ -1151,13 +1154,13 @@ class Quick_Playground_Download extends WP_REST_Controller {
 	}
 
 	public function handle( $request ) {
-    global $playground_uploads;
+    global $qckply_uploads;
     $filename = sanitize_text_field($request['filename']);
-    $file = $playground_uploads.'/'.$filename;
+    $file = $qckply_uploads.'/'.$filename;
  
         if(!file_exists($file)){ // file does not exist
 
-            die($file.' file not found');
+            die('file not found');
 
         } else {
 
@@ -1185,13 +1188,13 @@ add_action('rest_api_init', function () {
 
 	 $hook = new Quick_Playground_Clone();
 	 $hook->register_routes();
-	 $hook = new Quick_Playground_Clone_Taxonomy();
+	 $hook = new Quick_Playground_qckply_clone_Taxonomy();
 	 $hook->register_routes();           
-	 $hook = new Quick_Playground_Clone_Settings();
+	 $hook = new Quick_Playground_qckply_clone_Settings();
 	 $hook->register_routes();           
-	 $hook = new Quick_Playground_Clone_Images();
+	 $hook = new Quick_Playground_qckply_clone_Images();
 	 $hook->register_routes();           
-	 $hook = new Quick_Playground_Clone_Custom();
+	 $hook = new Quick_Playground_qckply_clone_Custom();
 	 $hook->register_routes();           
    $hook = new Quick_Playground_Blueprint();
 	 $hook->register_routes();           
