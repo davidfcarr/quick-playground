@@ -228,15 +228,13 @@ $events_dropdown = get_events_dropdown ();
 add_action('wp_footer','qckply_clone_footer_message');
 add_action('admin_footer','qckply_clone_footer_message');
 function qckply_clone_footer_message() {
-    if(!get_option('is_qckply_clone'))
+    if(isset($_GET['qckply_clone'])) {
+        echo qckply_footer_prompt();
         return;
-    $loading_images = qckply_get_thumbnails_footer();
-    if($loading_images) {
-        $startup = true;
-        $keymessage['message'] = $loading_images;
     }
-    else {
-    $is_clone = get_option('is_qckply_clone');
+    if(!get_option('is_qckply_clone')) {
+        return;
+    }
     $slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : basename(sanitize_text_field($_SERVER['REQUEST_URI']));
     if(is_home() || is_front_page())
         $slug = 'home';
@@ -245,7 +243,6 @@ function qckply_clone_footer_message() {
     $slug = preg_replace('/[^a-z0-9\_]/','-',$slug);
     $keymessage = array('key'=>$slug,'message'=>'','welcome'=> is_admin() ? 'admin-welcome' : 'welcome');
     $keymessage = apply_filters('qckply_key_message',$keymessage);
-    }    
     if(!empty($keymessage['message'])) {
     ?>
 <div id="playground-overlay-message">
@@ -257,16 +254,7 @@ function qckply_clone_footer_message() {
   <button id="playground-overlay-close">&times;</button>
 </div>
 <?php
-    if($startup) {
-    $top = qckply_top_ids();
-    echo "<script>
-    setTimeout(() => {
-        window.location.reload();
-    }, 5000);
-    </script>";
     }
-    }
-    else sprintf('qckply_get_thumbnails_footer() returned %s',var_export($loading_images,true));
 }
 
 add_filter('qckply_key_message','qckply_admin_message');
@@ -285,7 +273,7 @@ function qckply_http_log($response, $context, $class, $parsed_args, $url) {
     }
 }
 
-add_filter('the_content','qckply_the_content');
+//add_filter('the_content','qckply_the_content');
 
 function qckply_the_content($content) {
     if(qckply_is_playground() && isset($_GET['qckply_clone'])) {
@@ -294,23 +282,65 @@ function qckply_the_content($content) {
         $permalink = get_permalink();
         ob_start();
         if('images' == $target) {
-            qckply_clone( 'images' );
-        $output = ob_get_clean();
-            return '<p>Loading more...</p><script>window.location.href="'.$permalink.'?qckply_clone=thumbnails"</script>';
+            $more = qckply_clone_images('images');
+            $output = ob_get_clean();
+            if($more) {
+                return $content.'<div id="playground-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div><script>window.location.href="'.$permalink.'?qckply_clone=thumbnails"</script>';
+            }
+            return $content;//.'<div id="playground-overlay-message"><p>Loading more...</p></div><script>window.location.href="'.$permalink.'?qckply_clone=thumbnails"</script>';
         } 
         elseif('thumbnails' == $target) {
-            qckply_get_more_thumbnails();
-        $output = ob_get_clean();
-            return '<p>Done</p><script>window.location.href="'.$permalink.'"</script>';
+            $more = qckply_get_more_thumbnails();
+            if($more) {
+                return $content.'<div id="playground-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div><script>window.location.href="'.$permalink.'?qckply_clone=thumbnails"</script>';
+            }
+            $output = ob_get_clean();
+            qckply_top_ids();
+            return $content.'<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href="'.$permalink.'"</script>';
         }
         else {
             qckply_clone( 'settings' );
             qckply_clone( 'taxonomy' );
             qckply_clone( 'custom' );
-        $output = ob_get_clean();
-            return '<p>Loading images ...</p><script>window.location.href="'.$permalink.'?qckply_clone=images"</script>';
+            $output = ob_get_clean();
+            return $content.'<div id="playground-overlay-message"><p>Loading images ...</p></div><script>window.location.href="'.$permalink.'?qckply_clone=images"</script>';
         }
         //update_option('qckply_sync_date',date('Y-m-d H:i:s'));
     }
     return $content;
 }
+
+function qckply_footer_prompt() {
+    if(qckply_is_playground() && isset($_GET['qckply_clone'])) {
+        $target = $_GET['qckply_clone'];
+        $output = '';
+        ob_start();
+        if('images' == $target) {
+            $more = qckply_clone_images('images');
+            $output = ob_get_clean();
+            if($more) {
+                return '<div id="playground-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div><script>window.location.href="'.qckply_link(['qckply_clone'=>'thumbnails']).'"</script>';
+            }
+            return $content;//.'<div id="playground-overlay-message"><p>Loading more...</p></div><script>window.location.href="'.$permalink.'?qckply_clone=thumbnails"</script>';
+        } 
+        elseif('thumbnails' == $target) {
+            $more = qckply_get_more_thumbnails();
+            if($more) {
+                return '<div id="playground-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div><script>window.location.href="'.qckply_link(['qckply_clone'=>'thumbnails']).'"</script>';
+            }
+            $output = ob_get_clean();
+            qckply_top_ids();
+            return '<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href="'.qckply_link().'"</script>';
+        }
+        else {
+            qckply_clone( 'settings' );
+            qckply_clone( 'taxonomy' );
+            qckply_clone( 'custom' );
+            $output = ob_get_clean();
+            return '<div id="playground-overlay-message"><p>Loading images ...</p></div><script>window.location.href="'.qckply_link($args = ['qckply_clone'=>'images']).'"</script>';
+        }
+        //update_option('qckply_sync_date',date('Y-m-d H:i:s'));
+    }
+    //return $content;
+}
+

@@ -28,21 +28,21 @@ function qckply_clone( $target = null ) {
     }
     $qckply_profile = get_option('qckply_profile','default');
     
-    add_user_meta( $current_user->ID, 'tm_member_welcome', time() );
+    update_user_meta( $current_user->ID, 'tm_member_welcome', time() );
 
     if($baseurl == $mysite_url) {
         return '<p>Error: You cannot clone your own website</p>';
     }
 
-    $url = $baseurl .'/wp-json/quickplayground/v1/qckply_clone_posts/'.$qckply_profile.'?t='.time();
+    $url = $baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
     if($no_cache) $url .= '&nocache=1';
-    $taxurl = $baseurl .'/wp-json/quickplayground/v1/qckply_clone_taxonomy/'.$qckply_profile.'?t='.time();
+    $taxurl = $baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$qckply_profile.'?t='.time();
     if($no_cache) $taxurl .= '&nocache=1';
-    $settingsurl = $baseurl .'/wp-json/quickplayground/v1/qckply_clone_settings/'.$qckply_profile.'?t='.time();
+    $settingsurl = $baseurl .'/wp-json/quickplayground/v1/clone_settings/'.$qckply_profile.'?t='.time();
     if($no_cache) $settingsurl .= '&nocache=1';
-    $imgurl = $baseurl .'/wp-json/quickplayground/v1/qckply_clone_images/'.$qckply_profile.'?t='.time();
+    $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
     if($no_cache) $imgurl .= '&nocache=1';
-    $customurl = $baseurl .'/wp-json/quickplayground/v1/qckply_clone_custom/'.$qckply_profile.'?t='.time();
+    $customurl = $baseurl .'/wp-json/quickplayground/v1/clone_custom/'.$qckply_profile.'?t='.time();
     if($no_cache) $customurl .= '&nocache=1';
 
     error_log('qckply_clone called with url: '.$url);  
@@ -288,6 +288,7 @@ function qckply_clone( $target = null ) {
     qckply_clone_images($target);
 
     if(empty($target) || 'taxonomy' == $target) {
+    $out = '';
     $localjson = $localdir.'taxonomy.json';
     if(file_exists($localjson)) {
         $json = file_get_contents($localjson);
@@ -321,15 +322,28 @@ function qckply_clone( $target = null ) {
 
     $out = "<h2>Cloning Metadata and Taxonomy</h2>";$clone = qckply_clone_output($clone, $out);
 
-        if(!empty($clone['postmeta'])) {
+    if(!empty($clone['related'])) {
+        foreach($clone['related'] as $pid => $values) {
+            $out = sprintf('<p>Related data for %d %s %s</p>',str_replace('p','',$pid),$values['post_title'],$values['post_type']);
+            qckply_clone_output($clone, $out);
+            if(!empty($values['postmeta'])) {
 
-            foreach($clone['postmeta'] as $meta) {
+                foreach($values['postmeta'] as $meta) {
+                    $result = $wpdb->replace($wpdb->postmeta,$meta);
+                    if(!$result) {
+                        $out = '<p>Error: '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
+                    }
+                }
+            }
+        if(!empty($values['termmmeta'])) {
 
-                $result = $wpdb->replace($wpdb->postmeta,$meta);
+            foreach($values['termmeta'] as $meta) {
+
+                $result = $wpdb->replace($wpdb->termmeta,$meta);
 
                 if(!$result) {
 
-                    $out = '<p>Error: '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
+                    $out = '<p>Error: termmeta '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
 
                 }
 
@@ -337,62 +351,49 @@ function qckply_clone( $target = null ) {
 
         }
 
-    if(!empty($clone['termmmeta'])) {
+        if(!empty($values['terms'])) {
 
-        foreach($clone['termmeta'] as $meta) {
+            foreach($values['terms'] as $row) {
 
-            $result = $wpdb->replace($wpdb->termmeta,$meta);
+                $result = $wpdb->replace($wpdb->terms,$row);
+                $out = "<p>$wpdb->last_query</p>";$clone = qckply_clone_output($clone, $out);
 
-            if(!$result) {
+                if(!$result) {
 
-                $out = '<p>Error: termmeta '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
+                    $out = '<p>Error: terms '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
 
-            }
-
-        }
-
-    }
-
-    if(!empty($clone['terms'])) {
-
-        foreach($clone['terms'] as $row) {
-
-            $result = $wpdb->replace($wpdb->terms,$row);
-            $out = "<p>$wpdb->last_query</p>";$clone = qckply_clone_output($clone, $out);
-
-            if(!$result) {
-
-                $out = '<p>Error: terms '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
+                }
 
             }
 
         }
 
-    }
+        if(!empty($values['term_relationships'])) {
+            $out = sprintf('<p>%d term_relationships',sizeof($values['term_relationships']));$clone = qckply_clone_output($clone, $out);
+            foreach($values['term_relationships'] as $row) {
+                if($row['object_id']) {
+                    $result = $wpdb->replace($wpdb->term_relationships,$row);
+                    $out = "<p>$wpdb->last_query</p>";$clone = qckply_clone_output($clone, $out);
+                    if(!$result) {
+                        $out = '<p>Error: term_relationships '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
+                    }
+                }
+            }
+        }
 
-    if(!empty($clone['term_relationships'])) {
-        $out = sprintf('<p>%d term_relationships',sizeof($clone['term_relationships']));$clone = qckply_clone_output($clone, $out);
-        foreach($clone['term_relationships'] as $row) {
-            if($row['object_id']) {
-                $result = $wpdb->replace($wpdb->term_relationships,$row);
+        if(!empty($values['term_taxonomy'])) {
+            foreach($values['term_taxonomy'] as $row) {
+                $result = $wpdb->replace($wpdb->term_taxonomy,$row);
                 $out = "<p>$wpdb->last_query</p>";$clone = qckply_clone_output($clone, $out);
                 if(!$result) {
-                    $out = '<p>Error: term_relationships '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
+                    $out = '<p>Error: term_taxonomy '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
                 }
             }
         }
-    }
 
-    if(!empty($clone['term_taxonomy'])) {
-        foreach($clone['term_taxonomy'] as $row) {
-            $result = $wpdb->replace($wpdb->term_taxonomy,$row);
-            $out = "<p>$wpdb->last_query</p>";$clone = qckply_clone_output($clone, $out);
-            if(!$result) {
-                $out = '<p>Error: term_taxonomy '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
-            }
-        }
+        }//end related loop
     }
-
+    
     $out = "<h2>Cloning users</h2>";$clone = qckply_clone_output($clone, $out);
     if(!empty($clone["users"]))
     {
@@ -586,7 +587,7 @@ function qckply_clone_images($target) {
     $mysite_url = rtrim(get_option('siteurl'),'/');
     $qckply_profile = get_option('qckply_profile','default');
     
-    $imgurl = $baseurl .'/wp-json/quickplayground/v1/qckply_clone_images/'.$qckply_profile.'?t='.time();
+    $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
     if($no_cache) $imgurl .= '&nocache=1';
    // || empty($target))
     if(('images' == $target) || empty($target))  {
@@ -630,8 +631,8 @@ function qckply_clone_images($target) {
         $clone = qckply_clone_output($clone, '<p>qckply_sideload for site_icon returned</p><div>'.$result.'</div>');
         set_transient('qckply_icon',$clone['site_icon'],HOUR_IN_SECONDS);
     }
+    $newthumb = [];
     if(!empty($clone['thumbnails'])) {
-        $newthumb = [];
         foreach($clone['thumbnails'] as $index => $thumb) {
             if($index < 2) {
                 $result = qckply_sideload($thumb);
@@ -649,11 +650,11 @@ function qckply_clone_images($target) {
                 $newthumb[] = $thumb;
             }
         }
-        $clone['thumbnails'] = $newthumb;
     }
     $clone = qckply_clone_output($clone, '<p>Saving image data to import later.</p>');
-    update_option('qckply_clone_images',$clone);
+    update_option('qckply_clone_images',$newthumb);
     update_option('qckply_clone_images_log',$clone['output']);
+    return sizeof($newthumb);
     }
 }
 
@@ -849,109 +850,38 @@ function qckply_insert_attachment( $args, $file = false, $parent_post_id = 0, $w
 	return $attachment_id;//wp_insert_post( $data, $wp_error, $fire_after_hooks );
 }
 
-function qckply_get_thumbnails_footer() {
-    $clone = get_option('qckply_clone_images',[]);
-    if(!$clone)
-        return;
-    $successful = 0;
-    $out = '<p>Playground is downloading additional images</p>';
-    if(!empty($clone['thumbnails'])) {
-      $out .= '<p>'.sizeof($clone['thumbnails']).' saved thumbnails</p>';
-      foreach($clone['thumbnails'] as $thumb) {
-        $result = qckply_sideload($thumb);
-        if(is_wp_error($result)) {
-            $out .= "<p>Error downloading ".$thumb['guid']."</p>";
-        }
-        else {
-        $out .= "<p>Downloaded ".$thumb['guid']."</p>";
-        $successful++;
-        }
-      }
-    }
-    $logo = get_transient('qckply_logo');
-    if(!empty($logo)) {
-    $result = qckply_sideload($logo,['update_option'=>'site_logo']);
-    if(is_wp_error($result)) {
-        $out .= "<p>Error downloading ".$thumb['guid']."</p>";
-    }
-    else {
-    $out .= "<p>Downloaded ".$thumb['guid']."</p>";
-      $out .= ' set site logo to '.$logo['ID'];
-      update_option('site_logo',$logo['ID']);
-      $successful++;
-    }
-    }
-
-    $icon = get_transient('qckply_icon');
-    if(!empty($icon)) {
-    $result = qckply_sideload($icon,['update_option'=>'site_icon']);
-    if(is_wp_error($result)) {
-        $out .= "<p>Error downloading ".$thumb['guid']."</p>";
-    }
-    else {
-    $out .= "<p>Downloaded ".$thumb['guid']."</p>";
-      update_option('site_icon',$icon['ID']);
-      $successful++;
-    }
-    }
-
-    $out .= sprintf('<p>%d successful image downloads</p>',$successful);
-    $log = get_option('qckply_clone_images_log');
-    update_option('qckply_clone_images_log',$log."\n".$out);
-    delete_option('qckply_clone_images');
-    return "<p>Downloaded $successful additional images. Page should reload automatically.</p>";
-}
-
-
 function qckply_get_more_thumbnails() {
-    $clone = get_option('qckply_clone_images',[]);
-    if(!$clone)
-        return;
+    $images = get_option('qckply_clone_images',[]);
+    if(empty($images))
+        return 0;
     $successful = 0;
     $out = '<p>Playground is downloading additional images</p>';
-    if(!empty($clone['thumbnails'])) {
-      $out .= '<p>'.sizeof($clone['thumbnails']).' saved thumbnails</p>';
-      foreach($clone['thumbnails'] as $thumb) {
-        $result = qckply_sideload($thumb);
+      $out .= '<p>'.sizeof($images).' saved images</p>';
+      $more_images = [];
+      foreach($images as $index => $image) {
+        if($index > 4)
+        {
+            $more_images[] = $image;
+            continue;
+        }
+        update_option('qckply_next_image',$image['guid']);
+        $result = qckply_sideload($image);
         if(is_wp_error($result)) {
             $out .= "<p>Error downloading ".$thumb['guid']."</p>";
         }
         else {
-        $out .= "<p>Downloaded ".$thumb['guid']."</p>";
+        $out .= "<p>Downloaded ".$image['guid']."</p>";
         $successful++;
         }
       }
-    }
-    $logo = get_transient('qckply_logo');
-    if(!empty($logo)) {
-    $result = qckply_sideload($logo,['update_option'=>'site_logo']);
-    if(is_wp_error($result)) {
-        $out .= "<p>Error downloading ".$thumb['guid']."</p>";
-    }
-    else {
-    $out .= "<p>Downloaded ".$thumb['guid']."</p>";
-      $out .= ' set site logo to '.$logo['ID'];
-      update_option('site_logo',$logo['ID']);
-      $successful++;
-    }
-    }
-
-    $icon = get_transient('qckply_icon');
-    if(!empty($icon)) {
-    $result = qckply_sideload($icon,['update_option'=>'site_icon']);
-    if(is_wp_error($result)) {
-        $out .= "<p>Error downloading ".$thumb['guid']."</p>";
-    }
-    else {
-    $out .= "<p>Downloaded ".$thumb['guid']."</p>";
-      update_option('site_icon',$icon['ID']);
-      $successful++;
-    }
-    }
-
     $out .= sprintf('<p>%d successful image downloads</p>',$successful);
     $log = get_option('qckply_clone_images_log');
     update_option('qckply_clone_images_log',$log."\n".$out);
-    delete_option('qckply_clone_images');
-    return "<p>Downloaded $successful additional images. Page should reload automatically.</p>";
+    if(empty($more_images)) {
+        delete_option('qckply_clone_images');
+    }
+    else {
+        update_option('qckply_clone_images', $more_images);
+    }
+    return sizeof($more_images);
 }

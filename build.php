@@ -271,11 +271,10 @@ function qckply_build($postvars, $profile = 'default') {
             if(!empty($parsed['path']))
                 $landingpage = $parsed['path'];
         }
-        $blueprint['landingPage'] = $landingpage.'?qckply_clone=1';
+        $blueprint['landingPage'] = add_query_arg('qckply_clone',1,$landingpage);
     }
     else
-        $blueprint['landingPage'] = '/?qckply_clone=1';
-
+        $blueprint['landingPage'] = add_query_arg('qckply_clone',1,'/');
 
     $blueprint = apply_filters('qckply_new_blueprint',$blueprint);
 

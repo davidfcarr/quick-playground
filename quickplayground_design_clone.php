@@ -17,11 +17,11 @@ function qckply_clone_page() {
     $no_cache = get_option('qckply_no_cache',false);
     $qckply_profile = get_option('qckply_profile','default');
     $prompts = qckply_get_prompts_remote($qckply_profile);
-    $url = $baseurl .'/wp-json/quickplayground/v1/qckply_clone_posts/'.$qckply_profile.'?t='.time();
+    $url = $baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
     if($no_cache) $url .= '&nocache=1';
-    $taxurl = $baseurl .'/wp-json/quickplayground/v1/qckply_clone_taxonomy/'.$qckply_profile.'?t='.time();
+    $taxurl = $baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$qckply_profile.'?t='.time();
     if($no_cache) $taxurl .= '&nocache=1';
-    $imgurl = $baseurl .'/wp-json/quickplayground/v1/qckply_clone_images/'.$qckply_profile.'?t='.time();
+    $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
     if($no_cache) $imgurl .= '&nocache=1';
 
     if(isset($_REQUEST['clonenow'])) {
@@ -93,8 +93,6 @@ function qckply_clone_page() {
         esc_html__('Taxonomy and Metadata','quick-playground'), esc_url($taxurl), esc_html($taxurl),
         esc_html__('Images','quick-playground'), esc_url($imgurl), esc_html($imgurl)
     );
-
-    qckply_get_thumbnails();
 
     if($premium) {
         echo '<p>'.esc_html__('Welcome to the Pro version of the Design Playground!','quick-playground').'</p>';

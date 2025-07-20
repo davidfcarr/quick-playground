@@ -581,3 +581,58 @@ function qckply_kses_allowed() {
         'br' => array(),
     );
 }
+
+function qckply_posts_related($post_ids) {
+    global $wpdb;
+    $related = [];
+    foreach($post_ids as $post_id) {
+      $pid = 'p'.$post_id;
+        $sql = "SELECT p.ID, p.post_title, p.post_type, tr.*,tt.*, terms.*
+  FROM $wpdb->posts AS p 
+  LEFT JOIN $wpdb->term_relationships AS tr ON tr.object_id = p.ID
+  LEFT JOIN $wpdb->term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+  LEFT JOIN $wpdb->terms AS terms ON terms.term_id = tt.term_id
+ WHERE p.ID=".intval($post_id)." AND p.post_status='publish'";
+  
+$cat = $wpdb->get_results($sql);
+
+ $terms = [];
+ $tax = [];
+        if(!empty($cat))
+        foreach($cat as $c) {
+            $related[$pid]['post_title'] = $c->post_title;
+            $related[$pid]['post_type'] = $c->post_type;
+            $related[$pid]['postmeta'] = $wpdb->get_results("select * from $wpdb->postmeta where post_id=".intval($post_id));
+            if($c->object_id)
+            $related[$pid]['term_relationships'][] = (object) array('object_id'=>$c->object_id,'term_order'=>$c->term_order,'term_taxonomy_id'=>$c->term_taxonomy_id);
+            if($c->term_taxonomy_id && !in_array($c->term_taxonomy_id,$tax)) {
+            $related[$pid]['term_taxonomy'][] = (object) array('term_taxonomy_id'=>$c->term_taxonomy_id,'term_id'=>$c->term_id,'taxonomy'=>$c->taxonomy,'description'=>$c->description,'parent'=>$c->parent,'count'=>$c->count);
+            $tax[] = $c->term_taxonomy_id;
+            }
+            if($c->term_id && !in_array($c->term_id,$terms)) 
+            {
+            $related[$pid]['terms'][] = (object) array('term_id'=>$c->term_id,'name'=>$c->name);
+            $terms[] = $c->term_id;
+            }
+        }
+    }
+    return $related;
+}
+
+function qckply_link($args = []) {
+    if(is_admin()) {
+    $urlparts = parse_url($_SERVER['REQUEST_URI']);
+    $basename = basename($urlparts['path']);
+    $get = $_GET;
+        if(isset($args['qckply_clone']))
+            $get['qckply_clone'] = $args['qckply_clone'];
+        else {
+            unset($get['qckply_clone']);
+        }
+        $link = add_query_arg($get,admin_url($basename));
+    }
+    else {
+        $link = add_query_arg($args,get_permalink());
+    }
+    return $link;
+}

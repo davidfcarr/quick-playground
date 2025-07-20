@@ -11,7 +11,7 @@ $stylesheet = get_stylesheet();
 printf('<h1>%s: %s</h1>', esc_html(get_bloginfo('name')), esc_html($profile));
 blueprint_settings_init($profile);
 $qckply_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
-$qckply_clone_api_url = rest_url('quickplayground/v1/qckply_clone_posts/'.$profile);
+$qckply_clone_api_url = rest_url('quickplayground/v1/clone_posts/'.$profile);
 $origin_url = rtrim(get_option('siteurl'),'/');
 $blueprint = get_option('playground_blueprint_'.$profile, array());
 $settings = get_option('quickplay_clone_settings_'.$profile,array());
@@ -136,7 +136,7 @@ if(!empty($settings['demo_pages']) && is_array($settings['demo_pages'])) {
     }
 }
 
-printf('<p>%s <input type="text" name="landingPage" value="%s" style="width: 200px" /><br /><em>%s</em></p>',esc_html__('Landing Page (optional)','quick-playground'),empty($blueprint['landingPage']) ? '' : esc_attr(str_replace('?qckply_clone=1','',$blueprint['landingPage'])),esc_html__('If you want the user to start somewhere other than the home page, enter the path. Example "/wp-admin/" or "/demo-instructions/"','quick-playground'));
+printf('<p>%s <input type="text" name="landingPage" value="%s" style="width: 200px" /><br /><em>%s</em></p>',esc_html__('Landing Page (optional)','quick-playground'),empty($blueprint['landingPage']) ? '' : esc_attr(str_replace('qckply_clone=1','',$blueprint['landingPage'])),esc_html__('If you want the user to start somewhere other than the home page, enter the path. Example "/wp-admin/" or "/demo-instructions/"','quick-playground'));
 
 for($i = 0; $i < 10; $i++) {
 $classAndID = ($i > 0) ? ' class="hidden_item page" id="page_'.$i.'" ' : ' class="page" id="page_'.$i.'" ';
@@ -207,8 +207,8 @@ echo '</form>';
 $key = playground_premium_enabled();
 $qckply_api_url = get_qckply_api_url(['profile'=>$profile,'key'=>$key]);
 
-$taxurl = rest_url('quickplayground/v1/qckply_clone_taxonomy/'.$profile.'?t='.time());
-$imgurl = rest_url('quickplayground/v1/qckply_clone_images/'.$profile.'?t='.time());
+$taxurl = rest_url('quickplayground/v1/clone_taxonomy/'.$profile.'?t='.time());
+$imgurl = rest_url('quickplayground/v1/clone_images/'.$profile.'?t='.time());
 
 printf('<h3>For Testing</h3><p>Blueprint API URL: <a href="%s" target="_blank">%s</a></p>',esc_url($qckply_api_url),esc_html($qckply_api_url));
 printf('<p>Blueprint, No Cache: <a href="%s&nocache=1" target="_blank">%s&nocache=1</a></p>',esc_url($qckply_api_url),esc_html($qckply_api_url));

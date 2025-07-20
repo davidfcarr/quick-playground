@@ -90,7 +90,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'qckply_clone_posts/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_posts/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -251,7 +251,7 @@ class Quick_Playground_Clone extends WP_REST_Controller {
 /**
  * REST controller for cloning posts and related data for the playground.
  */
-class Quick_Playground_qckply_clone_Settings extends WP_REST_Controller {
+class Quick_Playground_Clone_Settings extends WP_REST_Controller {
 
     /**
      * Registers REST API routes for cloning posts.
@@ -260,7 +260,7 @@ class Quick_Playground_qckply_clone_Settings extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'qckply_clone_settings/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_settings/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -339,7 +339,7 @@ class Quick_Playground_qckply_clone_Settings extends WP_REST_Controller {
 /**
  * REST controller for cloning images and attachments for the playground.
  */
-class Quick_Playground_qckply_clone_Images extends WP_REST_Controller {
+class Quick_Playground_Clone_Images extends WP_REST_Controller {
 
     /**
      * Registers REST API routes for cloning images.
@@ -348,7 +348,7 @@ class Quick_Playground_qckply_clone_Images extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'qckply_clone_images/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_images/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -418,38 +418,26 @@ class Quick_Playground_qckply_clone_Images extends WP_REST_Controller {
           unset($ids[$key]);
       }
     }
-    $keyimages = qckply_find_key_images();
-    if(!empty($ids) && is_array($ids)) {      
-    $sql = "SELECT * FROM $wpdb->posts WHERE post_type = 'attachment' AND post_mime_type IN ('image/jpeg','image/png','image/gif','image/bmp','image/webp','image/avif') AND post_status = 'inherit' AND post_parent IN (".implode(',',$ids).")  ORDER BY post_date DESC ";
-    $attachments = $wpdb->get_results($sql);
+    $clone['thumbnails'] = [];
     $sql = "SELECT posts.* FROM $wpdb->postmeta meta JOIN $wpdb->posts posts ON meta.meta_value = posts.ID WHERE meta.post_id IN (".implode(',',$ids).") and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC "; 
-    $clone['thumbnails'] = $wpdb->get_results($sql);
-    $thumbs = [];
-    $clone['keyattachments'] = [];
-    $clone['attachments'] = [];
-    foreach($clone['thumbnails'] as $t)
-      $thumbs[] = $t->ID;
-    if(!empty($attachments)) {
-      foreach($attachments as $attachment) {
-        if(in_array($attachment->ID,$thumbs))
-          continue;
-          if(in_array($attachment->guid,$keyimages))
-            $clone['keyattachments'][] = $attachment;
-          else
-            $clone['attachments'][] = $attachment;
-      }
+    $results = $wpdb->get_results($sql);
+    foreach($results as $row) {
+      $a = basename(get_post_meta($row->ID,'_wp_attached_file',true));
+      $g = basename($row->guid);
+      if($a != $g) // use the scaled version
+        $row->guid = str_replace($g,$a,$row->guid);
+      $clone['thumbnails'][] = $row;
     }
     $response = new WP_REST_Response( $clone, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
-  }
   }
 }
 
 /**
  * REST controller for cloning taxonomy and metadata for the playground.
  */
-class Quick_Playground_qckply_clone_Taxonomy extends WP_REST_Controller {
+class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
 
     /**
      * Registers REST API routes for cloning taxonomy.
@@ -458,7 +446,7 @@ class Quick_Playground_qckply_clone_Taxonomy extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'qckply_clone_taxonomy/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_taxonomy/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -514,9 +502,10 @@ class Quick_Playground_qckply_clone_Taxonomy extends WP_REST_Controller {
     $clone = [];
     $clone['savedfile'] = $savedfile;
     $clone['ids'] = get_option('qckply_ids_'.$profile, array());
-    $clone = qckply_get_category_data($clone);
+    $clone['related'] = qckply_posts_related($clone['ids']);
+    //$clone = qckply_get_category_data($clone);
     $clone = qckply_get_menu_data($clone);
-    $clone['postmeta'] = qckply_postmeta($clone['ids']);
+    //$clone['postmeta'] = qckply_postmeta($clone['ids']);
     $blog_id = get_current_blog_id();
     $blogusers = get_users(
       array(
@@ -533,6 +522,7 @@ class Quick_Playground_qckply_clone_Taxonomy extends WP_REST_Controller {
         $clone['users'][] = qckply_fake_user($user->ID);
     }
     $clone = apply_filters('qckply_qckply_clone_meta',$clone);
+    unset($clone['ids']);
     $response = new WP_REST_Response( $clone, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -542,7 +532,7 @@ class Quick_Playground_qckply_clone_Taxonomy extends WP_REST_Controller {
 /**
  * REST controller for cloning custom data for the playground.
  */
-class Quick_Playground_qckply_clone_Custom extends WP_REST_Controller {
+class Quick_Playground_Clone_Custom extends WP_REST_Controller {
 
     /**
      * Registers REST API routes for cloning taxonomy.
@@ -551,7 +541,7 @@ class Quick_Playground_qckply_clone_Custom extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'qckply_clone_custom/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_custom/(?P<profile>[a-z0-9_]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -1188,13 +1178,13 @@ add_action('rest_api_init', function () {
 
 	 $hook = new Quick_Playground_Clone();
 	 $hook->register_routes();
-	 $hook = new Quick_Playground_qckply_clone_Taxonomy();
+	 $hook = new Quick_Playground_Clone_Taxonomy();
 	 $hook->register_routes();           
-	 $hook = new Quick_Playground_qckply_clone_Settings();
+	 $hook = new Quick_Playground_Clone_Settings();
 	 $hook->register_routes();           
-	 $hook = new Quick_Playground_qckply_clone_Images();
+	 $hook = new Quick_Playground_Clone_Images();
 	 $hook->register_routes();           
-	 $hook = new Quick_Playground_qckply_clone_Custom();
+	 $hook = new Quick_Playground_Clone_Custom();
 	 $hook->register_routes();           
    $hook = new Quick_Playground_Blueprint();
 	 $hook->register_routes();           
