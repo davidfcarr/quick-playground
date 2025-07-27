@@ -3,7 +3,7 @@
  * Plugin Name: Quick Playground
  * Plugin URI:  https://davidfcarr.com/the-quick-playground-plugin
  * Description: Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites.
- * Version:     0.9.2
+ * Version:     0.9.4
  * Author:      David F. Carr
 *  License:     GPL2
 *  Text Domain: quick-playground
@@ -11,13 +11,27 @@
 */
 require_once('includes.php');
 
-$temp = wp_upload_dir();
-$qckply_site_uploads = $temp['basedir'];
-$qckply_uploads = rtrim(preg_replace('/sites.+/','',$qckply_site_uploads),'/');
-$qckply_uploads_url = $temp['baseurl'];
-$qckply_uploads_url = rtrim(preg_replace('/sites.+/','',$qckply_uploads_url),'/');
-
-unset($temp);
+function qckply_get_directories()
+{
+    $qckply_directories = get_option('qckply_directories', array());
+    if(!empty($qckply_directories)) {
+        return $qckply_directories;
+    }
+    $temp = wp_upload_dir();
+    $qckply_directories['site_uploads'] = $temp['basedir'].'/quick-playground';
+    $qckply_directories['uploads'] = preg_replace('/sites.+\/quick-playground/','',$qckply_directories['site_uploads']);
+    if(!is_dir($qckply_directories['site_uploads'])) {
+        wp_mkdir_p($qckply_directories['site_uploads']);
+    }
+    if($qckply_directories['uploads'] != $qckply_directories['site_uploads'] && !is_dir($qckply_directories['uploads'])) {
+        wp_mkdir_p($qckply_directories['uploads']);
+    }
+    $qckply_directories['site_uploads_url'] = $temp['baseurl'].'/quick-playground';
+    $qckply_directories['uploads_url'] = preg_replace('/sites.+\/quick-playground/','',$qckply_directories['site_uploads_url']);
+    unset($temp);
+    update_option('qckply_directories',$qckply_directories);
+    return $qckply_directories;
+}
 
 /**
  * Main function for the Quick Playground admin page.
@@ -31,8 +45,11 @@ if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['profile']) 
     echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
     return;
 }
-
-    global $wpdb, $current_user, $qckply_uploads, $qckply_uploads_url;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads'];
+    $qckply_uploads = $qckply_directories['uploads'];
+    $qckply_uploads_url = $qckply_directories['uploads_url'];
+    $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
 
     //nonce is checked above
     $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';

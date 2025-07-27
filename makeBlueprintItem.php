@@ -74,7 +74,8 @@ function makeCodeItem($code) {
  * @return array         Data array for the resource.
  */
 function playgroundData($slug, $type = 'plugin', $public = true) {
-    global $qckply_uploads_url;
+    $qckply_directories = qckply_get_directories();
+    $qckply_uploads_url = $qckply_directories['uploads_url'];
     $data = array();
     if($public) {
         $data['resource'] = ('plugin' === $type) ? 'wordpress.org/plugins' : 'wordpress.org/themes';

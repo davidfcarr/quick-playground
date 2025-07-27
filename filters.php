@@ -61,6 +61,7 @@ function qckply_footer_prompt() {
             qckply_clone( 'settings' );
             qckply_clone( 'taxonomy' );
             qckply_clone( 'custom' );
+            qckply_clone( 'prompts' );
             $output = ob_get_clean();
             return '<div id="playground-overlay-message"><p>Loading images ...</p></div><script>window.location.href="'.qckply_link($args = ['qckply_clone'=>'images']).'"</script>';
         }

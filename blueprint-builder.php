@@ -11,7 +11,11 @@ if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['profile']) 
     return;
 }
 
-global $wpdb, $current_user, $qckply_uploads, $qckply_uploads_url;
+global $wpdb, $current_user;
+    $qckply_directories = qckply_get_directories();
+    $qckply_uploads = $qckply_directories['uploads'];
+    $qckply_uploads_url = $qckply_directories['uploads_url'];
+
 $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';
 $stylesheet = get_stylesheet();
 printf('<h1>%s: %s</h1>', esc_html(get_bloginfo('name')), esc_html($profile));
@@ -127,7 +131,8 @@ printf('<input type="hidden" name="profile" value="%s" />', esc_attr($profile));
 do_action('qckply_additional_setup_form_fields');
 echo '<p><button>Submit</button></p>';
 echo '</form>';
-$key = function_exists(('playground_premium_enabled')) ? playground_premium_enabled() : '';
+$key = function_exists('playground_premium_enabled') ? playground_premium_enabled() : '';
+printf('<p>key %s %s</p>', $key, var_export(function_exists('playground_premium_enabled'),true));
 $qckply_api_url = get_qckply_api_url(['profile'=>$profile,'key'=>$key]);
 
 $taxurl = rest_url('quickplayground/v1/clone_taxonomy/'.$profile.'?t='.time());

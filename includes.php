@@ -12,6 +12,3 @@ require_once('quickplayground_design_clone.php');
 //require_once('quickplayground-sync.php');
 require_once('quickplayground-updates.php');
 require_once('utility.php');
-
-if(is_multisite())
-    require_once('networkadmin.php');

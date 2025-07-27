@@ -238,6 +238,8 @@ function qckply_build($postvars, $profile = 'default') {
         update_option('json_steps_'.$profile, $postvars['json_steps']);
     }
     $settings['origin_stylesheet'] = get_stylesheet();
+    $settings['origin_template'] = get_template();
+    $settings['qckply_origin_directories'] = qckply_get_directories();
     $settings_to_copy = apply_filters('qckply_settings_to_copy',array('timezone_string'));
     foreach($settings_to_copy as $setting) {
         $data = get_option($setting);

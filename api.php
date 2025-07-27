@@ -123,8 +123,13 @@ class Quick_Playground_Clone extends WP_REST_Controller {
      */
   public function get_items($request) {
   require('getmenus.php');
-	global $wpdb, $qckply_uploads, $qckply_site_uploads;
-    $profile = sanitize_text_field($request['profile']);
+  global $wpdb;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads'];
+    $qckply_uploads = $qckply_directories['uploads'];
+    $qckply_uploads_url = $qckply_directories['uploads_url'];
+    $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
+  $profile = sanitize_text_field($request['profile']);
     
     if(empty($_GET['nocache'])) {
       $savedfile = $qckply_site_uploads.'/quickplayground_posts_'.$profile.'.json';
@@ -302,7 +307,12 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
      */
   public function get_items($request) {
   require('getmenus.php');
-	global $wpdb, $qckply_uploads, $qckply_site_uploads;
+  global $wpdb;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads'];
+    $qckply_uploads = $qckply_directories['uploads'];
+    $qckply_uploads_url = $qckply_directories['uploads_url'];
+    $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
     $profile = sanitize_text_field($request['profile']);
     
     if(empty($_GET['nocache'])) {
@@ -388,7 +398,11 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-  global $qckply_uploads, $qckply_site_uploads;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads'];
+    $qckply_uploads = $qckply_directories['uploads'];
+    $qckply_uploads_url = $qckply_directories['uploads_url'];
+    $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
 	global $wpdb;
   $profile = $request['profile'];
   $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
@@ -490,7 +504,11 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-  global $qckply_uploads, $qckply_site_uploads;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads'];
+    $qckply_uploads = $qckply_directories['uploads'];
+    $qckply_uploads_url = $qckply_directories['uploads_url'];
+    $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
   require('getmenus.php');
 	global $wpdb;
   $profile = $request['profile'];
@@ -585,7 +603,11 @@ class Quick_Playground_Clone_Custom extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-  global $qckply_uploads, $qckply_site_uploads;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads'];
+    $qckply_uploads = $qckply_directories['uploads'];
+    $qckply_uploads_url = $qckply_directories['uploads_url'];
+    $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
   $profile = $request['profile'];
   $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
   $savedfile = $qckply_site_uploads.'/quickplayground_custom_'.$profile.'.json';
@@ -647,7 +669,8 @@ class Quick_Playground_Download extends WP_REST_Controller {
 	}
 
 	public function handle( $request ) {
-    global $qckply_uploads;
+    $qckply_directories = qckply_get_directories();
+    $qckply_uploads = $qckply_directories['uploads'];
     $filename = sanitize_text_field($request['filename']);
     $file = $qckply_uploads.'/'.$filename;
  

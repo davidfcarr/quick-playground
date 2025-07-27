@@ -252,22 +252,10 @@ function qckply_clone( $target = null ) {
         $out = '<p>Using '.$localjson.'</p>';
     }
     else {
-    $url = $baseurl.'/wp-content/uploads/qckply_prompts_'.$qckply_profile.'.json?t='.time();
-    $response = wp_remote_get($url);
-    if(is_wp_error($response)) {
-        $out .= '<p>Error: '.esc_html($response->get_error_message()).$url.'</p>';
-    } else {
-        $status_code = wp_remote_retrieve_response_code( $response );
-        if('200' == $status_code) {
-        $promptjson = $response['body'];
-        $out .= $promptjson;
-        $prompts = json_decode($promptjson,true);
-        $prompts = array_map('wp_kses_post',$prompts);
-        set_transient('playgroundmessages',$prompts,DAY_IN_SECONDS * 5);
-        }
-        else {
-            $out .= "<p>Returned $status_code</p>";
-        }
+        $prompts = qckply_get_prompts_remote($qckply_profile);
+        printf('<p>Retrieved prompts %s</p>',var_export($prompts,true));
+        if(!empty($prompts)) {
+            set_transient('playgroundmessages',$prompts,5*DAY_IN_SECONDS);
         }
     }
     }
@@ -578,7 +566,9 @@ function qckply_clone_images_footer() {
 }
 
 function qckply_clone_images($target) {
-    global $wpdb, $qckply_uploads;
+    global $wpdb;
+    $qckply_directories = qckply_get_directories();
+    $qckply_uploads = $qckply_directories['uploads'];
     $localdir = trailingslashit(plugin_dir_path( __FILE__ ));
     $baseurl = get_option('qckply_sync_origin');
     $no_cache = get_option('qckply_no_cache',false);

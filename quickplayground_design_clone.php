@@ -73,6 +73,7 @@ function qckply_clone_page() {
             <input type="radio" name="target" value="images" /> %s
             <input type="radio" name="target" value="settings" /> %s
             <input type="radio" name="target" value="custom" /> %s
+            <input type="radio" name="target" value="prompts" /> %s
         </p>
         %s
         <p><button class="button button-primary">%s</button></p>%s</form></p>',
@@ -82,6 +83,7 @@ function qckply_clone_page() {
         esc_html__('Images','quick-playground'),
         esc_html__('Settings','quick-playground'),
         esc_html__('Custom','quick-playground'),
+        esc_html__('Prompts','quick-playground'),
         $cache_notice,
         esc_html__('Clone Now','quick-playground'),
         wp_nonce_field('quickplayground','playground',true,false)

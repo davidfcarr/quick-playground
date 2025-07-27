@@ -149,7 +149,8 @@ function qckply_zipToUploads(string $source_dir, string $uploads_dir, $slug = ''
  * @return string|bool             Success message or false on failure.
  */
 function qckply_zip_target($source_directory) {
-    global $qckply_uploads;
+    $qckply_directories = qckply_get_directories();
+    $qckply_uploads = $qckply_directories['uploads'];
     if (qckply_zipToUploads($source_directory, $qckply_uploads)) {
         return 'Theme zipped successfully! The zip file can be found at: ' . $upload_directory;
     } else {
@@ -164,8 +165,8 @@ function qckply_zip_target($source_directory) {
  * @return string Success or failure message.
  */
 function qckply_zip_self() {
-    // Example usage:
-    global $qckply_uploads;
+    $qckply_directories = qckply_get_directories();
+    $qckply_uploads = $qckply_directories['uploads'];
     if (qckply_zipToUploads($source_directory, $qckply_uploads)) {
         return 'Theme zipped successfully! The zip file can be found at: ' . $qckply_uploads;
     } else {
@@ -179,8 +180,8 @@ function qckply_zip_self() {
  * @return string Success or failure message.
  */
 function qckply_zip_current_theme() {
-    global $qckply_uploads;
-    // Example usage:
+    $qckply_directories = qckply_get_directories();
+    $qckply_uploads = $qckply_directories['uploads'];
     $source_directory = get_theme_root() . '/' . get_stylesheet(); //  Get theme path
     if (qckply_zipToUploads($source_directory, $qckply_uploads)) {
         return 'Theme zipped successfully! The zip file can be found at: ' . $upload_directory;
@@ -196,8 +197,8 @@ function qckply_zip_current_theme() {
  * @return string Success or failure message.
  */
 function qckply_zip_theme($stylesheet) {
-    global $qckply_uploads;
-    // Example usage:
+    $qckply_directories = qckply_get_directories();
+    $qckply_uploads = $qckply_directories['uploads'];
     $source_directory = get_theme_root() . '/' . $stylesheet; //  Get theme path
     error_log($source_directory." to ".$qckply_uploads );
     if (qckply_zipToUploads($source_directory, $qckply_uploads)) {
@@ -214,7 +215,8 @@ function qckply_zip_theme($stylesheet) {
  * @return string|bool Success message or false on failure.
  */
 function qckply_zip_plugin($slug) {
-    global $qckply_uploads;
+    $qckply_directories = qckply_get_directories();
+    $qckply_uploads = $qckply_directories['uploads'];
     $source_directory = trailingslashit(dirname(plugin_dir_path(__FILE__))) .$slug; //  Get plugin path
     error_log($source_directory." to ".$qckply_uploads );
     if (qckply_zipToUploads($source_directory, $qckply_uploads)) {
@@ -366,14 +368,16 @@ function qckply_plausible_plugins() {
 }
 
 function qckply_cache_exists($profile = 'default') {
-    global $qckply_site_uploads; 
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads']; 
     $savedfile = $qckply_site_uploads.'/quickplayground_posts_'.$profile.'.json';
     return file_exists($savedfile);
 }
 
 function qckply_caches($profile = 'default') {
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads']; 
     $types = ['posts','settings','images','meta','custom','prompts'];
-    global $qckply_site_uploads;
     $caches = [];
     foreach($types as $type) {
         $savedfile = $qckply_site_uploads.'/quickplayground_'.$type.'_'.$profile.'.json';
@@ -384,7 +388,8 @@ function qckply_caches($profile = 'default') {
 }
 
 function qckply_delete_caches($types,$profile = 'default') {
-    global $qckply_site_uploads;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads']; 
     foreach($types as $type) {
         $savedfile = $qckply_site_uploads.'/quickplayground_'.sanitize_text_field($type).'_'.$profile.'.json';
         if(file_exists($savedfile))
@@ -440,9 +445,10 @@ return $clone;
 }
 
 function qckply_get_prompts($profile) {
-    global $qckply_uploads;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads']; 
     $baseurl = get_option('qckply_sync_origin');
-    $file = $qckply_uploads.'/qckply_prompts_'.$profile.'.json';
+    $file = $qckply_site_uploads.'/qckply_prompts_'.$profile.'.json';
     $json = file_get_contents($file);
     $prompts = ['welcome'=>'','admin-welcome'=>''];
     if(!empty($json))
@@ -455,17 +461,17 @@ function qckply_get_prompts($profile) {
 }
 
 function qckply_set_prompts($prompts,$profile) {
-    global $qckply_uploads;
-    $file = $qckply_uploads.'/qckply_prompts_'.$profile.'.json';
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads']; 
+    $file = $qckply_site_uploads.'/qckply_prompts_'.$profile.'.json';
     $json = json_encode($prompts);
     $return = file_put_contents($file,$json);
     return $return;
 }
 
 function qckply_get_prompts_remote($profile) {
-    $baseurl = get_option('qckply_sync_origin');
-    $dir = get_option('qckply_site_dir');
-    $url = $baseurl.'/wp-content/uploads'.$dir.'/quickplayground_prompts_'.$profile.'.json?t='.time();
+    $origin_directories = get_option('qckply_origin_directories');
+    $url = $origin_directories['site_uploads_url'].'/quickplayground_prompts_'.$profile.'.json?t='.time();
     $response = wp_remote_get($url);
     if(is_wp_error($response)) {
         echo '<p>Error: '.esc_html($response->get_error_message()).$url.'</p>';
@@ -476,6 +482,10 @@ function qckply_get_prompts_remote($profile) {
         $data = json_decode($promptjson,true);
     if(empty($data) || !is_array($data))
         $data = ['welcome'=>'','admin-welcome'=>''];
+    if(!isset($data['welcome']))
+        $data['welcome'] = '';
+    if(!isset($data['admin-welcome']))
+        $data['admin-welcome'] = '';
     return $data;
 }
 
