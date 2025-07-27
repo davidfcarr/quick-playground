@@ -18,13 +18,13 @@ function qckply_build($postvars, $profile = 'default') {
         $slugs = array_merge($slugs,$excluded_plugins);
     if(!empty($default_plugins)) {
         foreach($default_plugins as $slug) {
-        $postvars['add_plugin'][] = $slug;
+        $postvars['add_plugin'][] = sanitize_text_field($slug);
         $postvars['activate_plugin'][] = 1;
         $postvars['ziplocal_plugin'][] = false;
         }
     }
     if(isset($postvars['all_active_plugins'])) {
-        $active_plugins = explode(',',$postvars['all_active_plugins']);
+        $active_plugins = explode(',',sanitize_text_field($postvars['all_active_plugins']));
         foreach($active_plugins as $slug) {
             printf('<p>active plugins %s</p>',esc_html($slug));
             $postvars['add_plugin'][] = $slug;
@@ -41,7 +41,7 @@ function qckply_build($postvars, $profile = 'default') {
     if(!empty($postvars['settings'])) 
     {
         foreach($postvars['settings'] as $key => $value)
-            $settings[$key] = is_string($value) ? stripslashes($value) : $value;
+            $settings[$key] = is_string($value) ? sanitize_text_field(stripslashes($value)) : qckply_sanitize_clone($value);
         if(empty($settings['copy_pages'])) {
             $settings['copy_pages'] = 0;
         }
@@ -49,6 +49,7 @@ function qckply_build($postvars, $profile = 'default') {
             $settings['copy_events'] = 0;
         }
         $settings['is_qckply_clone']=true;
+        $settings['show_on_front'] = empty($settings['page_on_front']) ? 'posts' : 'page';
         $settings['qckply_profile']=$profile;
         $settings['qckply_sync_origin']=$site_origin;
         $settings['qckply_site_dir'] = is_multisite() ? '/sites/'.get_current_blog_id() : '';
@@ -87,6 +88,7 @@ function qckply_build($postvars, $profile = 'default') {
     if(!empty($postvars['repo'])) {
         $urls = explode("\n",$postvars['repo']);
         foreach($urls as $url) {
+            $url = sanitize_text_field($url);
             if(strpos($url,'wordpress.org/plugins/'))
                 $steps[] = makePluginItem(basename($url),true,true);
             elseif(strpos($url,'wordpress.org/themes/'))
@@ -96,7 +98,7 @@ function qckply_build($postvars, $profile = 'default') {
 
     if(isset($postvars['add_theme'])) {
         foreach($postvars['add_theme'] as $i => $slug) {
-            $slug = trim($slug);
+            $slug = sanitize_text_field(trim($slug));
             if(empty($slug) || in_array($slug, $themeslugs)) {
                 continue; // skip duplicate themes
             }
@@ -143,6 +145,7 @@ function qckply_build($postvars, $profile = 'default') {
     }
 
     foreach($default_themes as $slug) {
+        $slug = sanitize_text_field($slug);
         if(in_array($slug, $themeslugs)) {
             continue; // skip duplicate themes
         }
@@ -166,6 +169,7 @@ function qckply_build($postvars, $profile = 'default') {
     if(isset($postvars['add_plugin'])) {
 
         foreach($postvars['add_plugin'] as $i => $slug) {
+            $slug = sanitize_text_field(trim($slug));
 
             if(!empty($slug) && !in_array($slug, $slugs)) { // check if slug is not empty and not already added
                 $slugs[] = $slug; // add to slugs to avoid duplicates
@@ -206,14 +210,7 @@ function qckply_build($postvars, $profile = 'default') {
                     }
 
                 }
-                if(isset($postvars['activate_plugin'][$i]))
-                    $activate = boolval($postvars['activate_plugin'][$i]);
-                elseif(isset($postvars['activate'][$slug]))
-                    $activate = boolval($postvars['activate'][$slug]);
-                else
-                    $activate = false;
-
-                $steps[] = makePluginItem($slug, $public, $activate);
+                $steps[] = makePluginItem($slug, $public, true); // activate all imported plugins
             }
 
         }
@@ -222,7 +219,7 @@ function qckply_build($postvars, $profile = 'default') {
     if(!empty($postvars['add_code'])) {
 
         foreach($postvars['add_code'] as $i => $code) {
-
+            $code = sanitize_textarea_field(trim(stripslashes($code)));
             if(!empty($code)) {
                 $steps[] = makeCodeItem(stripslashes($code));
             }
@@ -230,18 +227,15 @@ function qckply_build($postvars, $profile = 'default') {
     }
     if(isset($postvars['json_steps'])) {
         if(!empty($postvars['json_steps'])) {
-        $postvars['json_steps'] = stripslashes($postvars['json_steps']);
-        }
-        update_option('json_steps_'.$profile, $postvars['json_steps']);
-    }
-    if(!empty($postvars['json_steps'])) {
-        $json = sanitize_textarea_field($postvars['json_steps']);
+        $postvars['json_steps'] = $json = sanitize_textarea_field(stripslashes($postvars['json_steps']));
         if(!strpos($json,']'))
             $json = '['.$json.']';
         $addsteps = json_decode($json);
         foreach($addsteps as $add) {
             $steps[] = $add;
         }
+        }
+        update_option('json_steps_'.$profile, $postvars['json_steps']);
     }
     $settings['origin_stylesheet'] = get_stylesheet();
     $settings_to_copy = apply_filters('qckply_settings_to_copy',array('timezone_string'));
@@ -252,13 +246,11 @@ function qckply_build($postvars, $profile = 'default') {
     }
     $steps[] = makeBlueprintItem('setSiteOptions',null, $settings);    
     qckply_zip_plugin("quick-playground");
-    $enabled = is_multisite() ? get_blog_option(1,'playground_premium_enabled') : get_option('playground_premium_enabled');
-    if($enabled) {
+    if(function_exists('ProPlaygroundData')) {
         $plugindata = ProPlaygroundData();
         $steps[] = makeBlueprintItem('installPlugin', array('pluginData'=>$plugindata), array('activate'=>true));
     }
     $steps[] = makePluginItem("quick-playground", false, true);
-    $steps[] = array("step"=>"defineWpConfigConsts","consts"=>["WP_DEBUG"=>true,"WP_DEBUG_LOG"=>true,"WP_DEBUG_DISPLAY"=>true]);
     $steps[] = makeCodeItem('qckply_clone("posts");');
 
     $blueprint = array('features'=>array('networking'=>true),'steps'=>$steps);

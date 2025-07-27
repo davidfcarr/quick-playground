@@ -7,23 +7,26 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @param string $stylesheet The current theme stylesheet.
  */
 function blueprint_settings_init($profile) {
-
-    $key = playground_premium_enabled();
-    
+    global $pagenow;
+    $key = function_exists(('playground_premium_enabled')) ? playground_premium_enabled() : '';
     if(isset($_POST['build_profile'])) {  
+        //sanitization is done in qckply_build
         $result = qckply_build($_POST,$profile);
         $blueprint = $result[0];
         $settings = $result[1];
-        $button = qckply_get_button(['profile'=>$profile, 'key'=>$key]);
         $cachemessage = qckply_cache_message($profile,$settings);
-        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',$button, wp_kses_post($cachemessage));
+        //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
+        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',qckply_get_button(['profile'=>$profile, 'key'=>$key]), wp_kses_post($cachemessage));
         update_option('quickplay_clone_settings_'.$profile,$settings);
-        if(!empty($_POST['reset_cache']))
+        if(!empty($_POST['reset_cache'])) {
+            //post variables are sanitized in qckply_delete_caches
             qckply_delete_caches($_POST['reset_cache'],$profile);
+        }
     }
     else {
         $blueprint = get_option('playground_blueprint_'.$profile, array());
         $settings = get_option('quickplay_clone_settings_'.$profile,array());
+        //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
         echo qckply_get_button(['profile'=>$profile, 'key'=>$key]);
         echo wp_kses_post(qckply_cache_message($profile,$settings));
     }
@@ -60,12 +63,13 @@ function blueprint_settings_init($profile) {
         $postvars['settings'] = $settings;
         $postvars['add_theme'][] = get_stylesheet();
         $postvars['profile'] = $profile;
+        //sanitization is done in qckply_build
         $result = qckply_build($postvars,$profile);
         $blueprint = $result[0];
         $settings = $result[1];
         update_option('quickplay_clone_settings_'.$profile,$settings);
     }
-    $page = sanitize_text_field($_GET['page']);
+    $page = sanitize_text_field($pagenow);
     $pagechoice = 'qckply_builder' == $page ? '<input type="radio" name="page" value="quickplayground" /> Gallery <input type="radio" name="page" value="qckply_builder" checked="checked" /> Builder ' : '<input type="radio" name="page" value="quickplayground" checked="checked" /> Gallery <input type="radio" name="page" value="qckply_builder" /> Builder ';
     printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile">Profile: <select name="profile">%s</select> %s <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()),wp_nonce_field('quickplayground','playground',true,false));
 }

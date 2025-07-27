@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * Displays the Design and Theme Playground admin page, handles cloning actions, and outputs API endpoints.
  */
 function qckply_clone_page() {
-    if(!empty($_POST) && !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_POST['playground'])), 'quickplayground' ) ) 
+    if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['profile']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
     {
         echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
         return;
@@ -37,7 +37,7 @@ function qckply_clone_page() {
             }
         }
         if('images' == $target) {
-            $response = qckply_get_thumbnails();
+            $response = qckply_clone_images('images');
             if(!empty($response['message'])) {
                 echo $response['message'];
             }
@@ -94,7 +94,7 @@ function qckply_clone_page() {
         esc_html__('Images','quick-playground'), esc_url($imgurl), esc_html($imgurl)
     );
 
-    if($premium) {
+    if(function_exists('qckply_save')) {
         echo '<p>'.esc_html__('Welcome to the Pro version of the Design Playground!','quick-playground').'</p>';
         do_action('qckply_clone_pro_form');
         return;
@@ -159,47 +159,49 @@ function qckply_sync_changes($changes) {
  * Displays the clone log and provides links to view JSON and logs for posts, taxonomy, and images.
  */
 function qckply_clone_log() {
+    $nonce = wp_create_nonce( 'qckply_clone_log' );
+
     printf('<h1>%s</h1><p>', esc_html__('Design Playground Clone Log', 'quick-playground'));
     printf(
         '<a href="%s">%s</a> | ',
-        esc_url(admin_url('admin.php?page=qckply_clone_log&posts_json=1')),
+        esc_url(admin_url('admin.php?page=qckply_clone_log&posts_json=1&nonce=' . $nonce)),
         esc_html__('Posts JSON', 'quick-playground')
     );
     printf(
         '<a href="%s">%s</a> | ',
-        esc_url(admin_url('admin.php?page=qckply_clone_log&tax=1')),
+        esc_url(admin_url('admin.php?page=qckply_clone_log&tax=1&nonce=' . $nonce)),
         esc_html__('Taxonomy and Metadata', 'quick-playground')
     );
     printf(
         '<a href="%s">%s</a> | ',
-        esc_url(admin_url('admin.php?page=qckply_clone_log&images=1')),
+        esc_url(admin_url('admin.php?page=qckply_clone_log&images=1&nonce=' . $nonce)),
         esc_html__('Images', 'quick-playground')
     );
     printf(
         '<a href="%s">%s</a>',
-        esc_url(admin_url('admin.php?page=qckply_clone_log&custom=1')),
+        esc_url(admin_url('admin.php?page=qckply_clone_log&custom=1&nonce=' . $nonce)),
         esc_html__('Custom', 'quick-playground')
     );
     echo '</p>';
-    if(isset($_GET['posts_json'])) {
+    if(isset($_GET['posts_json']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'])), 'qckply_clone_log')) {
         echo '<h2>'.esc_html__('Incoming JSON','quick-playground').'</h2>';
         echo '<pre>'.esc_html(get_option('qckply_clone_posts_json')).'</pre>';
         echo '<h2>'.esc_html__('Incoming JSON modified','quick-playground').'</h2>';
         echo '<pre>'.esc_html(json_encode(json_decode(get_option('qckply_clone_posts_modified')),JSON_PRETTY_PRINT)).'</pre>';
     } 
-    elseif(isset($_GET['tax'])) {
+    elseif(isset($_GET['tax']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'])), 'qckply_clone_log')) {
         echo '<h2>'.esc_html__('Metadata Copy','quick-playground').'</h2>';
         echo wp_kses_post(get_option('qckply_clone_tax_log'));
         echo '<h2>'.esc_html__('JSON','quick-playground').'</h2>';
         echo '<pre>'.esc_html(json_encode(json_decode(get_option('qckply_clone_tax_json')), JSON_PRETTY_PRINT)).'</pre>';
     }
-    elseif(isset($_GET['images'])) {
+    elseif(isset($_GET['images']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'])), 'qckply_clone_log')) {
         echo '<h2>'.esc_html__('Images','quick-playground').'</h2>';
         echo wp_kses_post(get_option('qckply_clone_images_log'));
         echo '<h2>'.esc_html__('JSON','quick-playground').'</h2>';
         echo '<pre>'.esc_html(json_encode(json_decode(get_option('qckply_clone_images_json')),JSON_PRETTY_PRINT)).'</pre>';
     }
-    elseif(isset($_GET['custom'])) {
+    elseif(isset($_GET['custom']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'])), 'qckply_clone_log')) {
         echo '<h2>'.esc_html__('Custom','quick-playground').'</h2>';
         echo wp_kses_post(get_option('qckply_clone_custom_log'));
         echo '<h2>'.esc_html__('JSON','quick-playground').'</h2>';

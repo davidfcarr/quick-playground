@@ -86,14 +86,3 @@ function playgroundData($slug, $type = 'plugin', $public = true) {
     return $data;
 }
 
-/**
- * Returns data for downloading a premium/pro playground resource.
- *
- * @return array Data array for the pro resource.
- */
-function ProPlaygroundData() {
-    $email = get_option('playground_premium_email');
-    $data['resource'] = 'url';
-    $data['url'] = 'https://davidfcarr.com/wp-json/quickplayground/v1/playground_pro_download?email=PROEMAIL&key=PROCODE&t=TIMESTAMP';
-    return $data;
-}

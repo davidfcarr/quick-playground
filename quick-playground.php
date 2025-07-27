@@ -3,15 +3,15 @@
  * Plugin Name: Quick Playground
  * Plugin URI:  https://davidfcarr.com/the-quick-playground-plugin
  * Description: Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites.
- * Version:     0.9.1
+ * Version:     0.9.2
  * Author:      David F. Carr
 *  License:     GPL2
 *  Text Domain: quick-playground
 *  Domain Path: /languages
 */
 require_once('includes.php');
-$temp = wp_upload_dir();
 
+$temp = wp_upload_dir();
 $qckply_site_uploads = $temp['basedir'];
 $qckply_uploads = rtrim(preg_replace('/sites.+/','',$qckply_site_uploads),'/');
 $qckply_uploads_url = $temp['baseurl'];
@@ -26,14 +26,15 @@ unset($temp);
  * and outputs the UI for managing playground profiles, themes, and plugins.
  */
 function quickplayground() {
-    if(!empty($_POST) && !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_POST['playground'])), 'quickplayground' ) ) 
-    {
-        echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
-        return;
-    }
+if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['profile']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
+{
+    echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
+    return;
+}
 
     global $wpdb, $current_user, $qckply_uploads, $qckply_uploads_url;
 
+    //nonce is checked above
     $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';
     printf('<h2>Quick Playground for %s: %s</h2>',esc_html(get_bloginfo('name')),esc_html($profile));
     $stylesheet = get_stylesheet();
@@ -42,32 +43,26 @@ function quickplayground() {
     $blueprint = get_option('playground_blueprint_'.$profile, array());
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $stylesheet = $settings['qckply_clone_stylesheet'] ?? $stylesheet;
-    $key = playground_premium_enabled();
+    $key = function_exists(('playground_premium_enabled')) ? playground_premium_enabled() : '';
     printf('<p>Theme: %s, Plugins: %s. For Customization options, see the <a href="%s">Playground Builder page</a>.</p>',esc_html($stylesheet),esc_html(implode(', ', qckply_plugin_list($blueprint))),esc_attr(admin_url('admin.php?page=qckply_builder')));
-    //echo qckply_get_button(['profile'=>$profile, 'key'=>$key]);
-    //echo qckply_cache_message($profile, $settings);
 echo '<div class="qckply-doc">';
-if($key) {
+if(function_exists('playground_premium_enabled')) {
     echo "<p>Quick Playground allows you to test themes, plugins, design ideas, and configuration settings on a virtual WordPress Playground copy of your website, without worrying about breaking your live site.</p>";
     printf('<p>Premium features enabled. Themes and plugins that are not in the WordPress repository but are installed on this machine will be published to the playground as zip files saved to %s</p>',$qckply_uploads);
-    echo "<p>Your website content and settings are not shared with any external cloud service. The playground is a private instance of WordPress loaded into your web browser.</p>";
 } else {
-    $upgrade_url = admin_url('admin.php?page=qckply_pro');
+    $upgrade_url = 'https://davidfcarr.com/the-quick-playground-plugin';
     echo "<p>Quick Playground allows you to test themes, plugins, design ideas, and configuration settings on a virtual WordPress Playground copy of your website, without worrying about breaking your live site.</p>";
     echo "<p>The Pro version allows you greater freedom to customize the themes and plugins installed, including custom themes and plugins that are not in the WordPress.org repository, and provides more tools for developers to create demo environments.</p>";
     printf('<p><a href="%s">Upgrade</a> for access to these features.</p>
     <ul class="qckplypro">
-    <li>Install and active Themes and Plugins that are different from those on your live website</li>
-    <li>Demonstrate Themes and Plugins that are not in the WordPress repository (served as zip files from your server instead)</li>
-    <li>Specify a different front page from the one used your live website</li>
-    <li>Publish additional demo pages to the playground, based on draft or published pages of your website</li>
-    <li>Extend the plugin with custom filters and actions</li>
-    <li>Call custom PHP code in the playground.</li>
+    <li>Save content or design changes made in the Playground environment for future sessions.</li>
+    <li>Import saved Playground content or design changes into your live website.</li>
+    <li>Blueprint customization: Call custom PHP code in the Playground.</li>
+    <li>Blueprint customization: Add JSON-formatted Playground steps (i.e., from documented examples).</li>
     </ul>
-    <p><strong>For a limited time, you can get the Pro version just by signing up for the Quick Playground Email List. <a href="%s">Upgrade Now</a>.</strong></p>
-    ',esc_attr($upgrade_url),esc_attr($upgrade_url));
-    echo "<p>Your website content and settings are not shared with any external cloud service. The playground is a private instance of WordPress loaded into your web browser.</p>";
+    ',esc_attr($upgrade_url));
 }
+    echo "<p>Your website content and settings are not shared with any external cloud service. The playground is a private instance of WordPress loaded into your web browser.</p>";
 echo '</div>';
     $themes = wp_get_themes(['allowed'=>true]);
     if(!empty($themes) && sizeof($themes) > 1) {
@@ -76,10 +71,10 @@ echo '</div>';
     foreach($themes as $theme) {
         if($theme->stylesheet == $stylesheet)
             continue;
-        $button = qckply_get_button(['profile'=>$profile,'key'=>$key,'stylesheet'=>$theme->stylesheet]);
         $blueprint_url = get_qckply_api_url(['profile'=>$profile,'key'=>$key,'stylesheet'=>$theme->stylesheet]);
         $screenshot = $theme->get_screenshot(); ///get_stylesheet_directory_uri().'/screenshot.png';
-        printf('<div class="qckply-stylesheet"><div style="">Theme: %s</div><div class="qckply-theme-screenshot"><img src="%s" width="300" /></div><div class="qckply-theme-button">%s<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',esc_html($theme->Name),esc_attr($screenshot),$button,$blueprint_url,qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet]));
+        //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
+        printf('<div class="qckply-stylesheet"><div style="">Theme: %s</div><div class="qckply-theme-screenshot"><img src="%s" width="300" /></div><div class="qckply-theme-button">%s<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',esc_html($theme->Name),esc_attr($screenshot),qckply_get_button(['profile'=>$profile,'key'=>$key,'stylesheet'=>$theme->stylesheet]),$blueprint_url,qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet]));
     }
     echo '</div>';
     }
@@ -113,9 +108,6 @@ add_action( 'wp_enqueue_scripts', 'qckply_enqueue_script' );
  * Generates the API URL for the playground based on the profile and optional parameters.
  *
  * @param string $profile    The profile name.
- * @param string $key        Optional. A key for premium features.
- * @param string $stylesheet Optional. The stylesheet to use.
- * @param bool   $nocache    Optional. Whether to disable cache.
  * @return string            The API URL.
  */
 function get_qckply_api_url($args=[]) {

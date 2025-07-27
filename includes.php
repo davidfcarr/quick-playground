@@ -8,11 +8,9 @@ require_once('clone.php');
 require_once('filters.php');
 require_once("key_pages.php");
 require_once('makeBlueprintItem.php');
-require_once('premium.php');
 require_once('quickplayground_design_clone.php');
-require_once('quickplayground-sync.php');
+//require_once('quickplayground-sync.php');
 require_once('quickplayground-updates.php');
-
 require_once('utility.php');
 
 if(is_multisite())

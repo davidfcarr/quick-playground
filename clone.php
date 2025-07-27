@@ -20,7 +20,6 @@ function qckply_clone( $target = null ) {
     global $wpdb, $current_user, $baseurl, $mysite_url;
     $localdir = trailingslashit(plugin_dir_path( __FILE__ ));
     $baseurl = get_option('qckply_sync_origin');
-    $no_cache = get_option('qckply_no_cache',false);
     $mysite_url = rtrim(get_option('siteurl'),'/');
     $page_on_front = get_option('page_on_front');
     if(empty($baseurl)) {
@@ -35,15 +34,10 @@ function qckply_clone( $target = null ) {
     }
 
     $url = $baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
-    if($no_cache) $url .= '&nocache=1';
     $taxurl = $baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$qckply_profile.'?t='.time();
-    if($no_cache) $taxurl .= '&nocache=1';
     $settingsurl = $baseurl .'/wp-json/quickplayground/v1/clone_settings/'.$qckply_profile.'?t='.time();
-    if($no_cache) $settingsurl .= '&nocache=1';
     $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
-    if($no_cache) $imgurl .= '&nocache=1';
     $customurl = $baseurl .'/wp-json/quickplayground/v1/clone_custom/'.$qckply_profile.'?t='.time();
-    if($no_cache) $customurl .= '&nocache=1';
 
     error_log('qckply_clone called with url: '.$url);  
     if(empty($target) || 'posts' == $target) {
@@ -66,15 +60,14 @@ function qckply_clone( $target = null ) {
         } 
         $json = $response['body'];
     }
-        //update_option('qckply_clone_posts_json',$json);
         $json = qckply_json_incoming($json);
-        //update_option('qckply_clone_posts_json_modified',$json);
         $clone = json_decode($json,true);//decode as associative array
         if(!$clone) {
         $clone = qckply_clone_output($clone, $out."<p>Unable to decode JSON ".substr($json,0,50)."</p>");
         update_option('qckply_clone_posts_log',$clone['output']);
         return;
         }
+        $clone = qckply_sanitize_clone($clone);
         $clone = qckply_clone_output($clone, $out);
         if(!is_array($clone)) {
             error_log('json decode error '.var_export($clone,true));
@@ -115,7 +108,8 @@ function qckply_clone( $target = null ) {
             if('wp_navigation' == $post['post_type']) {
                 $post['post_content'] = str_replace($baseurl,$mysite_url,$post['post_content']);
             }
-            if(isset($_GET['page']) && $post['ID'] == $page_on_front) {
+            //removed isset($_GET['page']) && 
+            if($post['ID'] == $page_on_front) {
                 $out = sprintf('<p>Front page html</p><pre>%s</pre>',esc_html($post['post_content']));
                 $clone = qckply_clone_output($clone, $out);
             }
@@ -194,17 +188,6 @@ function qckply_clone( $target = null ) {
             quickmenu_build_navigation($clone['make_menu_ids']);
         }
     } 
-    if(!empty($clone['front_page_thumbnail'])) {
-        $clone = qckply_clone_output($clone, '<p>Cloning front page thumbnail</p>');
-        $result = qckply_sideload($clone['front_page_thumbnail']);
-        $clone = qckply_clone_output($clone, '<p>qckply_sideload returned</p><div>'.var_export($result,true).'</div>');
-        if(is_wp_error($result)) {
-            $out = "<p>Error downloading ".$clone['front_page_thumbnail']['guid']."</p>";
-        }
-        else
-            $out = $result;
-        $clone = qckply_clone_output($clone, $out);
-    }
 
     // incudes posts that might be rsvpmakers
     $clone = apply_filters('qckply_clone_posts',$clone);
@@ -233,7 +216,6 @@ function qckply_clone( $target = null ) {
         update_option('quickplay_clone_settings_log',$clone['output']);
         return;
     }
-
     $clone = qckply_clone_output($clone, $out);
     if(!empty($clone["settings"]))
     {
@@ -248,6 +230,10 @@ function qckply_clone( $target = null ) {
         foreach($clone["settings"] as $setting => $value) {
             if(in_array($setting,$blueprint_only_settings))
                 continue;
+            if(is_array($value))
+                $value = array_map('sanitize_text_field',$value);
+            else
+                $value = sanitize_text_field($value);
             $out = '<p>setting '.esc_html($setting).' = '.esc_html(var_export($value,true)).'</p>';$clone = qckply_clone_output($clone, $out);
             error_log('setting '.$setting.' = '.var_export($value,true));
             update_option($setting,$value);
@@ -275,7 +261,9 @@ function qckply_clone( $target = null ) {
         if('200' == $status_code) {
         $promptjson = $response['body'];
         $out .= $promptjson;
-        set_transient('playgroundmessages',json_decode($promptjson,true),DAY_IN_SECONDS * 5);
+        $prompts = json_decode($promptjson,true);
+        $prompts = array_map('wp_kses_post',$prompts);
+        set_transient('playgroundmessages',$prompts,DAY_IN_SECONDS * 5);
         }
         else {
             $out .= "<p>Returned $status_code</p>";
@@ -312,6 +300,7 @@ function qckply_clone( $target = null ) {
     update_option('qckply_clone_posts_log',$clone['output']);
     return;
     }
+    $clone = qckply_sanitize_clone($clone);
 
     $clone = qckply_clone_output($clone, $out);
     if(!is_array($clone)) {
@@ -460,6 +449,7 @@ function qckply_clone( $target = null ) {
     update_option('qckply_clone_custom_log',$clone['output']);
     return;
     }
+    $clone = qckply_sanitize_clone($clone);
     $clone = qckply_clone_output($clone, $out);
     if(!is_array($clone)) {
         error_log('error decoding custom clone json');
@@ -533,6 +523,7 @@ if($headers) {
     if(!empty($matches[0])) {
     if(!empty(trim($matches[1]))){
         $json = json_decode($matches[1],true);
+        $json = array_map('sanitize_text_field',$json);
         $json['ref'] = $nav_id;
     }
     else {
@@ -552,6 +543,7 @@ else {
       return 'no match '.var_export($matches,true);
     if(!empty(trim($matches[1]))){
         $json = json_decode($matches[1],true);
+        $json = array_map('sanitize_text_field',$json);
         $json['ref'] = $nav_id;
     }
     else {
@@ -577,6 +569,12 @@ function qckply_clone_output($clone, $message) {
         $clone['output'] = '';
     $clone['output'] .= $message;
     return $clone;
+}
+
+function qckply_clone_images_footer() {
+    $result = qckply_clone_images('images');
+    $response['message'] = sprintf('<p>Copied %d images</p>',intval($result));
+    return $response;
 }
 
 function qckply_clone_images($target) {
@@ -619,6 +617,7 @@ function qckply_clone_images($target) {
     update_option('qckply_clone_images_log',$clone['output']);
     return;
     }
+    $clone = qckply_sanitize_clone($clone);
 
     if(!empty($clone['site_logo'])) {
         $result = qckply_sideload($clone['site_logo'],['update_option'=>'site_logo']);

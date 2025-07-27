@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 function qckply_find_key_pages($profile = 'default') {
     $siteurl = rtrim(get_option('siteurl'),'/');
     $keypages = [];
+    $output = '';
     $landingpage = get_option('qckply_landing_page_'.$profile);
         if($landingpage && !strpos($landingpage,'wp-admin')) {
         $url = site_url($landingpage);
@@ -106,7 +107,6 @@ function qckply_find_key_images() {
     $parse = parse_url($siteurl);
     $domain = $parse['host'];
     $pattern = '/<img[^>]+src\s*=\s*["\'](?<url>[^"\']*uploads\/[^"\']+?)(?:-\d+x\d+)?\.(jpg|jpeg|png|gif|webp)/i';
-    //$pattern = '/<img[^>]+src\s*=\s*(?:["\'](?<url>[^"\?\']*uploads[^"\?\'\.]*)\.)/';
     preg_match_all($pattern, $home_html, $matches);
     $keypages = [];
     foreach($matches[1] as $index => $match) {
