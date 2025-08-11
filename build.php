@@ -89,9 +89,9 @@ function qckply_build($postvars, $profile = 'default') {
         $urls = explode("\n",$postvars['repo']);
         foreach($urls as $url) {
             $url = sanitize_text_field($url);
-            if(strpos($url,'wordpress.org/plugins/'))
+            if(strpos($url,'/plugins/'))
                 $steps[] = makePluginItem(basename($url),true,true);
-            elseif(strpos($url,'wordpress.org/themes/'))
+            elseif(strpos($url,'/themes/'))
                 $steps[] = makeThemeItem(basename($url),true,false);
         }
     }

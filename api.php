@@ -47,6 +47,7 @@ class Quick_Playground_Blueprint extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
+    do_action('qckply_fetch_blueprint');
     qckply_zip_plugin("quick-playground");
     $email = $key = '';
     $blueprint = get_option('playground_blueprint_'.$request['profile']);
@@ -338,11 +339,6 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
         $settings[$mod->option_name] = maybe_unserialize($mod->option_value);
       }
     }
-    if(isset($clone['playground_premium'])) {
-      $qckply_sync_code = wp_generate_password(24,false);
-      update_option('qckply_sync_code', $qckply_sync_code);
-      $settings['qckply_sync_code'] = $qckply_sync_code;
-    }
     $clone['settings'] = $settings;
     $clone = apply_filters('qckply_qckply_clone_settings',$clone);
     $response = new WP_REST_Response( $clone, 200 );
@@ -517,7 +513,8 @@ class Quick_Playground_Clone_Taxonomy extends WP_REST_Controller {
   
   if(file_exists($savedfile) && empty($_GET['nocache'])) {
     $json = file_get_contents($savedfile);
-    if($json && $clone = json_decode($json)) {
+    if($json && $clone = json_decode($json, true)) {
+        $clone['savedfile'] = $savedfile;
         $response = new WP_REST_Response( $clone, 200 );
         $response->header( "Access-Control-Allow-Origin", "*" );
         return $response;

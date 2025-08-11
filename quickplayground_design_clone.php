@@ -24,6 +24,11 @@ function qckply_clone_page() {
     $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
     if($no_cache) $imgurl .= '&nocache=1';
 
+    $local_directories = qckply_get_directories();
+    $remote_directories = get_option('qckply_origin_directories');
+    printf('<p>Local directories: %s</p>', esc_html(var_export($local_directories,true)));
+    printf('<p>Remote directories: %s</p>', esc_html(var_export($remote_directories,true)));
+
     if(isset($_REQUEST['clonenow'])) {
         $target = sanitize_text_field($_REQUEST['target']);
         echo '<h2>'.esc_html__('Cloning...','quick-playground').' '.esc_html($target).'</h2>';
@@ -96,13 +101,7 @@ function qckply_clone_page() {
         esc_html__('Images','quick-playground'), esc_url($imgurl), esc_html($imgurl)
     );
 
-    if(function_exists('qckply_save')) {
-        echo '<p>'.esc_html__('Welcome to the Pro version of the Design Playground!','quick-playground').'</p>';
-        do_action('qckply_clone_pro_form');
-        return;
-    } else {
-        echo '<p>'.esc_html__('Upgrade to the Pro version for the ability to easily save changes to this playground environment for future sessions. You can also post selected changes from this playground back to your live website (beta).','quick-playground').'</p>';
-    }
+    do_action('qckply_clone_notice');
 }
 
 /**

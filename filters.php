@@ -12,12 +12,12 @@ function qckply_clone_footer_message() {
     if(!get_option('is_qckply_clone')) {
         return;
     }
-    $slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : basename(sanitize_text_field($_SERVER['REQUEST_URI']));
+    $url_nopath = str_replace(trim(qckply_playground_path()),'',$_SERVER['REQUEST_URI']);
+    $slug = trim(preg_replace('/[^A-Za-z0-9]/','-',$url_nopath),'-');
     if(is_home() || is_front_page())
         $slug = 'home';
-    elseif(('index.php' == $slug) || ('index.php' == $slug))
-        $slug = 'dashboard';
-    $slug = preg_replace('/[^a-z0-9\_]/','-',$slug);
+    //elseif(('index.php' == $slug) || ('index.php' == $slug))
+        //$slug = 'dashboard';
     $keymessage = array('key'=>$slug,'message'=>'','welcome'=> is_admin() ? 'admin-welcome' : 'welcome');
     $keymessage = apply_filters('qckply_key_message',$keymessage);
     if(!empty($keymessage['message'])) {
@@ -46,7 +46,12 @@ function qckply_footer_prompt() {
             if($more) {
                 return '<div id="playground-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div><script>window.location.href="'.qckply_link(['qckply_clone'=>'thumbnails']).'"</script>';
             }
-            return $content;//.'<div id="playground-overlay-message"><p>Loading more...</p></div><script>window.location.href="'.$permalink.'?qckply_clone=thumbnails"</script>';
+            else {
+                $output = ob_get_clean();
+                qckply_top_ids();
+                do_action('qckply_loading');
+                return '<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href="'.qckply_link().'"</script>';
+            }
         } 
         elseif('thumbnails' == $target) {
             $more = qckply_get_more_thumbnails();
@@ -55,6 +60,7 @@ function qckply_footer_prompt() {
             }
             $output = ob_get_clean();
             qckply_top_ids();
+            do_action('qckply_loading');
             return '<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href="'.qckply_link().'"</script>';
         }
         else {
@@ -68,4 +74,12 @@ function qckply_footer_prompt() {
         //update_option('qckply_sync_date',date('Y-m-d H:i:s'));
     }
     //return $content;
+}
+
+add_filter('the_content','qckply_clone_content');
+function qckply_clone_content($content) {
+    if(qckply_is_playground() && isset($_GET['qckply_clone'])) {
+        return '<div style="padding: 20px; background-color: #eee; border-radius: 25px; color: #111;"><h2>Loading ...</h2><p>Just a moment.</p></div>';
+    }
+    return $content;
 }

@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: Quick Playground
- * Plugin URI:  https://davidfcarr.com/the-quick-playground-plugin
+ * Plugin URI:  https://quickplayground.com
  * Description: Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites.
- * Version:     0.9.4
+ * Version:     0.9.5
  * Author:      David F. Carr
 *  License:     GPL2
 *  Text Domain: quick-playground
@@ -19,7 +19,7 @@ function qckply_get_directories()
     }
     $temp = wp_upload_dir();
     $qckply_directories['site_uploads'] = $temp['basedir'].'/quick-playground';
-    $qckply_directories['uploads'] = preg_replace('/sites.+\/quick-playground/','',$qckply_directories['site_uploads']);
+    $qckply_directories['uploads'] = preg_replace('/sites.+\/quick-playground/','quick-playground',$qckply_directories['site_uploads']);
     if(!is_dir($qckply_directories['site_uploads'])) {
         wp_mkdir_p($qckply_directories['site_uploads']);
     }
@@ -27,7 +27,7 @@ function qckply_get_directories()
         wp_mkdir_p($qckply_directories['uploads']);
     }
     $qckply_directories['site_uploads_url'] = $temp['baseurl'].'/quick-playground';
-    $qckply_directories['uploads_url'] = preg_replace('/sites.+\/quick-playground/','',$qckply_directories['site_uploads_url']);
+    $qckply_directories['uploads_url'] = preg_replace('/sites.+\/quick-playground/','quick-playground',$qckply_directories['site_uploads_url']);
     unset($temp);
     update_option('qckply_directories',$qckply_directories);
     return $qckply_directories;
@@ -40,11 +40,12 @@ function qckply_get_directories()
  * and outputs the UI for managing playground profiles, themes, and plugins.
  */
 function quickplayground() {
-if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['profile']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
+if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
 {
     echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
     return;
 }
+    do_action('qckply_form_top');
     $qckply_directories = qckply_get_directories();
     $qckply_site_uploads = $qckply_directories['site_uploads'];
     $qckply_uploads = $qckply_directories['uploads'];
@@ -60,25 +61,13 @@ if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['profile']) 
     $blueprint = get_option('playground_blueprint_'.$profile, array());
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $stylesheet = $settings['qckply_clone_stylesheet'] ?? $stylesheet;
-    $key = function_exists(('playground_premium_enabled')) ? playground_premium_enabled() : '';
     printf('<p>Theme: %s, Plugins: %s. For Customization options, see the <a href="%s">Playground Builder page</a>.</p>',esc_html($stylesheet),esc_html(implode(', ', qckply_plugin_list($blueprint))),esc_attr(admin_url('admin.php?page=qckply_builder')));
 echo '<div class="qckply-doc">';
-if(function_exists('playground_premium_enabled')) {
-    echo "<p>Quick Playground allows you to test themes, plugins, design ideas, and configuration settings on a virtual WordPress Playground copy of your website, without worrying about breaking your live site.</p>";
-    printf('<p>Premium features enabled. Themes and plugins that are not in the WordPress repository but are installed on this machine will be published to the playground as zip files saved to %s</p>',$qckply_uploads);
-} else {
-    $upgrade_url = 'https://davidfcarr.com/the-quick-playground-plugin';
-    echo "<p>Quick Playground allows you to test themes, plugins, design ideas, and configuration settings on a virtual WordPress Playground copy of your website, without worrying about breaking your live site.</p>";
-    echo "<p>The Pro version allows you greater freedom to customize the themes and plugins installed, including custom themes and plugins that are not in the WordPress.org repository, and provides more tools for developers to create demo environments.</p>";
-    printf('<p><a href="%s">Upgrade</a> for access to these features.</p>
-    <ul class="qckplypro">
-    <li>Save content or design changes made in the Playground environment for future sessions.</li>
-    <li>Import saved Playground content or design changes into your live website.</li>
-    <li>Blueprint customization: Call custom PHP code in the Playground.</li>
-    <li>Blueprint customization: Add JSON-formatted Playground steps (i.e., from documented examples).</li>
-    </ul>
-    ',esc_attr($upgrade_url));
-}
+
+    $welcome_message = "<p>Quick Playground allows you to test themes, plugins, design ideas, and configuration settings on a virtual WordPress Playground copy of your website, without worrying about breaking your live site.</p>";
+    $welcome_message .= "<p>Learn more about what it can do at <a href=\"https://quickplayground.com\">quickplayground.com</a>.</a>";
+    echo wp_kses_post(apply_filters('qckply_welcome',$welcome_message));
+
     echo "<p>Your website content and settings are not shared with any external cloud service. The playground is a private instance of WordPress loaded into your web browser.</p>";
 echo '</div>';
     $themes = wp_get_themes(['allowed'=>true]);
@@ -88,10 +77,10 @@ echo '</div>';
     foreach($themes as $theme) {
         if($theme->stylesheet == $stylesheet)
             continue;
-        $blueprint_url = get_qckply_api_url(['profile'=>$profile,'key'=>$key,'stylesheet'=>$theme->stylesheet]);
+        $blueprint_url = get_qckply_api_url(['profile'=>$profile,'stylesheet'=>$theme->stylesheet]);
         $screenshot = $theme->get_screenshot(); ///get_stylesheet_directory_uri().'/screenshot.png';
         //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
-        printf('<div class="qckply-stylesheet"><div style="">Theme: %s</div><div class="qckply-theme-screenshot"><img src="%s" width="300" /></div><div class="qckply-theme-button">%s<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',esc_html($theme->Name),esc_attr($screenshot),qckply_get_button(['profile'=>$profile,'key'=>$key,'stylesheet'=>$theme->stylesheet]),$blueprint_url,qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet]));
+        printf('<div class="qckply-stylesheet"><div style="">Theme: %s</div><div class="qckply-theme-screenshot"><img src="%s" width="300" /></div><div class="qckply-theme-button">%s<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',esc_html($theme->Name),esc_attr($screenshot),qckply_get_button(['profile'=>$profile,'stylesheet'=>$theme->stylesheet]),$blueprint_url,qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet]));
     }
     echo '</div>';
     }
@@ -107,12 +96,12 @@ function qckply_enqueue_admin_script( $hook = '' ) {
         return;
     }
     wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '1.0' );
-    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.3' );
+    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.6' );
 }
 function qckply_enqueue_script( $hook = '' ) {
     if ( qckply_is_playground() ) {
         wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '1.0' );
-        wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.3' );
+        wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.6' );
     }
 }
 
@@ -128,36 +117,61 @@ add_action( 'wp_enqueue_scripts', 'qckply_enqueue_script' );
  * @return string            The API URL.
  */
 function get_qckply_api_url($args=[]) {
+    global $current_user;
+    if(isset($args['url']))
+        return 'https://playground.wordpress.net/?blueprint-url='.urlencode($args['url']);
     if(empty($args['profile'])) {
         $profile = 'default';
     }
     else {
         $profile = sanitize_text_field($args['profile']);
     }
+    $args = apply_filters('qckply_api_url_args',$args);
     unset($args['profile']);
-    global $current_user;
+    $display = get_option('qckply_display_'.$profile,[]);
+    if(isset($args['iframe']))
+        $display['iframe'] = sanitize_text_field($args['iframe']);
+    if('no_iframe' != empty($display['iframe'])) {
+    $getv = ['qckply'=>$profile,'domain'=>empty($args['domain']) ? sanitize_text_field($_SERVER['SERVER_NAME']) : sanitize_text_field($args['domain'])];
+    if('no_sidebar' != $display['iframe'] && !empty($display['iframe_sidebar']))
+        $getv['sidebar'] = intval($display['iframe_sidebar']); 
+    if('no_sidebar' == $display['iframe'])
+        $getv['no_sidebar'] = 1;
+    foreach($args as $key => $value) {
+        $getv[$key] = $value;
+    }
+    $qckply_api_url = add_query_arg($getv,site_url('qpi')); // rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;    
+    return $qckply_api_url;
+    }
     $qckply_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
     foreach($args as $key => $value) {
         if(!empty($value)) {
             $qckply_api_url .= '&'.sanitize_text_field($key).'='.sanitize_text_field($value);
         }
     }
+    $qckply_api_url = 'https://playground.wordpress.net/?blueprint-url='.urlencode($qckply_api_url);
     return $qckply_api_url;
 }
 
-add_shortcode('qckply_button', 'qckply_get_button');
+add_shortcode('qckply_button', 'qckply_get_button_shortcode');
+function qckply_get_button_shortcode($args) {
+    if(empty($args['domain']))
+        $args['domain'] = sanitize_text_field($_SERVER['SERVER_NAME']);
+    if(empty($args['key']))
+        $args['is_demo'] = '1';
+    return qckply_get_button($args);
+}
 /**
  * Generates a button to access the playground for a specific profile.
  *
  * @param string $profile    The profile name.
- * @param string $key        Optional. A key for premium features.
  * @param string $stylesheet Optional. The stylesheet to use.
  * @param bool   $nocache    Optional. Whether to disable cache.
  * @return string            HTML for the button.
  */
 function qckply_get_button($args = ['profile' => 'default']) {
 global $current_user;
-$qckply_api_url = empty($args['url']) ? get_qckply_api_url($args) : sanitize_text_field($args['url']);
+$qckply_api_url = get_qckply_api_url($args);// empty($args['url']) ? get_qckply_api_url($args) : sanitize_text_field($args['url']).'&random='.rand();
 
 $button = sprintf('<div><a target="_blank" href="%s" style="
   background-color: #004165;
@@ -204,7 +218,7 @@ $button = sprintf('<div><a target="_blank" href="%s" style="
 </g>
 </svg>
 &nbsp;&nbsp;&nbsp;  Go To Playground
-</a></div>','https://playground.wordpress.net/?blueprint-url='.urlencode($qckply_api_url)
+</a></div>',$qckply_api_url
 );
 return $button;
 }
@@ -216,21 +230,24 @@ return $button;
  * @param string $stylesheet Optional. The stylesheet to use.
  */
 function qckply_get_blueprint_link($args = ['profile'=>'default','stylesheet' => '']) {
+$args['is_demo'] = true;
 $qckply_api_url = get_qckply_api_url($args);
-return '<p><a href="https://playground.wordpress.net/?blueprint-url='.urlencode($qckply_api_url).'">Public Link</a></p>';
+return '<p><a href="'.$qckply_api_url.'">Public Link</a></p>';
 }
 
-function qckply_print_button_shortcode($args = ['profile'=>'default','stylesheet' => '']) {
-$qckply_api_url = get_qckply_api_url($args);
+function qckply_print_button_shortcode($args = ['profile'=>'default','is_demo' => '1']) {
+//$qckply_api_url = get_qckply_api_url($args);
 echo '<h3>Quick Playground Button Shortcode for Demos</h3>';
-echo '<p>[qckply_button url="'.esc_attr($qckply_api_url).'"]</p>';
-echo '<p>OR</p>';
 echo '<p>[qckply_button ';
+if(empty($args['domain']))
+    $args['domain'] = sanitize_text_field($_SERVER['SERVER_NAME']);
+if(empty($args['key']))
+    $args['is_demo'] = '1';
 foreach($args as $key => $value) {
     if(!empty($value)) {
         echo esc_attr($key).'="'.esc_attr($value).'" ';
     }
 }
 echo ']</p>';
-echo '<p>Optional attributes: nocache="1" stylesheet="twentytwentyfive" </p>';
+echo '<p>Optional attributes:</p> <ul><li>stylesheet="twentytwentyfive"</li><li>iframe="no_sidebar" OR iframe="no_iframe" OR iframe="custom_iframe"</li><li></li></ul>';
 }

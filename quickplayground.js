@@ -3,11 +3,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     selectElements.forEach(function(selectElement) {
         selectElement.addEventListener('change', function(event) {
-            console.log('selected:', event.target.value);
+            console.log('selected:', event.target);
             if(event.target.value === 'add_custom') {
             document.getElementById('switch_add_profile').innerHTML = '<p>Enter a name for the new profile: <input type=\"text\" name=\"profile\" id=\"new_profile_name\" /><input type=\"hidden\" name=\"page\" value=\"qckply_builder\" /> <button type=\"submit\">Add</button></p>';
             return;
             }
+            else if (event.target.id === 'switcher') {
+              const url = new URL(window.location.href);
+              url.searchParams.set('profile', event.target.value);
+              window.location.href = url.toString();
+            }
+            console.log('Select ID:', event.target.id);
             const parentDiv = event.target.closest('p');
             if (parentDiv) {
                 const parentDivId = parentDiv.id;

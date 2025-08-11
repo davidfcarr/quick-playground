@@ -80,8 +80,6 @@ function qckply_clone( $target = null ) {
         if(!empty($clone['client_ip']))
             error_log('client_ip '.$clone['client_ip']);
 
-        if(!empty($clone['playground_premium']))
-            update_option('playground_premium',$clone['playground_premium']);
         if(!empty($clone['posts'])) {
             //get rid of hello world and sample page
             $wpdb->query("truncate $wpdb->posts");
@@ -221,8 +219,6 @@ function qckply_clone( $target = null ) {
     {
     $blueprint_only_settings = ["qckply_no_cache",
         "qckply_is_demo",
-        "playground_premium_enabled",
-        "playground_premium_expiration",
         "origin_stylesheet",
         "is_qckply_clone",
         "qckply_profile",
@@ -450,18 +446,18 @@ function qckply_clone( $target = null ) {
         $alltables[] = $row[0];
     $out = sprintf('<p>Tables %s</p>',var_export($alltables,true));
     $clone = qckply_clone_output($clone, $out);
-    $clone = apply_filters('qckply_custom_qckply_clone_receiver',$clone);
+    $clone = apply_filters('qckply_custom_clone_receiver',$clone);
     if(!empty($clone['custom_tables']))
         foreach($clone['custom_tables'] as $table => $rows) {
             if(!in_array($table,$alltables)) {
-                $out = "<p>$table not installed</p>";
+                $out .= "<p>$table not installed</p>";
                 $clone = qckply_clone_output($clone, $out);
                 continue;
             }
-            $out = sprintf('<p>%s %d rows</p>',$table,sizeof($rows));$clone = qckply_clone_output($clone, $out);
+            $out .= sprintf('<p>%s %d rows</p>',$table,sizeof($rows));$clone = qckply_clone_output($clone, $out);
             foreach($rows as $row) {
                 $wpdb->replace($table,(array) $row);
-                $out = "<p>$wpdb->last_query</p>";$clone = qckply_clone_output($clone, $out);
+                $out .= "<p>$wpdb->last_query</p>";$clone = qckply_clone_output($clone, $out);
             }
         }
         update_option('qckply_clone_custom_log',$clone['output']);
@@ -848,7 +844,7 @@ function qckply_get_more_thumbnails() {
       $out .= '<p>'.sizeof($images).' saved images</p>';
       $more_images = [];
       foreach($images as $index => $image) {
-        if($index > 4)
+        if($index > 10)
         {
             $more_images[] = $image;
             continue;

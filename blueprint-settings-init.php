@@ -7,8 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @param string $stylesheet The current theme stylesheet.
  */
 function blueprint_settings_init($profile) {
-    global $pagenow;
-    $key = function_exists(('playground_premium_enabled')) ? playground_premium_enabled() : '';
     if(isset($_POST['build_profile'])) {  
         //sanitization is done in qckply_build
         $result = qckply_build($_POST,$profile);
@@ -16,8 +14,20 @@ function blueprint_settings_init($profile) {
         $settings = $result[1];
         $cachemessage = qckply_cache_message($profile,$settings);
         //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
-        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',qckply_get_button(['profile'=>$profile, 'key'=>$key]), wp_kses_post($cachemessage));
+        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',qckply_get_button(['profile'=>$profile]), wp_kses_post($cachemessage));
         update_option('quickplay_clone_settings_'.$profile,$settings);
+        $display = $_POST['qckply_display'];
+        foreach($display as $index=>$value) {
+            $display[$index] = sanitize_text_field($value);
+        }
+        if($display['iframe'] == 'custom_sidebar' && empty($display['iframe_sidebar'])) {
+            $new['post_content'] = qckply_sidebar_default();
+            $new['post_title'] = 'Quick Playground Sidebar '.$profile;
+            $new['post_status'] = 'private';
+            $new['post_type'] = 'page';
+            $display['iframe_sidebar'] = wp_insert_post($new);
+        }
+        update_option('qckply_display_'.$profile,$display);
         if(!empty($_POST['reset_cache'])) {
             //post variables are sanitized in qckply_delete_caches
             qckply_delete_caches($_POST['reset_cache'],$profile);
@@ -69,7 +79,7 @@ function blueprint_settings_init($profile) {
         $settings = $result[1];
         update_option('quickplay_clone_settings_'.$profile,$settings);
     }
-    $page = sanitize_text_field($pagenow);
-    $pagechoice = 'qckply_builder' == $page ? '<input type="radio" name="page" value="quickplayground" /> Gallery <input type="radio" name="page" value="qckply_builder" checked="checked" /> Builder ' : '<input type="radio" name="page" value="quickplayground" checked="checked" /> Gallery <input type="radio" name="page" value="qckply_builder" /> Builder ';
-    printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile">Profile: <select name="profile">%s</select> %s <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()),wp_nonce_field('quickplayground','playground',true,false));
+    $screen = get_current_screen();
+    $pagechoice = strpos($screen->id,'builder') ? '<input type="radio" name="page" value="quickplayground" /> Gallery <input type="radio" name="page" value="qckply_builder" checked="checked" /> Builder ' : '<input type="radio" name="page" value="quickplayground" checked="checked" /> Gallery <input type="radio" name="page" value="qckply_builder" /> Builder ';
+    printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile"><label>Profile</label> <select id="switcher" name="profile">%s</select> %s <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()),wp_nonce_field('quickplayground','playground',true,false));
 }

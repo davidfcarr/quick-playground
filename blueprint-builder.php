@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * Displays the Quick Playground Blueprint Builder admin page and handles form output.
  */
 function qckply_builder() {
-if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['profile']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
+if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
 {
     echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
     return;
@@ -26,7 +26,7 @@ $origin_url = rtrim(get_option('siteurl'),'/');
 $blueprint = get_option('playground_blueprint_'.$profile, array());
 $settings = get_option('quickplay_clone_settings_'.$profile,array());
 $stylesheet = $settings['qckply_clone_stylesheet'] ?? $stylesheet;
-
+do_action('qckply_form_top');
 ?>
 <h2>Blueprint Builder</h2>
 <p>This is where you define which themes and plugins you want each WordPress Playground to include. You can create several Playground profiles, associated with different themes, plugins, and options.</p>
@@ -68,11 +68,11 @@ foreach($demoposts as $p) {
 echo '<h2>'.esc_html__('Content to Include','quick-playground').'</h2>';
 $front .= '<option value="">Blog Listing</option>';
 
-printf('<p>%s: <select name="settings[page_on_front]">%s</select></p>',esc_html__('Front Page','quick-playground'),wp_kses($front.$page_options, qckply_kses_allowed()));
+printf('<p><label>%s</label> <select name="settings[page_on_front]">%s</select></p>',esc_html__('Front Page','quick-playground'),wp_kses($front.$page_options, qckply_kses_allowed()));
 
 printf('<p><input type="checkbox" name="settings[key_pages]" value="1" %s > Include key pages and posts (linked to from the home page or menu)</p>',(!isset($settings['key_pages']) || $settings['key_pages']) ? ' checked="checked" ' : '');
 
-printf('<p>Copy <input type="checkbox" name="settings[copy_pages]" value="1" %s > all published pages <input style="width:5em" type="number" name="settings[copy_blogs]" value="%d" size="3" > latest blog posts</p>',!empty($settings['copy_pages']) ? ' checked="checked" ' : '',(!isset($settings['copy_blogs']) || $settings['copy_blogs']) ? intval($settings['copy_blogs']) : 10);
+printf('<p><label>Copy</label> <input type="checkbox" name="settings[copy_pages]" value="1" %s > all published pages <input style="width:5em" type="number" name="settings[copy_blogs]" value="%d" size="3" > latest blog posts</p>',!empty($settings['copy_pages']) ? ' checked="checked" ' : '',(!isset($settings['copy_blogs']) || $settings['copy_blogs']) ? intval($settings['copy_blogs']) : 10);
 
 if(!empty($settings['demo_pages']) && is_array($settings['demo_pages'])) {
     foreach($settings['demo_pages'] as $page_id) {
@@ -86,7 +86,7 @@ printf('<p>%s <input type="text" name="landingPage" value="%s" style="width: 200
 
 for($i = 0; $i < 10; $i++) {
 $classAndID = ($i > 0) ? ' class="hidden_item page" id="page_'.$i.'" ' : ' class="page" id="page_'.$i.'" ';
-printf('<p%s>Demo Page: <select class="select_with_hidden" name="demo_pages[]">%s</select></p>'."\n",wp_kses($classAndID, qckply_kses_allowed()),'<option value="">Choose Page</option>'.wp_kses($page_options, qckply_kses_allowed()));
+printf('<p%s><label>Demo Page</label> <select class="select_with_hidden" name="demo_pages[]">%s</select></p>'."\n",wp_kses($classAndID, qckply_kses_allowed()),'<option value="">Choose Page</option>'.wp_kses($page_options, qckply_kses_allowed()));
 }
 printf('<p><input type="checkbox" name="settings[make_menu]" value="1" %s > Make menu from selected pages</p>',empty($settings['make_menu']) ? '' : 'checked="checked"');
 
@@ -100,7 +100,7 @@ if(!empty($settings['demo_posts']) && is_array($settings['demo_posts'])) {
 for($i = 0; $i < 10; $i++) {
     $classAndID = ($i > 0) ? ' class="hidden_item post" id="post_' . esc_attr($i) . '" ' : ' class="post" id="post_' . esc_attr($i) . '" ';
     printf(
-        '<p%s>%s: <select class="select_with_hidden" name="demo_posts[]">%s</select></p>' . "\n",
+        '<p%s><label>%s</label> <select class="select_with_hidden" name="demo_posts[]">%s</select></p>' . "\n",
         wp_kses($classAndID, qckply_kses_allowed()),
         esc_html__('Demo Blog Post', 'quick-playground'),
         '<option value="">' . esc_html__('Choose Blog Post', 'quick-playground') . '</option>' . wp_kses($post_options, qckply_kses_allowed())
@@ -124,16 +124,24 @@ else {
     echo '<p>'.esc_html__('Resetting will force the playground to fetch fresh content.','quick-playground').'</p>';
 }
 
+$display = get_option('qckply_display_'.$profile,[]);
+$default_checked = (empty($display['iframe'])) ? ' checked="checked" ' : '';
+$custom_checked = ('custom_sidebar' == $display['iframe']) ? ' checked="checked" ' : '';
+$no_sidebar_checked = ('no_sidebar' == $display['iframe']) ? ' checked="checked" ' : '';
+$no_iframe_checked = ('no_iframe' == $display['iframe']) ? ' checked="checked" ' : '';
+
+printf('<p>%s:<br /><input type="radio" name="qckply_display[iframe]" value="" %s /> %s <input type="radio" name="qckply_display[iframe]" value="custom_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_iframe" %s /> %s </p>',__('Display Options','quickplayground'),$default_checked,__('Standard (iframe)','quickplayground'),$custom_checked,__('Custom Sidebar','quickplayground'),$no_sidebar_checked,__('No Sidebar','quickplayground'),$no_iframe_checked,__('No iframe','quickplayground'));
+printf('<p><label>%s</label> <input type="text" name="qckply_display[iframe_title]" value="%s" /> </p>',__('Page Title for iframe','quickplayground'),empty($display['iframe_title']) ? '' : esc_attr($display['iframe_title']));
+printf('<input type="hidden" name="qckply_display[iframe_sidebar]" value="%d" />%s',empty($display['iframe_sidebar']) ? '0' : intval($display['iframe_sidebar']),empty($display['iframe_sidebar']) ? '' : '<p><a href="'.admin_url('post.php?action=edit&post='.intval($display['iframe_sidebar'])).'">'.esc_html__('Edit Custom Sidebar','quickplayground').'</a></p>');
+
 echo '<p><input type="checkbox" name="show_details" value="1" /> Show Detailed Output</p>';
 echo '<p><input type="checkbox" name="show_blueprint" value="1" /> Show Blueprint JSON</p>';
 echo '<p><input type="checkbox" name="logerrors" value="1" /> Log Errors in Playground</p>';
 printf('<input type="hidden" name="profile" value="%s" />', esc_attr($profile));
-do_action('qckply_additional_setup_form_fields');
+do_action('qckply_additional_setup_form_fields',$settings);
 echo '<p><button>Submit</button></p>';
 echo '</form>';
-$key = function_exists('playground_premium_enabled') ? playground_premium_enabled() : '';
-printf('<p>key %s %s</p>', $key, var_export(function_exists('playground_premium_enabled'),true));
-$qckply_api_url = get_qckply_api_url(['profile'=>$profile,'key'=>$key]);
+$qckply_api_url = get_qckply_api_url(['profile'=>$profile]);
 
 $taxurl = rest_url('quickplayground/v1/clone_taxonomy/'.$profile.'?t='.time());
 $imgurl = rest_url('quickplayground/v1/clone_images/'.$profile.'?t='.time());
@@ -248,12 +256,12 @@ if(!empty($saved_plugins[$i])) {
     $activate = (!empty($saved_plugins[$i]['options']['activate']) ) ? '<input type="radio" name="activate_plugin['.intval($i).']" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin['.intval($i).']" value="0" /> Do Not Activate' : '<input type="radio" name="activate_plugin['.intval($i).']" value="1" /> Activate <input type="radio" name="activate_plugin['.intval($i).']" value="0" checked="checked" /> Do Not Activate';
     $zip = ($local) ? '<input type="radio" name="ziplocal_plugin['.intval($i).']" value="0" /> WordPress.org <input type="radio" name="ziplocal_plugin['.intval($i).']" value="1"  checked="checked" /> Local Zip ' : '<input type="radio" name="ziplocal_plugin['.intval($i).']" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin['.intval($i).']" value="1" /> Local Zip ';
     $classAndID = ' class="plugin" id="plugin_'.esc_attr($i).'" ';
-    printf('<p%s>Plugin: <select class="select_with_hidden" name="add_plugin[]">%s</select> %s <br />%s  </p>',wp_kses($classAndID, qckply_kses_allowed()),wp_kses($opt.$pluginoptions, qckply_kses_allowed()),wp_kses($zip, qckply_kses_allowed()),wp_kses($activate, qckply_kses_allowed()));
+    printf('<p%s><label>Plugin</label> <select class="select_with_hidden" name="add_plugin[]">%s</select> %s <br />%s  </p>',wp_kses($classAndID, qckply_kses_allowed()),wp_kses($opt.$pluginoptions, qckply_kses_allowed()),wp_kses($zip, qckply_kses_allowed()),wp_kses($activate, qckply_kses_allowed()));
     }
 } 
 else {
     $classAndID = ($i > 0 + sizeof($saved_plugins)) ? ' class="hidden_item plugin" id="plugin_'.esc_attr($i).'" ' : ' class="plugin" id="plugin_'.esc_attr($i).'" ';
-    printf('<p%s>Plugin: <select class="select_with_hidden" name="add_plugin[]">%s</select>  <input type="radio" name="ziplocal_plugin[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin[%d]" value="1" /> Local Zip <br /><input type="radio" name="activate_plugin[%d]" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin[%d]" value="0" /> Do Not Activate  </p>',wp_kses($classAndID, qckply_kses_allowed()),wp_kses($pluginoptions, qckply_kses_allowed()),$i,$i,$i,$i);
+    printf('<p%s><label>Plugin</label> <select class="select_with_hidden" name="add_plugin[]">%s</select>  <input type="radio" name="ziplocal_plugin[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin[%d]" value="1" /> Local Zip <br /><input type="radio" name="activate_plugin[%d]" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin[%d]" value="0" /> Do Not Activate  </p>',wp_kses($classAndID, qckply_kses_allowed()),wp_kses($pluginoptions, qckply_kses_allowed()),$i,$i,$i,$i);
     }
 }
 echo "<p class=\"fineprint\">Make a selection, and another will be revealed</p>\n";
@@ -338,7 +346,7 @@ else {
 $default_option = ($i == 0) ? $current_theme_option : '';
 $hideafter = (empty($saved_themes)) ? 1 : sizeof($saved_themes);
 $classAndID = ($i > $hideafter ) ? ' class="hidden_item theme" id="theme_'.esc_attr($i).'" ' : ' class="theme" id="theme_'.esc_attr($i).'" ';
-printf('<p%s>%s: <select class="select_with_hidden" name="add_theme[]">%s</select> <input type="radio" name="ziplocal_theme[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_theme[%d]" value="1" /> Local Zip WordPress.org</p>',wp_kses($classAndID, qckply_kses_allowed()),esc_html($label),wp_kses($default_option.$themeoptions, qckply_kses_allowed()),intval($i),intval($i),intval($i) );
+printf('<p%s><label>%s</label> <select class="select_with_hidden" name="add_theme[]">%s</select> <input type="radio" name="ziplocal_theme[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_theme[%d]" value="1" /> Local Zip WordPress.org</p>',wp_kses($classAndID, qckply_kses_allowed()),esc_html($label),wp_kses($default_option.$themeoptions, qckply_kses_allowed()),intval($i),intval($i),intval($i) );
 }
 
 }

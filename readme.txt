@@ -8,7 +8,7 @@ Requires at least: 5.8
 
 Tested up to: 6.8
 
-Stable tag: 0.9.4  
+Stable tag: 0.9.5  
 
 License: GPLv2 or later  
 
@@ -40,7 +40,9 @@ Pro Version Upgrades
 
 - Create demo environments separate from your live website content, for example to showcase themes, plugins, or hosting services.
 
-- Sync changes back to your live website (experimental feature). For example, you can prototype block theme changes in Playground and copy the updated templates or template parts back to the live site.
+- Sync changes back to your live website. For example, you can prototype block theme changes in Playground and copy the updated templates or template parts back to the live site.
+
+Learn more at [quickplayground.com](https://quickplayground.com)
 
 Developer Friendly Features
 
