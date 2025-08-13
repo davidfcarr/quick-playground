@@ -96,12 +96,12 @@ function qckply_enqueue_admin_script( $hook = '' ) {
         return;
     }
     wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '1.0' );
-    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.6' );
+    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.0'.time() );
 }
 function qckply_enqueue_script( $hook = '' ) {
     if ( qckply_is_playground() ) {
         wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '1.0' );
-        wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.6' );
+        wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.0'.time() );
     }
 }
 
@@ -127,11 +127,12 @@ function get_qckply_api_url($args=[]) {
         $profile = sanitize_text_field($args['profile']);
     }
     $args = apply_filters('qckply_api_url_args',$args);
+    $args['t'] = time();
     unset($args['profile']);
     $display = get_option('qckply_display_'.$profile,[]);
     if(isset($args['iframe']))
         $display['iframe'] = sanitize_text_field($args['iframe']);
-    if('no_iframe' != empty($display['iframe'])) {
+    if('no_iframe' != $display['iframe']) {
     $getv = ['qckply'=>$profile,'domain'=>empty($args['domain']) ? sanitize_text_field($_SERVER['SERVER_NAME']) : sanitize_text_field($args['domain'])];
     if('no_sidebar' != $display['iframe'] && !empty($display['iframe_sidebar']))
         $getv['sidebar'] = intval($display['iframe_sidebar']); 
@@ -140,7 +141,7 @@ function get_qckply_api_url($args=[]) {
     foreach($args as $key => $value) {
         $getv[$key] = $value;
     }
-    $qckply_api_url = add_query_arg($getv,site_url('qpi')); // rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;    
+    $qckply_api_url = add_query_arg($getv,site_url('qpi')); 
     return $qckply_api_url;
     }
     $qckply_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
@@ -220,7 +221,7 @@ $button = sprintf('<div><a target="_blank" href="%s" style="
 &nbsp;&nbsp;&nbsp;  Go To Playground
 </a></div>',$qckply_api_url
 );
-return $button;
+return $button.'<p><small>';
 }
 
 /**

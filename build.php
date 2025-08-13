@@ -256,19 +256,24 @@ function qckply_build($postvars, $profile = 'default') {
     $steps[] = makeCodeItem('qckply_clone("posts");');
 
     $blueprint = array('features'=>array('networking'=>true),'steps'=>$steps);
+    /*
     if(!empty($postvars['landingPage'])) {
-        $landingpage = sanitize_text_field($postvars['landingPage']);
-        update_option('qckply_landing_page_'.$profile,$landingpage);
+        $landingpage = $postvars['landingPage'];
         if(strpos($landingpage,'//'))
         {
             $parsed = parse_url($landingpage);
             if(!empty($parsed['path']))
                 $landingpage = $parsed['path'];
+            if(!empty($parsed['query']))
+                $landingpage .= '?'.$parsed['query'];
+            
         }
+        update_option('qckply_landing_page_'.$profile,$landingpage);
         $blueprint['landingPage'] = add_query_arg('qckply_clone',1,$landingpage);
     }
     else
-        $blueprint['landingPage'] = add_query_arg('qckply_clone',1,'/');
+    */
+    $blueprint['landingPage'] = add_query_arg('qckply_clone',1,'/');
 
     $blueprint = apply_filters('qckply_new_blueprint',$blueprint);
 

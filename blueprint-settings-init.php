@@ -14,7 +14,6 @@ function blueprint_settings_init($profile) {
         $settings = $result[1];
         $cachemessage = qckply_cache_message($profile,$settings);
         //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
-        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',qckply_get_button(['profile'=>$profile]), wp_kses_post($cachemessage));
         update_option('quickplay_clone_settings_'.$profile,$settings);
         $display = $_POST['qckply_display'];
         foreach($display as $index=>$value) {
@@ -32,6 +31,7 @@ function blueprint_settings_init($profile) {
             //post variables are sanitized in qckply_delete_caches
             qckply_delete_caches($_POST['reset_cache'],$profile);
         }
+        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',qckply_get_button(['profile'=>$profile]), wp_kses_post($cachemessage));
     }
     else {
         $blueprint = get_option('playground_blueprint_'.$profile, array());

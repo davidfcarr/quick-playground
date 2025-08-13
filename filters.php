@@ -76,6 +76,11 @@ function qckply_footer_prompt() {
     //return $content;
 }
 
+add_action('admin_footer','admin_footer_test');
+function admin_footer_test() {
+    error_log('qckply_link '.qckply_link($args = ['qckply_clone'=>'images']));
+}
+
 add_filter('the_content','qckply_clone_content');
 function qckply_clone_content($content) {
     if(qckply_is_playground() && isset($_GET['qckply_clone'])) {

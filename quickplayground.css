@@ -15,10 +15,22 @@ textarea {
   font-size: 1rem;
   text-box-trim: trim-both;
   display: inline-block;
-  width: 150px;
+  width: 175px;
+  text-align: right;
+  font-weight: bold;
 }
 
-.qckply-form select, .qckply-form option, .qckply-form input:not([type="checkbox"], [type="radio"]) {
+.qckply-form input[type="number"] {
+  width: 12ch;
+  background: var(--surface-2);
+  color: var(--text-1);
+  border: var(--border);
+  border-radius: 16px;
+  padding: 1ex 2ex;
+  accent-color: var(--accent);
+}
+
+.qckply-form select, .qckply-form option, .qckply-form input:not([type="checkbox"], [type="radio"], [type="number"]) {
   background: var(--surface-2);
   color: var(--text-1);
   border: var(--border);

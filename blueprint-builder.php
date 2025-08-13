@@ -82,8 +82,6 @@ if(!empty($settings['demo_pages']) && is_array($settings['demo_pages'])) {
     }
 }
 
-printf('<p>%s <input type="text" name="landingPage" value="%s" style="width: 200px" /><br /><em>%s</em></p>',esc_html__('Landing Page (optional)','quick-playground'),empty($blueprint['landingPage']) ? '' : esc_attr(str_replace('?qckply_clone=1','',$blueprint['landingPage'])),esc_html__('If you want the user to start somewhere other than the home page, enter the path. Example "/wp-admin/" or "/demo-instructions/"','quick-playground'));
-
 for($i = 0; $i < 10; $i++) {
 $classAndID = ($i > 0) ? ' class="hidden_item page" id="page_'.$i.'" ' : ' class="page" id="page_'.$i.'" ';
 printf('<p%s><label>Demo Page</label> <select class="select_with_hidden" name="demo_pages[]">%s</select></p>'."\n",wp_kses($classAndID, qckply_kses_allowed()),'<option value="">Choose Page</option>'.wp_kses($page_options, qckply_kses_allowed()));
@@ -109,8 +107,8 @@ for($i = 0; $i < 10; $i++) {
 
 do_action('qckply_form_demo_content',$settings);
 
-printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Name','blogname',esc_attr($settings['blogname']));
-printf('<p>Option %s <br /><input name="settings[%s]" type="text" value="%s" /></p>','Site Description','blogdescription',esc_attr($settings['blogdescription']));
+printf('<p><label>%s</label> <input name="settings[%s]" type="text" value="%s" /></p>','Site Name','blogname',esc_attr($settings['blogname']));
+printf('<p><label>%s</label> <input name="settings[%s]" type="text" value="%s" /></p>','Site Description','blogdescription',esc_attr($settings['blogdescription']));
 
 echo '<h2>'.esc_html__('Content Saved from Past Sessions','quick-playground').'</h2>';
 $caches = qckply_caches($profile);
@@ -124,15 +122,18 @@ else {
     echo '<p>'.esc_html__('Resetting will force the playground to fetch fresh content.','quick-playground').'</p>';
 }
 
+printf('<p>%s <input type="text" name="landingPage" value="%s" style="width: 200px" /><br /><em>%s</em></p>',esc_html__('Landing Page (optional)','quick-playground'),empty($blueprint['landingPage']) ? '' : esc_attr(str_replace('?qckply_clone=1','',$blueprint['landingPage'])),esc_html__('If you want the user to start somewhere other than the home page, enter the path. Example "/wp-admin/" or "/demo-instructions/"','quick-playground'));
+
 $display = get_option('qckply_display_'.$profile,[]);
 $default_checked = (empty($display['iframe'])) ? ' checked="checked" ' : '';
 $custom_checked = ('custom_sidebar' == $display['iframe']) ? ' checked="checked" ' : '';
 $no_sidebar_checked = ('no_sidebar' == $display['iframe']) ? ' checked="checked" ' : '';
 $no_iframe_checked = ('no_iframe' == $display['iframe']) ? ' checked="checked" ' : '';
 
-printf('<p>%s:<br /><input type="radio" name="qckply_display[iframe]" value="" %s /> %s <input type="radio" name="qckply_display[iframe]" value="custom_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_iframe" %s /> %s </p>',__('Display Options','quickplayground'),$default_checked,__('Standard (iframe)','quickplayground'),$custom_checked,__('Custom Sidebar','quickplayground'),$no_sidebar_checked,__('No Sidebar','quickplayground'),$no_iframe_checked,__('No iframe','quickplayground'));
-printf('<p><label>%s</label> <input type="text" name="qckply_display[iframe_title]" value="%s" /> </p>',__('Page Title for iframe','quickplayground'),empty($display['iframe_title']) ? '' : esc_attr($display['iframe_title']));
+printf('<p>%s:<br /><input type="radio" name="qckply_display[iframe]" value="" %s /> %s <input type="radio" name="qckply_display[iframe]" value="custom_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_iframe" %s /> %s </p>',__('Display Options','quickplayground'),$default_checked,__('Standard (iframe with sidebar)','quickplayground'),$custom_checked,__('Custom Sidebar','quickplayground'),$no_sidebar_checked,__('No Sidebar','quickplayground'),$no_iframe_checked,__('No iframe, playground.wordpress.net','quickplayground'));
 printf('<input type="hidden" name="qckply_display[iframe_sidebar]" value="%d" />%s',empty($display['iframe_sidebar']) ? '0' : intval($display['iframe_sidebar']),empty($display['iframe_sidebar']) ? '' : '<p><a href="'.admin_url('post.php?action=edit&post='.intval($display['iframe_sidebar'])).'">'.esc_html__('Edit Custom Sidebar','quickplayground').'</a></p>');
+printf('<p><label>%s</label> <input type="number" class="number_input" name="qckply_display[sidebar_width]" value="%d" /> (pixels)</p>',esc_html__('Sidebar Width'),empty($display['sidebar_width']) ? 300 : intval($display['sidebar_width']));
+printf('<p><label>%s</label> <input type="text" name="qckply_display[iframe_title]" value="%s" /> </p>',__('Page Title for iframe','quickplayground'),empty($display['iframe_title']) ? get_option('blogname') : esc_attr($display['iframe_title']));
 
 echo '<p><input type="checkbox" name="show_details" value="1" /> Show Detailed Output</p>';
 echo '<p><input type="checkbox" name="show_blueprint" value="1" /> Show Blueprint JSON</p>';
@@ -161,6 +162,7 @@ $pages = qckply_find_key_pages();
 }
 
 /**
+ * 
  * Outputs plugin selection options for the playground blueprint form.
  *
  * @param array $blueprint   The current blueprint array.

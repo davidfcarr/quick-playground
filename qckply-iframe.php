@@ -18,7 +18,7 @@ function qckply_sidebar_default() {
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>This is a sandbox WordPress environment for testing, education, and demos, created using WordPress Playground and the <a href="https://quickplayground.com" target="_blank" rel="noopener">Quick Playground plugin.</a>.</p>
+<p>This is a sandbox WordPress environment for testing, education, and demos, created using WordPress Playground and the <a href="https://quickplayground.com" target="_blank" rel="noopener">Quick Playground plugin</a>.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
@@ -38,10 +38,9 @@ function qckply_iframe() {
         $src = get_option('use_playground', 'https://playground.wordpress.net');
         $blueprint_domain = sanitize_text_field($_GET['domain']);
         $blueprint_profile =  sanitize_text_field($_GET['qckply']);
-        $blueprint_url = 'https://'.$blueprint_domain.'/wp-json/quickplayground/v1/blueprint/'.$blueprint_profile;
+        $blueprint_url = 'https://'.$blueprint_domain.'/wp-json/quickplayground/v1/blueprint/'.$blueprint_profile.'?t='.time();
         $display = get_option('qckply_display_'.$blueprint_profile,[]);
         $title = empty($display['iframe_title']) ? 'Quick Playground' : sanitize_text_field($display['iframe_title']);
-
         foreach($_GET as $key => $value) {
             if(('domain' != $key) && ('qckply' != $key) )
             $blueprint_url .= (strpos($blueprint_url, '?') === false ? '?' : '&') . urlencode($key) . '=' . urlencode(sanitize_text_field($value));
@@ -63,11 +62,14 @@ function qckply_iframe() {
         }
 
         $src .= '/?blueprint-url='.urlencode($blueprint_url).'&now='.time();
+
+        $sidebar_width = (empty($display['sidebar_width'])) ? 300 : intval($display['sidebar_width']);
 ?>
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?php echo esc_html($title); ?></title>
+    <title><?php echo esc_html($title); ?> (Quick Playground)</title>
+    <?php wp_print_styles(); ?>
     <style>
         html, body {
             height: 100%;
@@ -104,9 +106,12 @@ function qckply_iframe() {
             display: block;
         }
         #sidebar {
-            width: 200px;
+            width: <?php echo $sidebar_width; ?>px;
+            /*
             background: #222;
             color: #fff;
+            */
+            border-left: thick solid #222;
             padding: 0px 16px 16px 16px;
             box-sizing: border-box;
             display: flex;
@@ -114,9 +119,11 @@ function qckply_iframe() {
             justify-content: flex-start;
             transition: width 0.3s, opacity 0.3s;
         }
+        /*
         #sidebar a {
             color: yellow;
         }
+        */
         #sidebar h2 {
             margin-top: 0;
             font-size: 1.3em;
@@ -137,8 +144,8 @@ function qckply_iframe() {
             text-align: right;
         }
         #close {
-            background: #fff;
-            border: none;
+            background: #aaa;
+            border: thin solid #000;
             border-radius: 6px;
             padding: 16px 16px;
             cursor: pointer;
@@ -161,7 +168,11 @@ function qckply_iframe() {
 <div id="main">
 <div id="qckply-iframe-container">
     <iframe src="<?php echo esc_url($src); ?>"></iframe>
-    </div>
+<div id="footer">
+    <p style="margin:0; width:100%; text-align:center;">This virtual website was created with WordPress Playground and the <a href="https://quickplayground.com">Quick Playground</a> plugin.</p>
+</div>
+
+</div>
     <?php if($sidebar) {
     printf('<div id="sidebar">
     <p id="closeline"><button id="close">&times;</button></p>
@@ -170,10 +181,9 @@ function qckply_iframe() {
 ',$sidebar);
     }
     ?>
+
 </div>
-<div id="footer">
-    <p style="margin:0; width:100%; text-align:center;">This virtual website was created with WordPress Playground and the <a href="https://quickplayground.com">Quick Playground</a> plugin.</p>
-</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var closeBtn = document.getElementById('close');
