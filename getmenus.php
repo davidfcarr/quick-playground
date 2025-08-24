@@ -58,7 +58,6 @@ $cat = $wpdb->get_results($sql);
  if(empty($cat))
     return $clone;
    foreach($cat as $c) {
-    error_log('tax lookup'.var_export($c,true));
     $clone['term_relationships'][] = (object) array('object_id'=>$c->object_id,'term_order'=>$c->term_order,'term_taxonomy_id'=>$c->term_taxonomy_id);
     if($c->term_taxonomy_id && !in_array($c->term_taxonomy_id,$tax)) {
       $clone['term_taxonomy'][] = (object) array('term_taxonomy_id'=>$c->term_taxonomy_id,'term_id'=>$c->term_id,'taxonomy'=>$c->taxonomy,'description'=>$c->description,'parent'=>$c->parent,'count'=>$c->count);

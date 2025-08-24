@@ -2,19 +2,19 @@
 
 Contributors: davidfcarr  
 
-Tags: design, theme, plugin, testing, playground  
+Tags: testing, staging, demo, playground  
 
 Requires at least: 5.8  
 
 Tested up to: 6.8
 
-Stable tag: 0.9.5  
+Stable tag: 0.9.7  
 
 License: GPLv2 or later  
 
 License URI: https://www.gnu.org/licenses/gpl-2.0.html  
 
-Simplify the process of creating WordPress Playground sites that can include unpublished code such as custom themes and plugins. Clone your website's home page and key content to experiment with design changes without altering your live website.
+Simplify creation of WordPress Playground test, staging, and demo sites. Specify the theme, plugins and content from the WP admin dashboard.
 
 == Description ==
 
@@ -84,7 +84,7 @@ No, the Playground environment is completely separate from your live website. Ch
 
 == Changelog ==
 
-= 0.9.1 =  
+= 0.9.6 =  
 
 * Pre-release revisions.
 

@@ -29,7 +29,7 @@ function qckply_clone_page() {
     printf('<p>Local directories: %s</p>', esc_html(var_export($local_directories,true)));
     printf('<p>Remote directories: %s</p>', esc_html(var_export($remote_directories,true)));
 
-    if(isset($_REQUEST['clonenow'])) {
+    if(isset($_REQUEST['clonenow']) && isset($_REQUEST['target'])) {
         $target = sanitize_text_field($_REQUEST['target']);
         echo '<h2>'.esc_html__('Cloning...','quick-playground').' '.esc_html($target).'</h2>';
         if(!empty($_REQUEST['toggle_cache'])) {
@@ -44,7 +44,7 @@ function qckply_clone_page() {
         if('images' == $target) {
             $response = qckply_clone_images('images');
             if(!empty($response['message'])) {
-                echo $response['message'];
+                echo wp_kses_post($response['message']);
             }
         }
 
@@ -89,7 +89,7 @@ function qckply_clone_page() {
         esc_html__('Settings','quick-playground'),
         esc_html__('Custom','quick-playground'),
         esc_html__('Prompts','quick-playground'),
-        $cache_notice,
+        wp_kses_post($cache_notice),
         esc_html__('Clone Now','quick-playground'),
         wp_nonce_field('quickplayground','playground',true,false)
     );

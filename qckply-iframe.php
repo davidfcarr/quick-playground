@@ -1,4 +1,6 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+
 add_shortcode('qckply_iframe_shortcode', 'qckply_iframe_shortcode');
 function qckply_iframe_shortcode($args) {
     $url = site_url();
@@ -34,42 +36,47 @@ add_action('init', 'qckply_iframe');
 function qckply_iframe() {
     global $post;
     $input = '';
-    if (!is_admin() && isset($_GET['qckply'])) {
+    //get variable not checked by nonce, can be referenced from a static link
+    if (is_admin() || !isset($_GET['qckply'])) {
+        return;
+    }
+        $sidebar = '';
         $src = get_option('use_playground', 'https://playground.wordpress.net');
-        $blueprint_domain = sanitize_text_field($_GET['domain']);
-        $blueprint_profile =  sanitize_text_field($_GET['qckply']);
+        $blueprint_domain = sanitize_text_field(wp_unslash($_GET['domain']));
+        $blueprint_profile =  sanitize_text_field(wp_unslash($_GET['qckply']));
         $blueprint_url = 'https://'.$blueprint_domain.'/wp-json/quickplayground/v1/blueprint/'.$blueprint_profile.'?t='.time();
         $display = get_option('qckply_display_'.$blueprint_profile,[]);
         $title = empty($display['iframe_title']) ? 'Quick Playground' : sanitize_text_field($display['iframe_title']);
+        $sidebar_id = isset($_GET['sidebar']) ? intval($_GET['sidebar']) : 0;
         foreach($_GET as $key => $value) {
             if(('domain' != $key) && ('qckply' != $key) )
             $blueprint_url .= (strpos($blueprint_url, '?') === false ? '?' : '&') . urlencode($key) . '=' . urlencode(sanitize_text_field($value));
         }
         $sidebar = '';
-        if(empty($_GET['sidebar']))
+        if(!$sidebar_id)
         {
             $sidebar = qckply_sidebar_default();
         }
         if(isset($_GET['no_sidebar']) || 'no_sidebar' == $display['iframe']) {
             $sidebar = $false;
         }
-        elseif(isset($_GET['sidebar'])) {
-            $post_id = intval($_GET['sidebar']);
-            $post = get_post($post_id);
+        elseif($sidebar_id) {
+            $post = get_post($sidebar_id);
             $sidebar = do_blocks($post->post_content);
-            if(current_user_can('edit_post',$post_id))
-                $sidebar .= sprintf('<p><a target="_blank" href="%s">Edit</a></p>',admin_url('post.php?action=edit&post='.$post_id));
+            if(current_user_can('edit_post',$sidebar_id))
+                $sidebar .= sprintf('<p><a target="_blank" href="%s">Edit</a></p>',admin_url('post.php?action=edit&post='.$sidebar_id));
         }
 
         $src .= '/?blueprint-url='.urlencode($blueprint_url).'&now='.time();
-
-        $sidebar_width = (empty($display['sidebar_width'])) ? 300 : intval($display['sidebar_width']);
+        $social_img = qckply_get_social_image($sidebar_id);
+        $excerpt = $sidebar_id ? get_the_excerpt($sidebar_id) : '';
+        $description = !empty($excerpt) ? $excerpt : 'This is a sandbox WordPress environment for testing, education, and demos, created using WordPress Playground and the Quick Playground plugin.';
 ?>
 <!DOCTYPE html>
 <html>
 <head>
     <title><?php echo esc_html($title); ?> (Quick Playground)</title>
-    <?php wp_print_styles(); ?>
+    <?php @wp_print_styles(); ?>
     <style>
         html, body {
             height: 100%;
@@ -106,11 +113,7 @@ function qckply_iframe() {
             display: block;
         }
         #sidebar {
-            width: <?php echo $sidebar_width; ?>px;
-            /*
-            background: #222;
-            color: #fff;
-            */
+            width: <?php echo isset($display['sidebar_width']) ? intval($display['sidebar_width']) : 300; ?>px;
             border-left: thick solid #222;
             padding: 0px 16px 16px 16px;
             box-sizing: border-box;
@@ -119,11 +122,6 @@ function qckply_iframe() {
             justify-content: flex-start;
             transition: width 0.3s, opacity 0.3s;
         }
-        /*
-        #sidebar a {
-            color: yellow;
-        }
-        */
         #sidebar h2 {
             margin-top: 0;
             font-size: 1.3em;
@@ -163,6 +161,24 @@ function qckply_iframe() {
             }
         }
     </style>
+<!-- OG Meta Tags -->
+<meta property="og:title" content="<?php echo esc_attr($title); ?>" />
+<meta property="og:description" content="<?php echo esc_attr($description); ?>" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="<?php echo esc_url( site_url(sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']))) ); ?>" />
+<?php
+printf('<meta property="og:image" content="%s" />
+<meta property="og:image:width" content="%s" />
+<meta property="og:image:height" content="%s" />',esc_attr($social_img['src']),esc_attr($social_img['width']),esc_attr($social_img['height']));
+?>
+<meta property="og:site_name" content="<?php echo esc_attr(get_option('blogname')) ?>" />
+<meta property="og:locale" content="<?php esc_attr(get_locale()); ?>" />
+
+<!-- Twitter Card tags (optional, but recommended) -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="<?php echo esc_attr($title); ?>" />
+<meta name="twitter:description" content="<?php echo esc_attr($description); ?>" />
+<meta name="twitter:image" content="<?php if(!empty($social_img['src'])) echo esc_attr($social_img['src']); ?>" />
 </head>
 <body>
 <div id="main">
@@ -178,7 +194,7 @@ function qckply_iframe() {
     <p id="closeline"><button id="close">&times;</button></p>
         %s
     </div>
-',$sidebar);
+',wp_kses_post($sidebar));
     }
     ?>
 
@@ -201,5 +217,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </html>
 <?php
     die();    
-    }
 }

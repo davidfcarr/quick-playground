@@ -249,7 +249,6 @@ function qckply_clone( $target = null ) {
     }
     else {
         $prompts = qckply_get_prompts_remote($qckply_profile);
-        printf('<p>Retrieved prompts %s</p>',var_export($prompts,true));
         if(!empty($prompts)) {
             set_transient('playgroundmessages',$prompts,5*DAY_IN_SECONDS);
         }
@@ -463,7 +462,7 @@ function qckply_clone( $target = null ) {
         update_option('qckply_clone_custom_log',$clone['output']);
     }
     if(empty($target)) {
-        update_option('qckply_sync_date',date('Y-m-d H:i:s'));
+        update_option('qckply_sync_date',gmdate('Y-m-d H:i:s'));
     }
 }
 

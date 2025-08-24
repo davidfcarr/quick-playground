@@ -15,11 +15,10 @@ function qckply_find_key_pages($profile = 'default') {
         $response = wp_remote_get($url);
         if(is_wp_error($response)) {
             $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
-            error_log('Error find key pages data: '.$response->get_error_message());
             return;
         }
         $home_html = $response['body'];
-        $parse = parse_url($url);
+        $parse = wp_parse_url($url);
         $domain = $parse['host'];
         $pattern = '/<a[^>]+href\s*=\s*(?:["\'](?<url>[^"\']*)["\'])/';
         preg_match_all($pattern, $home_html, $matches);
@@ -36,11 +35,10 @@ function qckply_find_key_pages($profile = 'default') {
     $response = wp_remote_get($siteurl);
     if(is_wp_error($response)) {
         $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
-        error_log('Error find key pages data: '.$response->get_error_message());
         return;
     }
     $home_html = $response['body'];
-    $parse = parse_url($siteurl);
+    $parse = wp_parse_url($siteurl);
     $domain = $parse['host'];
     $pattern = '/<a[^>]+href\s*=\s*(?:["\'](?<url>[^"\']*)["\'])/';
     preg_match_all($pattern, $home_html, $matches);
@@ -100,11 +98,10 @@ function qckply_find_key_images() {
     $response = wp_remote_get($siteurl);
     if(is_wp_error($response)) {
         $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
-        error_log('Error find key pages data: '.$response->get_error_message());
         return;
     }
     $home_html = $response['body'];
-    $parse = parse_url($siteurl);
+    $parse = wp_parse_url($siteurl);
     $domain = $parse['host'];
     $pattern = '/<img[^>]+src\s*=\s*["\'](?<url>[^"\']*uploads\/[^"\']+?)(?:-\d+x\d+)?\.(jpg|jpeg|png|gif|webp)/i';
     preg_match_all($pattern, $home_html, $matches);

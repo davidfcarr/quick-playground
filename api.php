@@ -50,13 +50,13 @@ class Quick_Playground_Blueprint extends WP_REST_Controller {
     do_action('qckply_fetch_blueprint');
     qckply_zip_plugin("quick-playground");
     $email = $key = '';
-    $blueprint = get_option('playground_blueprint_'.$request['profile']);
+    $blueprint = get_option('qckply_blueprint_'.$request['profile']);
     if (!$blueprint) {
         return new WP_REST_Response(array('error'=>'blueprint_not_found'), 404);
     }
     if(isset($_GET['stylesheet'])) {
       //no nonce check because this can be called from a static link
-      $blueprint = qckply_swap_theme($blueprint, sanitize_text_field($_GET['stylesheet']));
+      $blueprint = qckply_swap_theme($blueprint, sanitize_text_field(wp_unslash($_GET['stylesheet'])));
     }
     if(!empty($_GET['is_demo'])) {
       //no nonce check because this can be called from a static link
@@ -154,13 +154,6 @@ class Quick_Playground_Clone extends WP_REST_Controller {
     if(!empty($match[1]))
         $clone['nav_id'] = $match[1];
     }
-    $moretypes = '';
-    if(!empty($settings['post_types']) && is_array($settings['post_types']))
-    {
-      foreach($settings['post_types'] as $t)
-        $t = sanitize_text_field($t);
-        $moretypes .= " OR `post_type` = '$t' ";
-    }
 
     $clone['ids'] = array();
     $posts = array();
@@ -174,9 +167,15 @@ class Quick_Playground_Clone extends WP_REST_Controller {
         }
     }
 
+    $moretypes = '';
+    if(!empty($settings['post_types']) && is_array($settings['post_types']))
+    {
+      foreach($settings['post_types'] as $t)
+        $t = sanitize_text_field($t);
+        $moretypes .= " OR `post_type` = '$t' ";
+    }
+    //moretypes sanitized above
     $sql = "SELECT * FROM $wpdb->posts WHERE post_status='publish' AND (`post_type` = 'rsvpmaker_form' OR `post_type` = 'rsvpmaker_template' OR `post_type` = 'wp_block' OR `post_type` = 'wp_global_styles' OR `post_type` = 'wp_navigation' OR `post_type` = 'wp_template' OR `post_type` = 'wp_template_part' $moretypes)";
-    error_log(var_export($settings,true));
-    error_log('playground sql '.$sql);
     $templates = $wpdb->get_results($sql);
     foreach($templates as $p) {
       $clone['ids'][] = $p->ID;
@@ -327,8 +326,6 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
       }
     }
     }
-    
-    $clone['client_ip'] = sanitize_text_field($_SERVER['REMOTE_ADDR']);
     $clone['profile'] = $profile;
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $settings['timezone_string'] = get_option('timezone_string');
@@ -426,13 +423,14 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
     $clone['thumbnails'] = [];
     $attachment_ids = [];
     $clone['ids'] = get_option('qckply_ids_'.$profile, array());
-    $clone['ids'] = array_map('intval',$clone['ids']);
     $first = array_shift($clone['ids']);
+    //sanitized for only integer values
+    $clone['ids'] = array_map('intval',$clone['ids']);
     $sql = "SELECT posts.* FROM $wpdb->postmeta meta JOIN $wpdb->posts posts ON meta.meta_value = posts.ID WHERE meta.post_id IN (".implode(',',$clone['ids']).") and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC "; 
     $results = $wpdb->get_results($sql);
     if($first)
     {
-    $sql = "SELECT posts.* FROM $wpdb->postmeta meta JOIN $wpdb->posts posts ON meta.meta_value = posts.ID WHERE meta.post_id = $first and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC "; 
+    $sql = "SELECT posts.* FROM $wpdb->postmeta meta JOIN $wpdb->posts posts ON meta.meta_value = posts.ID WHERE meta.post_id = ".intval($first)." and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC "; 
     $row = $wpdb->get_row($sql);
     if($row)
       $results = array_merge([$row],$results);
@@ -688,11 +686,8 @@ class Quick_Playground_Download extends WP_REST_Controller {
             header("Content-Transfer-Encoding: binary");
 
             header("Access-Control-Allow-Origin: *");
-
-            // read the file from disk
-
+            //tried but could not get this to work correctly with wp_filesystem
             readfile($file);
-
         }
     }
 }

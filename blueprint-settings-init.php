@@ -7,7 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @param string $stylesheet The current theme stylesheet.
  */
 function blueprint_settings_init($profile) {
-    if(isset($_POST['build_profile'])) {  
+    if(isset($_POST['build_profile'])) {
+        if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
+        {
+            echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
+            return;
+        }  
         //sanitization is done in qckply_build
         $result = qckply_build($_POST,$profile);
         $blueprint = $result[0];
@@ -15,7 +20,7 @@ function blueprint_settings_init($profile) {
         $cachemessage = qckply_cache_message($profile,$settings);
         //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
         update_option('quickplay_clone_settings_'.$profile,$settings);
-        $display = $_POST['qckply_display'];
+        $display = isset($_POST['qckply_display']) ? $_POST['qckply_display'] : [];
         foreach($display as $index=>$value) {
             $display[$index] = sanitize_text_field($value);
         }
@@ -25,26 +30,28 @@ function blueprint_settings_init($profile) {
             $new['post_status'] = 'private';
             $new['post_type'] = 'page';
             $display['iframe_sidebar'] = wp_insert_post($new);
+            printf('<div class="notice notice-success"><p>Added custom sidebar, which you can <a target="_blank" href="%s">edit</a> as a private page.</p></div>',esc_attr(admin_url('post.php?action=edit&post='.$display['iframe_sidebar'])));
         }
         update_option('qckply_display_'.$profile,$display);
         if(!empty($_POST['reset_cache'])) {
             //post variables are sanitized in qckply_delete_caches
             qckply_delete_caches($_POST['reset_cache'],$profile);
         }
+        //variables escaped within qckply_get_button; output cannot be escaped by wp_kses without messing up svg code
         printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',qckply_get_button(['profile'=>$profile]), wp_kses_post($cachemessage));
     }
     else {
-        $blueprint = get_option('playground_blueprint_'.$profile, array());
+        $blueprint = get_option('qckply_blueprint_'.$profile, array());
         $settings = get_option('quickplay_clone_settings_'.$profile,array());
         //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
-        echo qckply_get_button(['profile'=>$profile, 'key'=>$key]);
+        echo qckply_get_button(['profile'=>$profile]);
         echo wp_kses_post(qckply_cache_message($profile,$settings));
     }
-    $pp = get_option('playground_profiles',array('default'));
+    $pp = get_option('qckply_profiles',array('default'));
     if(!in_array($profile,$pp))
     {
         $pp[] = $profile;
-        update_option('playground_profiles',$pp);
+        update_option('qckply_profiles',$pp);
     }
     $ppoptions = '';
 

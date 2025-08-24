@@ -94,7 +94,7 @@ function qckply_design_qckply_menus() {
  */
 function qckply_postmeta($ids) {
     global $wpdb;
-    $sql = "SELECT * FROM $wpdb->postmeta where post_id IN (".implode(',',$ids).") ";
+    $sql = "SELECT * FROM $wpdb->postmeta where post_id IN (".implode(',',array_map('intval',$ids)).") ";
     return $wpdb->get_results($sql);
 }
 
@@ -123,7 +123,6 @@ function qckply_zipToUploads(string $source_dir, string $uploads_dir, $slug = ''
         return false; // Zip file creation failed
     }
 
-    error_log('source dir for zip iterator '.$source_dir);
     $files = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator($source_dir),
         RecursiveIteratorIterator::LEAVES_ONLY
@@ -152,7 +151,6 @@ function qckply_zip_target($source_directory) {
     if (qckply_zipToUploads($source_directory, $qckply_uploads)) {
         return 'Theme zipped successfully! The zip file can be found at: ' . $upload_directory;
     } else {
-        error_log('zip creation failed for '.$source_directory);
         return false;
     }
 }
@@ -198,7 +196,6 @@ function qckply_zip_theme($stylesheet) {
     $qckply_directories = qckply_get_directories();
     $qckply_uploads = $qckply_directories['uploads'];
     $source_directory = get_theme_root() . '/' . $stylesheet; //  Get theme path
-    error_log($source_directory." to ".$qckply_uploads );
     if (qckply_zipToUploads($source_directory, $qckply_uploads)) {
         return 'Theme '.$stylesheet.' zipped successfully! The zip file can be found at: ' . $qckply_uploads;
     } else {
@@ -216,28 +213,11 @@ function qckply_zip_plugin($slug) {
     $qckply_directories = qckply_get_directories();
     $qckply_uploads = $qckply_directories['uploads'];
     $source_directory = trailingslashit(dirname(plugin_dir_path(__FILE__))) .$slug; //  Get plugin path
-    error_log($source_directory." to ".$qckply_uploads );
     if (qckply_zipToUploads($source_directory, $qckply_uploads)) {
         return 'Plugin '.esc_html($slug).' zipped successfully! The zip file can be found at: ' . esc_html($qckply_uploads);
     } else {
-        error_log('Plugin '.esc_html($slug).' zip creation failed for '.esc_html($source_directory.' '.$qckply_uploads));
         return false;
     }
-}
-
-/**
- * Debug filter for blueprints, removes steps of type 'defineWpConfigConsts'.
- *
- * @param array $blueprint The blueprint array.
- * @return array           Filtered blueprint.
- */
-function playground_blueprint_debug_filter($blueprint) {
-    foreach($blueprint['steps'] as $index => $s) {
-        if($s['step'] == 'defineWpConfigConsts')
-            $blueprint['steps'][$index] = null;
-    }
-    $blueprint['steps'] = array_values(array_filter($blueprint['steps']));
-    return $blueprint;
 }
 
 /**
@@ -247,7 +227,7 @@ function playground_blueprint_debug_filter($blueprint) {
  * @return string      Modified JSON string.
  */
 function qckply_json_incoming($json) {
-    $parts = parse_url(get_option('qckply_sync_origin'));
+    $parts = wp_parse_url(get_option('qckply_sync_origin'));
     $sync_origin = $parts['host'];
     $mysite_url = str_replace("https://","",rtrim(get_option('siteurl'),'/'));
     $pattern = '/'.preg_quote($sync_origin, '/').'(?!.{1,3}wp-content)/';
@@ -256,8 +236,8 @@ function qckply_json_incoming($json) {
 }
 
 function qckply_playground_path() {
-    $url_parts = parse_url(get_option('siteurl'));
-    return $url_parts['path'];
+    $url_parts = wp_parse_url(get_option('siteurl'));
+    return isset($url_parts['path']) ? $url_parts['path'] : '';
 }
 
 /**
@@ -405,7 +385,7 @@ function qckply_delete_caches($types,$profile = 'default') {
     foreach($types as $type) {
         $savedfile = $qckply_site_uploads.'/quickplayground_'.sanitize_text_field($type).'_'.$profile.'.json';
         if(file_exists($savedfile))
-            unlink($savedfile);
+            wp_delete_file($savedfile);
     }
     return $caches;
 }
@@ -423,7 +403,7 @@ function qckply_cache_message($profile, $settings) {
 }
 
 function qckply_is_playground() {
-    if(('playground.wordpress.net' == $_SERVER['SERVER_NAME']))
+    if(isset($_SERVER['SERVER_NAME']) && ('playground.wordpress.net' == $_SERVER['SERVER_NAME']))
         return true;
     if(get_option('is_qckply_clone'))
         return true;
@@ -486,7 +466,7 @@ function qckply_get_prompts_remote($profile) {
     $url = $origin_directories['site_uploads_url'].'/quickplayground_prompts_'.$profile.'.json?t='.time();
     $response = wp_remote_get($url);
     if(is_wp_error($response)) {
-        echo '<p>Error: '.esc_html($response->get_error_message()).$url.'</p>';
+        echo '<p>Error: '.esc_html($response->get_error_message()).' '.esc_url($url).'</p>';
     } else {
         $promptjson = $response['body'];
     }
@@ -672,39 +652,10 @@ $cat = $wpdb->get_results($sql);
 }
 
 function qckply_link($args = []) {
-    $urlparts = parse_url($_SERVER['REQUEST_URI']);
-    $link = $urlparts['path'];
-    if(is_admin()) {
-    $get = $_GET; //get the current admin query parameters
-    if(isset($args['qckply_clone']))
-        $get['qckply_clone'] = $args['qckply_clone'];
-    else {
-        unset($get['qckply_clone']);
-    }
-    foreach($get as $key => $value)
-    {
-        $link .= (strpos($link,'?') ? '&' : '?') .$key.'='.$value;
-    }
-    return $link.'&test=1';
-    /*
-    $urlparts = parse_url($_SERVER['REQUEST_URI']);
-    $basename = basename($urlparts['path']);
-    $get = $_GET; //get the current admin query parameters
-    foreach($get as $key => $value) {
-        $get[$key] = $value;
-    }
-        if(isset($args['qckply_clone']))
-            $get['qckply_clone'] = $args['qckply_clone'];
-        else {
-            unset($get['qckply_clone']);
-        }
-        $link = add_query_arg($get,admin_url($basename));
-    */
-    }
-    else {
-        $link = add_query_arg($args,get_permalink());
-    }
-    return $link;
+    if(empty($args))
+        return site_url(get_option('qckply_landing','/'));
+    else
+        return add_query_arg($args,site_url());
 }
 
 function qckply_sanitize_clone($data) {
@@ -735,4 +686,82 @@ function qckply_fix_variables($blueprint) {
     $blueprint = apply_filters('qckply_blueprint_json',$blueprint);
     $blueprint = str_replace('TIMESTAMP',time(),$blueprint);
     return json_decode($blueprint, true);
+}
+
+function qckply_get_social_image($sidebar_id) {
+    global $wpdb;
+    $thumb_id = get_post_thumbnail_id($sidebar_id);
+    if(0 == $thumb_id)
+        return ['src'=>plugins_url('images/quick-playground.png',__FILE__),'width'=>1544,'height'=>500];
+    $post = get_post($thumb_id);
+    $choice = [];
+    $metadata = wp_get_attachment_metadata($thumb_id);
+    if(!empty($metadata['height']) && $metadata['height'] > $metadata['width'])
+        return ['src'=>plugins_url('images/quick-playground.png',__FILE__),'width'=>1544,'height'=>500]; // don't want landscape
+    $basename = basename($post->guid);
+    if(!empty($metadata['height']) && $metadata['width'] >= 1200 && $metadata['width'] < 2000)
+    {
+        return ['src'=>$post->guid,'width'=>$metadata['width'],'height'=>$metadata['height']];
+    }
+    else {
+        $sizes = qckply_image_largest_smallest($metadata['sizes']);
+        foreach($sizes as $label => $s) {
+            if($s['height'] > $s['width'])
+                break; //no landscape
+            if($s['width'] < 2000 && $s['width'] > 800)
+            {
+                return ['src'=>str_replace($basename,$s['file'],$post->guid),'width'=>$s['width'],'height'=>$s['height']];
+            }
+        }
+    }
+    return ['src'=>plugins_url('images/quick-playground.png',__FILE__),'width'=>1544,'height'=>500]; // if nothing else matched, use default
+}
+
+/*
+function qckply_social_image_select($display) {
+    global $wpdb;
+    $playground_image = plugins_url('images/quick-playground.png',__FILE__);
+    $possibilities = ['quick-playground.png',$playground_image.'|1544|500'];
+    $results = $wpdb->get_results("select ID, guid from $wpdb->posts WHERE  post_type='attachment' ORDER BY ID DESC ");
+    foreach($results as $index => $post) {
+        $metadata = wp_get_attachment_metadata($post->ID);
+        if(!empty($metadata['height']) && $metadata['height'] > $metadata['width'])
+            continue; // don't want landscape
+        $basename = basename($post->guid);
+        if(!empty($metadata['height']) && $metadata['width'] > 1200 && $metadata['width'] < 2000)
+        {
+            printf('<p>Fullsize %s</p>',$post->guid);
+            $possibilities[$basename] = $post->guid.'|'.$metadata['width'].'|'.$metadata['height'];
+        }
+        else {
+            $sizes = qckply_image_largest_smallest($metadata['sizes']);
+            foreach($sizes as $label => $s) {
+                if($s['height'] > $s['width'])
+                    break; //no landscape
+                if($s['width'] < 2000 && $s['width'] > 800)
+                {
+                    printf('<p>%s width %s  %s</p>',$label,$s['width'],$s['file']);
+                    $possibilities[$basename] = str_replace($basename,$s['file'],$post->guid).'|'.$s['width'].'|'.$s['height'];
+                    break;
+                }
+            }
+        }
+        if($index > 10)
+            break;
+    }
+    print_r($possibilities);
+    $options = '';
+    foreach($possibilities as $base => $full)
+        $options .= sprintf('<option value="%s">%s</option>',$full,$base);
+    printf('<p>Social Media Image <select name="display[social_image]">%s</select></p>',$options);
+    printf('<p>Current Selection<br /><img width="200" src="%s" </p>',$playground_image);
+}
+*/
+
+function qckply_image_largest_smallest($image_sizes) {
+usort($image_sizes, function($a, $b) {
+    if($a['filesize'] == $b['filesize']) return 0;
+    return $a['filesize'] < $b['filesize'] ? 1 : -1; // PHP 7+ spaceship operator for concise comparison
+});
+return $image_sizes;
 }

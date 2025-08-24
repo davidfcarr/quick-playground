@@ -23,7 +23,7 @@ blueprint_settings_init($profile);
 $qckply_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
 $qckply_clone_api_url = rest_url('quickplayground/v1/clone_posts/'.$profile);
 $origin_url = rtrim(get_option('siteurl'),'/');
-$blueprint = get_option('playground_blueprint_'.$profile, array());
+$blueprint = get_option('qckply_blueprint_'.$profile, array());
 $settings = get_option('quickplay_clone_settings_'.$profile,array());
 $stylesheet = $settings['qckply_clone_stylesheet'] ?? $stylesheet;
 do_action('qckply_form_top');
@@ -122,7 +122,7 @@ else {
     echo '<p>'.esc_html__('Resetting will force the playground to fetch fresh content.','quick-playground').'</p>';
 }
 
-printf('<p>%s <input type="text" name="landingPage" value="%s" style="width: 200px" /><br /><em>%s</em></p>',esc_html__('Landing Page (optional)','quick-playground'),empty($blueprint['landingPage']) ? '' : esc_attr(str_replace('?qckply_clone=1','',$blueprint['landingPage'])),esc_html__('If you want the user to start somewhere other than the home page, enter the path. Example "/wp-admin/" or "/demo-instructions/"','quick-playground'));
+printf('<p><label>%s</label> <input type="text" name="settings[qckply_landing]" value="%s" /><br /><em>%s</em></p>',esc_html__('Landing Page (optional)','quick-playground'),empty($settings['qckply_landing']) ? '' : esc_attr($settings['qckply_landing']),esc_html__('If you want the user to start somewhere other than the home page, enter the path. Example "/wp-admin/" or "/demo-instructions/"','quick-playground'));
 
 $display = get_option('qckply_display_'.$profile,[]);
 $default_checked = (empty($display['iframe'])) ? ' checked="checked" ' : '';
@@ -130,10 +130,10 @@ $custom_checked = ('custom_sidebar' == $display['iframe']) ? ' checked="checked"
 $no_sidebar_checked = ('no_sidebar' == $display['iframe']) ? ' checked="checked" ' : '';
 $no_iframe_checked = ('no_iframe' == $display['iframe']) ? ' checked="checked" ' : '';
 
-printf('<p>%s:<br /><input type="radio" name="qckply_display[iframe]" value="" %s /> %s <input type="radio" name="qckply_display[iframe]" value="custom_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_iframe" %s /> %s </p>',__('Display Options','quickplayground'),$default_checked,__('Standard (iframe with sidebar)','quickplayground'),$custom_checked,__('Custom Sidebar','quickplayground'),$no_sidebar_checked,__('No Sidebar','quickplayground'),$no_iframe_checked,__('No iframe, playground.wordpress.net','quickplayground'));
-printf('<input type="hidden" name="qckply_display[iframe_sidebar]" value="%d" />%s',empty($display['iframe_sidebar']) ? '0' : intval($display['iframe_sidebar']),empty($display['iframe_sidebar']) ? '' : '<p><a href="'.admin_url('post.php?action=edit&post='.intval($display['iframe_sidebar'])).'">'.esc_html__('Edit Custom Sidebar','quickplayground').'</a></p>');
-printf('<p><label>%s</label> <input type="number" class="number_input" name="qckply_display[sidebar_width]" value="%d" /> (pixels)</p>',esc_html__('Sidebar Width'),empty($display['sidebar_width']) ? 300 : intval($display['sidebar_width']));
-printf('<p><label>%s</label> <input type="text" name="qckply_display[iframe_title]" value="%s" /> </p>',__('Page Title for iframe','quickplayground'),empty($display['iframe_title']) ? get_option('blogname') : esc_attr($display['iframe_title']));
+printf('<p>%s:<br /><input type="radio" name="qckply_display[iframe]" value="" %s /> %s <input type="radio" name="qckply_display[iframe]" value="custom_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_iframe" %s /> %s </p>',esc_html__('Display Options','quick-playground'),$default_checked,esc_html__('Standard (iframe with sidebar)','quick-playground'),$custom_checked,esc_html__('Custom Sidebar','quick-playground'),$no_sidebar_checked,esc_html__('No Sidebar','quick-playground'),$no_iframe_checked,esc_html__('No iframe, playground.wordpress.net','quick-playground'));
+printf('<input type="hidden" name="qckply_display[iframe_sidebar]" value="%d" />%s',empty($display['iframe_sidebar']) ? '0' : intval($display['iframe_sidebar']),empty($display['iframe_sidebar']) ? '' : '<p><a target="_blank" href="'.esc_attr(admin_url('post.php?action=edit&post='.intval($display['iframe_sidebar']))).'">'.esc_html__('Edit Custom Sidebar','quick-playground').'</a></p>');
+printf('<p><label>%s</label> <input type="number" class="number_input" name="qckply_display[sidebar_width]" value="%d" /> (pixels)</p>',esc_html__('Sidebar Width','quick-playground'),empty($display['sidebar_width']) ? 300 : intval($display['sidebar_width']));
+printf('<p><label>%s</label> <input type="text" name="qckply_display[iframe_title]" value="%s" /> </p>',esc_html__('Page Title for iframe','quick-playground'),empty($display['iframe_title']) ? esc_attr(get_option('blogname')) : esc_attr($display['iframe_title']));
 
 echo '<p><input type="checkbox" name="show_details" value="1" /> Show Detailed Output</p>';
 echo '<p><input type="checkbox" name="show_blueprint" value="1" /> Show Blueprint JSON</p>';
@@ -263,7 +263,7 @@ if(!empty($saved_plugins[$i])) {
 } 
 else {
     $classAndID = ($i > 0 + sizeof($saved_plugins)) ? ' class="hidden_item plugin" id="plugin_'.esc_attr($i).'" ' : ' class="plugin" id="plugin_'.esc_attr($i).'" ';
-    printf('<p%s><label>Plugin</label> <select class="select_with_hidden" name="add_plugin[]">%s</select>  <input type="radio" name="ziplocal_plugin[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin[%d]" value="1" /> Local Zip <br /><input type="radio" name="activate_plugin[%d]" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin[%d]" value="0" /> Do Not Activate  </p>',wp_kses($classAndID, qckply_kses_allowed()),wp_kses($pluginoptions, qckply_kses_allowed()),$i,$i,$i,$i);
+    printf('<p%s><label>Plugin</label> <select class="select_with_hidden" name="add_plugin[]">%s</select>  <input type="radio" name="ziplocal_plugin[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_plugin[%d]" value="1" /> Local Zip <br /><input type="radio" name="activate_plugin[%d]" value="1" checked="checked" /> Activate <input type="radio" name="activate_plugin[%d]" value="0" /> Do Not Activate  </p>',wp_kses($classAndID, qckply_kses_allowed()),wp_kses($pluginoptions, qckply_kses_allowed()),intval($i),intval($i),intval($i),intval($i));
     }
 }
 echo "<p class=\"fineprint\">Make a selection, and another will be revealed</p>\n";
