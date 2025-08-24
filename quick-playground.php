@@ -47,17 +47,6 @@ if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['reset'])) &
 }
 
     global $wpdb;
-    /* use to upgrade any profiles created with the pre-release version of the plugin */
-    if(isset($_GET['upgrade']) && get_option('playground_profiles')) {
-        $sql = "UPDATE $wpdb->options SET option_name='qckply_profiles' WHERE option_name='playground_profiles' ";
-        $wpdb->query($sql);
-        $results = $wpdb->get_results("select * from $wpdb->options WHERE option_name LIKE 'playground_blueprint_%' ");
-        foreach($results as $row) {
-            $sql = $wpdb->prepare("UPDATE $wpdb->options SET option_name=%s WHERE option_name=%s",str_replace('playground_blueprint','qckply_blueprint',$row->option_name),$row->option_name);
-            $wpdb->query($sql);
-        }
-
-    }
     do_action('qckply_form_top');
     $qckply_directories = qckply_get_directories();
     $qckply_site_uploads = $qckply_directories['site_uploads'];
@@ -93,7 +82,9 @@ echo '</div>';
         $blueprint_url = get_qckply_api_url(['profile'=>$profile,'stylesheet'=>$theme->stylesheet]);
         $screenshot = $theme->get_screenshot(); ///get_stylesheet_directory_uri().'/screenshot.png';
         //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
-        printf('<div class="qckply-stylesheet"><div style="">Theme: %s</div><div class="qckply-theme-screenshot"><img src="%s" width="300" /></div><div class="qckply-theme-button">%s<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',esc_html($theme->Name),esc_attr($screenshot),qckply_get_button(['profile'=>$profile,'stylesheet'=>$theme->stylesheet]),esc_url($blueprint_url),wp_kses_post(qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet])));
+        printf('<div class="qckply-stylesheet"><div style="">Theme: %s</div><div class="qckply-theme-screenshot"><img src="%s" width="300" /></div><div class="qckply-theme-button">',esc_html($theme->Name),esc_attr($screenshot));
+        qckply_get_button(['profile'=>$profile,'stylesheet'=>$theme->stylesheet],true);
+        printf('<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',esc_url($blueprint_url),wp_kses_post(qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet])));
     }
     echo '</div>';
     }
@@ -184,11 +175,11 @@ function qckply_get_button_shortcode($args) {
  * @param bool   $nocache    Optional. Whether to disable cache.
  * @return string            HTML for the button.
  */
-function qckply_get_button($args = ['profile' => 'default']) {
+function qckply_get_button($args = ['profile' => 'default'], $echo = false) {
 global $current_user;
-$qckply_api_url = get_qckply_api_url($args);// empty($args['url']) ? get_qckply_api_url($args) : sanitize_text_field($args['url']).'&random='.rand();
-
-$button = sprintf('<div><a target="_blank" href="%s" style="
+$qckply_api_url = get_qckply_api_url($args);
+ob_start();
+printf('<div><a target="_blank" href="%s" style="
   background-color: #004165;
   color: white;
   font-size: 16px;
@@ -233,9 +224,16 @@ $button = sprintf('<div><a target="_blank" href="%s" style="
 </g>
 </svg>
 &nbsp;&nbsp;&nbsp;  Go To Playground
-</a></div>',$qckply_api_url
-);
-return $button;
+</a></div>',esc_url($qckply_api_url),(isset($atts['label'])) ? esc_html($atts['label']) : esc_html__('Go to Playground','quick-playground') );
+if($echo)
+{
+    ob_get_flush();
+    return;
+}
+else {
+    return ob_get_clean();
+}
+
 }
 
 /**

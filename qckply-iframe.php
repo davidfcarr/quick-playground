@@ -37,7 +37,7 @@ function qckply_iframe() {
     global $post;
     $input = '';
     //get variable not checked by nonce, can be referenced from a static link
-    if (is_admin() || !isset($_GET['qckply'])) {
+    if (is_admin() || !isset($_GET['qckply']) || !isset($_GET['domain'])) {
         return;
     }
         $sidebar = '';

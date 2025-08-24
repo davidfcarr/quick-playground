@@ -94,8 +94,7 @@ function qckply_design_qckply_menus() {
  */
 function qckply_postmeta($ids) {
     global $wpdb;
-    $sql = "SELECT * FROM $wpdb->postmeta where post_id IN (".implode(',',array_map('intval',$ids)).") ";
-    return $wpdb->get_results($sql);
+    return $wpdb->get_results($wpdb->prepare("SELECT * FROM %i where post_id IN (".implode(',',array_map('intval',$ids)).") ",$wpdb->postmeta));
 }
 
 /**
@@ -429,7 +428,7 @@ $clone['custom_tables'] = [];
 if(empty($custom_tables))
     return $clone;
 foreach($custom_tables as $table) {
-    $results = $wpdb->get_results("SELECT * FROM $table");
+    $results = $wpdb->get_results($wpdb->prepare("SELECT * FROM %i",$table));
     if(!empty($results))
         $clone['custom_tables'][$table] = $results;
 }
@@ -619,14 +618,12 @@ function qckply_posts_related($post_ids) {
     $related = [];
     foreach($post_ids as $post_id) {
       $pid = 'p'.intval($post_id);
-        $sql = "SELECT p.ID, p.post_title, p.post_type, tr.*,tt.*, terms.*
-  FROM $wpdb->posts AS p 
-  LEFT JOIN $wpdb->term_relationships AS tr ON tr.object_id = p.ID
-  LEFT JOIN $wpdb->term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-  LEFT JOIN $wpdb->terms AS terms ON terms.term_id = tt.term_id
- WHERE p.ID=".intval($post_id);
-  
-$cat = $wpdb->get_results($sql);
+$cat = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_title, p.post_type, tr.*,tt.*, terms.*
+  FROM %i AS p 
+  LEFT JOIN %i AS tr ON tr.object_id = p.ID
+  LEFT JOIN %i AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+  LEFT JOIN %i AS terms ON terms.term_id = tt.term_id
+ WHERE p.ID=%d",$wpdb->posts,$wpdb->term_relationships,$wpdb->term_taxonomy,$wpdb->terms,$post_id ));
 
  $terms = [];
  $tax = [];
@@ -634,7 +631,7 @@ $cat = $wpdb->get_results($sql);
         foreach($cat as $c) {
             $related[$pid]['post_title'] = $c->post_title;
             $related[$pid]['post_type'] = $c->post_type;
-            $related[$pid]['postmeta'] = $wpdb->get_results("select * from $wpdb->postmeta where post_id=".intval($post_id));
+            $related[$pid]['postmeta'] = $wpdb->get_results($wpdb->prepare("select * from %i where post_id=%d",$wpdb->postmeta,$post_id));
             if($c->object_id)
             $related[$pid]['term_relationships'][] = (object) array('object_id'=>$c->object_id,'term_order'=>$c->term_order,'term_taxonomy_id'=>$c->term_taxonomy_id);
             if($c->term_taxonomy_id && !in_array($c->term_taxonomy_id,$tax)) {

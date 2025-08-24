@@ -32,7 +32,8 @@ do_action('qckply_form_top');
 <p>This is where you define which themes and plugins you want each WordPress Playground to include. You can create several Playground profiles, associated with different themes, plugins, and options.</p>
 <?php
 
-printf('<form class="qckply-form" method="post" action="%s"> %s <input type="hidden" name="build_profile" value="1">',esc_attr(admin_url('admin.php?page=qckply_builder')), wp_nonce_field('quickplayground','playground',true,false));
+printf('<form class="qckply-form" method="post" action="%s"> <input type="hidden" name="build_profile" value="1">',esc_attr(admin_url('admin.php?page=qckply_builder')));
+wp_nonce_field('quickplayground','playground',true,true);
 echo '<p><button>Refresh</button></p>';
 echo '<h2>Customization Options</h2>';
 printf('<p>Loading saved blueprint for profile %s with %d steps defined. You can add or modify themes, plugins, and settings below.</p>',esc_html($profile),intval(sizeof($blueprint['steps'])));
@@ -50,7 +51,7 @@ if(!empty($settings['page_on_front'])) {
 }
 
 $front = $page_options = $post_options = '';
-$pages = $wpdb->get_results("SELECT ID, post_title, post_status FROM $wpdb->posts WHERE post_type='page' AND (post_status='publish' OR post_status='draft') ORDER BY post_status, post_title ");
+$pages = $wpdb->get_results($wpdb->prepare("SELECT ID, post_title, post_status FROM %i WHERE post_type='page' AND (post_status='publish' OR post_status='draft') ORDER BY post_status, post_title ", $wpdb->posts));
 foreach($pages as $page) {
     $status = ('draft' == $page->post_status) ? '(Draft)' : '';
     $opt = sprintf('<option value="%d" >%s %s</option>',intval($page->ID),esc_html($page->post_title),esc_html($status));
@@ -58,7 +59,7 @@ foreach($pages as $page) {
         $front = $opt;
     $page_options .= $opt;
 }
-$demoposts = $wpdb->get_results("SELECT ID, post_title, post_status FROM $wpdb->posts WHERE post_type='post' AND (post_status='publish' OR post_status='draft') ORDER BY ID DESC ");
+$demoposts = $wpdb->get_results($wpdb->prepare("SELECT ID, post_title, post_status FROM %i WHERE post_type='post' AND (post_status='publish' OR post_status='draft') ORDER BY ID DESC ",$wpdb->posts));
 foreach($demoposts as $p) {
     $status = ('draft' == $p->post_status) ? '(Draft)' : '';
     $opt = sprintf('<option value="%d" >%s %s</option>',intval($p->ID),esc_html($p->post_title),esc_html($status));
@@ -124,13 +125,7 @@ else {
 
 printf('<p><label>%s</label> <input type="text" name="settings[qckply_landing]" value="%s" /><br /><em>%s</em></p>',esc_html__('Landing Page (optional)','quick-playground'),empty($settings['qckply_landing']) ? '' : esc_attr($settings['qckply_landing']),esc_html__('If you want the user to start somewhere other than the home page, enter the path. Example "/wp-admin/" or "/demo-instructions/"','quick-playground'));
 
-$display = get_option('qckply_display_'.$profile,[]);
-$default_checked = (empty($display['iframe'])) ? ' checked="checked" ' : '';
-$custom_checked = ('custom_sidebar' == $display['iframe']) ? ' checked="checked" ' : '';
-$no_sidebar_checked = ('no_sidebar' == $display['iframe']) ? ' checked="checked" ' : '';
-$no_iframe_checked = ('no_iframe' == $display['iframe']) ? ' checked="checked" ' : '';
-
-printf('<p>%s:<br /><input type="radio" name="qckply_display[iframe]" value="" %s /> %s <input type="radio" name="qckply_display[iframe]" value="custom_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_iframe" %s /> %s </p>',esc_html__('Display Options','quick-playground'),$default_checked,esc_html__('Standard (iframe with sidebar)','quick-playground'),$custom_checked,esc_html__('Custom Sidebar','quick-playground'),$no_sidebar_checked,esc_html__('No Sidebar','quick-playground'),$no_iframe_checked,esc_html__('No iframe, playground.wordpress.net','quick-playground'));
+printf('<p>%s:<br /><input type="radio" name="qckply_display[iframe]" value="" %s /> %s <input type="radio" name="qckply_display[iframe]" value="custom_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_sidebar" %s /> %s <input type="radio" name="qckply_display[iframe]" value="no_iframe" %s /> %s </p>',esc_html__('Display Options','quick-playground'),(empty($display['iframe'])) ? ' checked="checked" ' : '',esc_html__('Standard (iframe with sidebar)','quick-playground'),('custom_sidebar' == $display['iframe']) ? ' checked="checked" ' : '',esc_html__('Custom Sidebar','quick-playground'),('no_sidebar' == $display['iframe']) ? ' checked="checked" ' : '',esc_html__('No Sidebar','quick-playground'),('no_iframe' == $display['iframe']) ? ' checked="checked" ' : '',esc_html__('No iframe, playground.wordpress.net','quick-playground'));
 printf('<input type="hidden" name="qckply_display[iframe_sidebar]" value="%d" />%s',empty($display['iframe_sidebar']) ? '0' : intval($display['iframe_sidebar']),empty($display['iframe_sidebar']) ? '' : '<p><a target="_blank" href="'.esc_attr(admin_url('post.php?action=edit&post='.intval($display['iframe_sidebar']))).'">'.esc_html__('Edit Custom Sidebar','quick-playground').'</a></p>');
 printf('<p><label>%s</label> <input type="number" class="number_input" name="qckply_display[sidebar_width]" value="%d" /> (pixels)</p>',esc_html__('Sidebar Width','quick-playground'),empty($display['sidebar_width']) ? 300 : intval($display['sidebar_width']));
 printf('<p><label>%s</label> <input type="text" name="qckply_display[iframe_title]" value="%s" /> </p>',esc_html__('Page Title for iframe','quick-playground'),empty($display['iframe_title']) ? esc_attr(get_option('blogname')) : esc_attr($display['iframe_title']));

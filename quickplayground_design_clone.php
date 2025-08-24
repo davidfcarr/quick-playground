@@ -33,7 +33,7 @@ function qckply_clone_page() {
         $target = sanitize_text_field($_REQUEST['target']);
         echo '<h2>'.esc_html__('Cloning...','quick-playground').' '.esc_html($target).'</h2>';
         if(!empty($_REQUEST['toggle_cache'])) {
-            if('disable' == $_POST['toggle_cache']) {
+            if('disable' == $_REQUEST['toggle_cache']) {
                 update_option('qckply_no_cache',true);
                 delete_option('cache_created');
             }
@@ -81,7 +81,7 @@ function qckply_clone_page() {
             <input type="radio" name="target" value="prompts" /> %s
         </p>
         %s
-        <p><button class="button button-primary">%s</button></p>%s</form></p>',
+        <p><button class="button button-primary">%s</button></p>',
         esc_html__('All','quick-playground'),
         esc_html__('Posts','quick-playground'),
         esc_html__('Taxonomy and Metadata','quick-playground'),
@@ -91,8 +91,10 @@ function qckply_clone_page() {
         esc_html__('Prompts','quick-playground'),
         wp_kses_post($cache_notice),
         esc_html__('Clone Now','quick-playground'),
-        wp_nonce_field('quickplayground','playground',true,false)
     );
+    wp_nonce_field('quickplayground','playground',true,true);
+    echo '</form>';
+
     printf(
         '<p>%s<br>%s: <a target="_blank" href="%s">%s</a><br>%s: <a target="_blank" href="%s">%s</a><br>%s: <a target="_blank" href="%s">%s</a></p>',
         esc_html__('API endpoints','quick-playground'),

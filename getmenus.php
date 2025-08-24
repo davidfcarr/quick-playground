@@ -9,21 +9,20 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 function qckply_get_menu_data($clone) {
     global $wpdb;
 
-    $menus = $wpdb->get_results("SELECT t.* 
-  FROM $wpdb->terms AS t
-  LEFT JOIN $wpdb->term_taxonomy AS tt ON tt.term_id = t.term_id
- WHERE tt.taxonomy = 'nav_menu'");
-    $menu_items=$wpdb->get_results();
-    if(empty($menu_items))
+    $menus = $wpdb->get_results($wpdb->prepare("SELECT t.* 
+  FROM %i AS t
+  LEFT JOIN %i AS tt ON tt.term_id = t.term_id
+ WHERE tt.taxonomy = 'nav_menu'",$wpdb->terms,$wpdb->term_taxonomy));
+    if(empty($menus))
         return $clone;
     $clone['terms'] = $menus;
     foreach($menus as $menu) {
-    $menu_relationships = $wpdb->get_results("SELECT p.ID, p.post_content, p.post_title, p.post_type, p.post_status, tr.*,tt.* 
-  FROM $wpdb->posts AS p 
-  LEFT JOIN $wpdb->term_relationships AS tr ON tr.object_id = p.ID
-  LEFT JOIN $wpdb->term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+    $menu_relationships = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_content, p.post_title, p.post_type, p.post_status, tr.*,tt.* 
+  FROM %i AS p 
+  LEFT JOIN %i AS tr ON tr.object_id = p.ID
+  LEFT JOIN %i AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
  WHERE p.post_type = 'nav_menu_item'
-   AND tt.term_id = $menu->term_id");
+   AND tt.term_id = %d",$wpdb->posts,$wpdb->term_relationships,$wpdb->term_taxonomy,$menu->term_id));
    foreach($menu_relationships as $mr) {
     $clone['posts'][] = (object) array('ID'=>$mr->ID,'post_title'=>$mr->post_title,'post_content'=>$mr->post_content,'post_status'=>'publish','post_type'=>'nav_menu_item');
     $clone['term_relationships'][] = (object) array('object_id'=>$mr->object_id,'term_order'=>$mr->term_order,'term_taxonomy_id'=>$mr->term_taxonomy_id);
@@ -44,15 +43,14 @@ function qckply_get_category_data($clone) {
     if(empty($clone['ids']))
       return $clone;
     global $wpdb;
-    $ids = $clone['ids'];    
-    $sql = "SELECT p.ID, p.post_title, tr.*,tt.*, terms.*
-  FROM $wpdb->posts AS p 
-  LEFT JOIN $wpdb->term_relationships AS tr ON tr.object_id = p.ID
-  LEFT JOIN $wpdb->term_taxonomy AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-  LEFT JOIN $wpdb->terms AS terms ON terms.term_id = tt.term_id
- WHERE p.ID IN (".implode(',',$ids).") AND p.post_status='publish'"; //AND (tt.taxonomy = 'category' OR tt.taxonomy = 'wp_theme') 
-  
-$cat = $wpdb->get_results($sql);
+    $ids = $clone['ids'];
+    $ids = array_map('intval',$ids);    
+$cat = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_title, tr.*,tt.*, terms.*
+  FROM %i AS p 
+  LEFT JOIN %i AS tr ON tr.object_id = p.ID
+  LEFT JOIN %i AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+  LEFT JOIN %i AS terms ON terms.term_id = tt.term_id
+ WHERE p.ID IN (".implode(',',$ids).")",$wpdb->posts,$wpdb->term_relationships,$wpdb->term_taxonomy,$wpdb->terms) );
  $terms = [];
  $tax = [];
  if(empty($cat))

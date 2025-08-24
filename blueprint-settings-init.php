@@ -18,9 +18,8 @@ function blueprint_settings_init($profile) {
         $blueprint = $result[0];
         $settings = $result[1];
         $cachemessage = qckply_cache_message($profile,$settings);
-        //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
         update_option('quickplay_clone_settings_'.$profile,$settings);
-        $display = isset($_POST['qckply_display']) ? $_POST['qckply_display'] : [];
+        $display = isset($_POST['qckply_display']) ? wp_unslash($_POST['qckply_display']) : [];
         foreach($display as $index=>$value) {
             $display[$index] = sanitize_text_field($value);
         }
@@ -38,13 +37,15 @@ function blueprint_settings_init($profile) {
             qckply_delete_caches($_POST['reset_cache'],$profile);
         }
         //variables escaped within qckply_get_button; output cannot be escaped by wp_kses without messing up svg code
-        printf('<div class="notice notice-success"><p>Updated</p><p>%s</p>%s</div>',qckply_get_button(['profile'=>$profile]), wp_kses_post($cachemessage));
+        echo '<div class="notice notice-success"><p>Updated</p>';
+        qckply_get_button(['profile'=>$profile],true);
+        echo wp_kses_post($cachemessage);
+        echo '</div>';
     }
     else {
         $blueprint = get_option('qckply_blueprint_'.$profile, array());
         $settings = get_option('quickplay_clone_settings_'.$profile,array());
-        //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
-        echo qckply_get_button(['profile'=>$profile]);
+        qckply_get_button(['profile'=>$profile],true);
         echo wp_kses_post(qckply_cache_message($profile,$settings));
     }
     $pp = get_option('qckply_profiles',array('default'));
@@ -88,5 +89,7 @@ function blueprint_settings_init($profile) {
     }
     $screen = get_current_screen();
     $pagechoice = strpos($screen->id,'builder') ? '<input type="radio" name="page" value="quickplayground" /> Gallery <input type="radio" name="page" value="qckply_builder" checked="checked" /> Builder ' : '<input type="radio" name="page" value="quickplayground" checked="checked" /> Gallery <input type="radio" name="page" value="qckply_builder" /> Builder ';
-    printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile"><label>Profile</label> <select id="switcher" name="profile">%s</select> %s <button>Switch</button></div>%s</form>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()),wp_nonce_field('quickplayground','playground',true,false));
+    printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile"><label>Profile</label> <select id="switcher" name="profile">%s</select> %s <button>Switch</button></div>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()));
+    wp_nonce_field('quickplayground','playground',true,true);
+    echo '</form>';
 }

@@ -167,15 +167,14 @@ class Quick_Playground_Clone extends WP_REST_Controller {
         }
     }
 
-    $moretypes = '';
+    $sql = $wpdb->prepare("SELECT * FROM %i WHERE post_status='publish' AND (`post_type` = 'rsvpmaker_form' OR `post_type` = 'rsvpmaker_template' OR `post_type` = 'wp_block' OR `post_type` = 'wp_global_styles' OR `post_type` = 'wp_navigation' OR `post_type` = 'wp_template' OR `post_type` = 'wp_template_part' ",$wpdb->posts);
     if(!empty($settings['post_types']) && is_array($settings['post_types']))
     {
       foreach($settings['post_types'] as $t)
         $t = sanitize_text_field($t);
-        $moretypes .= " OR `post_type` = '$t' ";
+        $sql .= $wpdb->prepare(" OR `post_type` = %s ",$t);
     }
-    //moretypes sanitized above
-    $sql = "SELECT * FROM $wpdb->posts WHERE post_status='publish' AND (`post_type` = 'rsvpmaker_form' OR `post_type` = 'rsvpmaker_template' OR `post_type` = 'wp_block' OR `post_type` = 'wp_global_styles' OR `post_type` = 'wp_navigation' OR `post_type` = 'wp_template' OR `post_type` = 'wp_template_part' $moretypes)";
+    $sql .= ")";
     $templates = $wpdb->get_results($sql);
     foreach($templates as $p) {
       $clone['ids'][] = $p->ID;
@@ -329,8 +328,7 @@ class Quick_Playground_Clone_Settings extends WP_REST_Controller {
     $clone['profile'] = $profile;
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $settings['timezone_string'] = get_option('timezone_string');
-    $sql = "SELECT * FROM $wpdb->options WHERE option_name LIKE 'theme_mods_%'";
-    $mods = $wpdb->get_results($sql);
+    $mods = $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE option_name LIKE %s ",$wpdb->options,'theme_mods_%'));
     if(!empty($mods) && is_array($mods)) {
       foreach($mods as $mod) {
         $settings[$mod->option_name] = maybe_unserialize($mod->option_value);
@@ -410,14 +408,12 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
     $clone['saved'] = (empty($saved)) ? 'none' : var_export($saved,true);
     $site_logo = get_option('site_logo');
     if(!empty($site_logo)) {
-        $sql = "SELECT * FROM $wpdb->posts WHERE ID = ".intval($site_logo)." AND post_type = 'attachment' ";
-        $attachment = $wpdb->get_row($sql);
+        $attachment = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE ID = %d AND post_type = 'attachment' ", $wpdb->posts,$site_logo));
         $clone['site_logo'] = $attachment;
     }
     $site_icon = get_option('site_icon');
     if(!empty($site_icon)) {
-        $sql = "SELECT * FROM $wpdb->posts WHERE ID = ".intval($site_icon)." AND post_type = 'attachment' ";
-        $attachment = $wpdb->get_row($sql);
+        $attachment = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE ID = %d AND post_type = 'attachment' ",$wpdb->posts,$site_icon));
         $clone['site_icon'] = $attachment;
     }
     $clone['thumbnails'] = [];
@@ -425,13 +421,11 @@ class Quick_Playground_Clone_Images extends WP_REST_Controller {
     $clone['ids'] = get_option('qckply_ids_'.$profile, array());
     $first = array_shift($clone['ids']);
     //sanitized for only integer values
-    $clone['ids'] = array_map('intval',$clone['ids']);
-    $sql = "SELECT posts.* FROM $wpdb->postmeta meta JOIN $wpdb->posts posts ON meta.meta_value = posts.ID WHERE meta.post_id IN (".implode(',',$clone['ids']).") and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC "; 
-    $results = $wpdb->get_results($sql);
+    $clone['ids'] = array_map('intval',$clone['ids']); 
+    $results = $wpdb->get_results($wpdb->prepare("SELECT posts.* FROM %i meta JOIN %i ON meta.meta_value = posts.ID WHERE meta.post_id IN (".implode(',',array_map('intval',$clone['ids'])).") and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC ",$wpdb->postmeta,$wpdb->posts));
     if($first)
-    {
-    $sql = "SELECT posts.* FROM $wpdb->postmeta meta JOIN $wpdb->posts posts ON meta.meta_value = posts.ID WHERE meta.post_id = ".intval($first)." and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC "; 
-    $row = $wpdb->get_row($sql);
+    { 
+    $row = $wpdb->get_row($wpdb->prepare("SELECT posts.* FROM %i meta JOIN %i posts ON meta.meta_value = posts.ID WHERE meta.post_id = ".intval($first)." and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC ",$wpdb->postmeta,$wpdb->posts));
     if($row)
       $results = array_merge([$row],$results);
     }    

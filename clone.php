@@ -82,7 +82,7 @@ function qckply_clone( $target = null ) {
 
         if(!empty($clone['posts'])) {
             //get rid of hello world and sample page
-            $wpdb->query("truncate $wpdb->posts");
+            $wpdb->query($wpdb->prepare("truncate %i",$wpdb->posts));
         }
 
         $clone = apply_filters('qckply_clone_received',$clone);
@@ -481,7 +481,7 @@ foreach($ids as $id) {
     if($id != $page_on_front)
         $nav .= sprintf('<!-- wp:navigation-link {"label":"%s","type":"page","id":%d,"url":"%s","kind":"post-type"} /-->',esc_attr(get_the_title($id)),$id,esc_attr(get_permalink($id)))."\n";
 }
-$nav_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_type='wp_navigation'");
+$nav_id = $wpdb->get_var($wpdb->prepare("SELECT ID FROM %i WHERE post_type='wp_navigation'",$wpdb->posts ));
 if($nav_id) {
   $wpdb->update($wpdb->posts,array('post_content' => $nav),array('ID' => $nav_id));
 }
@@ -497,7 +497,7 @@ else {
   );
   $nav_id = wp_insert_post($post);
 }
-$headers = $wpdb->get_results("SELECT * FROM $wpdb->posts WHERE post_type = 'wp_template_part' AND post_title LIKE '%Header%' or post_name LIKE '%header%'");
+$headers = $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE post_type = 'wp_template_part' AND post_title LIKE %s or post_name LIKE %s",$wpdb->posts,'%Header%','%header%' ));
 $pattern = '/<!-- wp:navigation([^\/]+)\/-->/';
 if($headers) {
   foreach($headers as $header) {
