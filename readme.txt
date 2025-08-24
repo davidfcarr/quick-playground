@@ -4,11 +4,11 @@ Contributors: davidfcarr
 
 Tags: testing, staging, demo, playground  
 
-Requires at least: 5.8  
+Requires at least: 6.2  
 
 Tested up to: 6.8
 
-Stable tag: 0.9.7  
+Stable tag: 0.9.8  
 
 License: GPLv2 or later  
 
@@ -18,7 +18,7 @@ Simplify creation of WordPress Playground test, staging, and demo sites. Specify
 
 == Description ==
 
-The Theme and Plugin Playground plugin provides a safe and convenient way to test new designs and features for your WordPress website. It creates a clone of your website's home page and key content, allowing you to experiment with design changes without affecting your live website.
+The Quick Playground plugin provides a safe and convenient way to test new designs and features for your WordPress website, or to create demos and share proposed design changes. It creates a clone of your website's home page and key content, allowing you to experiment with design changes without affecting your live website.
 
 The plugin takes advantage of WordPress Playground, the innovative software that simulates a complete PHP/WordPress/database server environment running in your web browser for testing and experimentation. Quick Playground simplifies the creation of Playground Blueprints, which define steps such as installing themes and plugins and loading content. No need to hand-code JSON or arrange for code to be served from Github.
 

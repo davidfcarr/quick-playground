@@ -13,7 +13,9 @@ import './editor.scss';
  * @return {Element} Element to render.
  */
 export default function Edit({ attributes, setAttributes }) {
-	    const { label,domain,profile,type,iframeWidth,iframeHeight } = attributes;
+	    let { label,domain,profile,type,iframeWidth,iframeHeight } = attributes;
+        if(!domain)
+            domain = window.location.hostname;
 
 	    return (
         <>
@@ -44,6 +46,21 @@ export default function Edit({ attributes, setAttributes }) {
                         value={ profile }
                         onChange={ ( value ) => setAttributes( { profile: value } ) }
                     />
+                    {
+                    ('iframe' == type) ? 
+                    <div>
+                    <TextControl
+                        label={ __( 'iframe Height', 'qckply' ) }
+                        value={ iframeHeight }
+                        onChange={ ( value ) => setAttributes( { iframeHeight: value } ) }
+                    />
+                    <TextControl
+                        label={ __( 'iframe Width', 'qckply' ) }
+                        value={ iframeWidth }
+                        onChange={ ( value ) => setAttributes( { iframeWidth: value } ) }
+                    />
+                    </div> : null
+                    }
                 </PanelBody>
             </InspectorControls>
             <div { ...useBlockProps() }>
@@ -88,13 +105,12 @@ export default function Edit({ attributes, setAttributes }) {
 &nbsp;&nbsp;&nbsp;  { label || __( 'Go to Playground', 'qckply' ) }
 </a></div>}
 				{'link' == type && 
-				<p> Link version
-				{ label || __( 'Go to Playground', 'qckply' ) } Domain: {domain} Profile: {profile}	
-				</p>}
+				<p><a href="#">{ label || __( 'Go to Playground', 'qckply' ) }</a></p>}
 				{'iframe' == type && 
-				<p> iFrame version 
-				{ label || __( 'Go to Playground', 'qckply' ) } Domain: {domain} Profile: {profile}	
-				</p>}
+				<div style={{backgroundColor:'#111',color:'#fff',width:iframeWidth,height:iframeHeight}}><p> iFrame version will be displayed here<br />
+				Domain: {domain} Profile: {profile}	
+				</p>
+                </div>}
             </div>
         </>
     );

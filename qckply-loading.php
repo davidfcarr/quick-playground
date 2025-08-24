@@ -67,7 +67,7 @@ function qckply_loading() {
             else {
                 qckply_top_ids();
                 do_action('qckply_loading');
-                echo '<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href='.esc_url(qckply_link()).'</script>';
+                echo '<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href="'.esc_url(qckply_link()).'"</script>';
             }
         } 
         elseif('thumbnails' == $target) {
@@ -77,7 +77,7 @@ function qckply_loading() {
             }
             qckply_top_ids();
             do_action('qckply_loading');
-            echo '<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href='.esc_url(qckply_link()).'</script>';
+            echo '<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href="'.esc_url(qckply_link()).'"</script>';
         }
         else {
             qckply_clone( 'settings' );

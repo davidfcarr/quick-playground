@@ -2,16 +2,21 @@
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 add_shortcode('qckply_iframe_shortcode', 'qckply_iframe_shortcode');
-function qckply_iframe_shortcode($args) {
-    $url = site_url();
+function qckply_iframe_shortcode($args, $echo = false) {
+    $url = site_url('qpi');
     $height = (empty($args['height'])) ? '1000px' : sanitize_text_field(($args['height']));
-    $width = (empty($args['width'])) ? '1000px' : sanitize_text_field(($args['width']));
+    $width = (empty($args['width'])) ? '100%' : sanitize_text_field(($args['width']));
     foreach($args as $key => $value) {
+        if('profile' == $key)
+            $key = 'qckply';
         if('height' != $key && 'width' != $key)
             $url .= (strpos($url, '?') === false ? '?' : '&') . urlencode($key) . '=' . urlencode(sanitize_text_field($value));
     }
-    $divcss = 'width: 100%; height: 1000px;';
-    return '<div style="width: 100%; height: 1000px;"><iframe src="'.$url.'" height="100%" width="100%"></iframe></div>';
+    ob_start();
+    echo '<div style="width: '.esc_attr($width).'; height: '.esc_attr($height).';"><iframe src="'.esc_url($url).'" height="100%" width="100%"></iframe></div>';
+    if($echo)
+        ob_flush();
+    return ob_get_clean();
 }
 
 function qckply_sidebar_default() {
@@ -57,7 +62,7 @@ function qckply_iframe() {
         {
             $sidebar = qckply_sidebar_default();
         }
-        if(isset($_GET['no_sidebar']) || 'no_sidebar' == $display['iframe']) {
+        if(isset($_GET['no_sidebar']) || (isset($display['iframe']) && 'no_sidebar' == $display['iframe'])) {
             $sidebar = $false;
         }
         elseif($sidebar_id) {

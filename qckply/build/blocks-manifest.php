@@ -23,7 +23,7 @@ return array(
 			),
 			'label' => array(
 				'type' => 'string',
-				'default' => ''
+				'default' => 'Go to Playground'
 			),
 			'profile' => array(
 				'type' => 'string',
@@ -39,7 +39,7 @@ return array(
 			),
 			'iframeHeight' => array(
 				'type' => 'string',
-				'default' => '1vh'
+				'default' => '1000px'
 			)
 		),
 		'textdomain' => 'qckply',
