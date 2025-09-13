@@ -8,7 +8,7 @@ Requires at least: 6.2
 
 Tested up to: 6.8
 
-Stable tag: 0.9.8  
+Stable tag: 0.9.9.2
 
 License: GPLv2 or later  
 
@@ -84,10 +84,14 @@ No, the Playground environment is completely separate from your live website. Ch
 
 == Changelog ==
 
-= 0.9.6 =  
+= 0.9.6 to 0.9.9 =  
 
 * Pre-release revisions.
 
 == License ==
 
 This plugin is licensed under the GPLv2 or later. See the [GNU General Public License](https://www.gnu.org/licenses/gpl-2.0.html) for more details.
+
+== External services ==
+
+Users may configure Quick Playground to display content from other websites that also run Quick Playground.

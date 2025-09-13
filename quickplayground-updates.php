@@ -54,9 +54,6 @@ function qckply_updated_option($option) {
     update_option('qckply_updated_options',$updated);
 }
 
-/**
-
-*/
 function qckply_updated_postmeta($meta_id, $post_id, $meta_key, $meta_value) {
     $excluded = ['_edit_lock'];
     if(in_array($meta_key,$excluded))

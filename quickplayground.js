@@ -8,14 +8,17 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('switch_add_profile').innerHTML = '<p>Enter a name for the new profile: <input type=\"text\" name=\"profile\" id=\"new_profile_name\" /><input type=\"hidden\" name=\"page\" value=\"qckply_builder\" /> <button type=\"submit\">Add</button></p>';
             return;
             }
-            else if (event.target.id === 'switcher') {
+            console.log('Select:', event.target.id+' = '+event.target.value);
+            if (event.target.id === 'qckply-switcher') {
               const url = new URL(window.location.href);
+              const nonce = document.getElementById('playground').value;
               url.searchParams.set('profile', event.target.value);
+              url.searchParams.set('playground', nonce);
               window.location.href = url.toString();
             }
-            console.log('Select ID:', event.target.id);
             const parentDiv = event.target.closest('p');
             if (parentDiv) {
+                console.log('parentDiv:', parentDiv);
                 const parentDivId = parentDiv.id;
                 const parts = parentDivId.split('_');
                 const nextID = parts[0] + '_' + (parseInt(parts[1]) + 1);
@@ -28,7 +31,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-  const overlay = document.getElementById("playground-overlay-message");
+  const overlay = document.getElementById("qckply-overlay-message");
+  if(!overlay) return;
   const closeBtn = document.getElementById("playground-overlay-close");
   console.log('overlay',overlay);
 

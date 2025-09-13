@@ -8,21 +8,20 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  */
 function blueprint_settings_init($profile) {
     if(isset($_POST['build_profile'])) {
-        if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
-        {
-            echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
-            return;
-        }  
-        //sanitization is done in qckply_build
-        $result = qckply_build($_POST,$profile);
+    //if the request includes anything other than $_GET['page'], check nonce
+    if(sizeof($_REQUEST) > 1 && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
+    {
+        echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
+        return;
+    }  
+        //iteratively applies sanitization to all values in the array
+        $postvars = qckply_sanitize(wp_unslash($_POST));
+        $result = qckply_build($postvars,$profile);
         $blueprint = $result[0];
         $settings = $result[1];
         $cachemessage = qckply_cache_message($profile,$settings);
         update_option('quickplay_clone_settings_'.$profile,$settings);
-        $display = isset($_POST['qckply_display']) ? wp_unslash($_POST['qckply_display']) : [];
-        foreach($display as $index=>$value) {
-            $display[$index] = sanitize_text_field($value);
-        }
+        $display = isset($_POST['qckply_display']) ? array_map('sanitize_text_field',wp_unslash($_POST['qckply_display'])) : [];
         if($display['iframe'] == 'custom_sidebar' && empty($display['iframe_sidebar'])) {
             $new['post_content'] = qckply_sidebar_default();
             $new['post_title'] = 'Quick Playground Sidebar '.$profile;
@@ -32,9 +31,9 @@ function blueprint_settings_init($profile) {
             printf('<div class="notice notice-success"><p>Added custom sidebar, which you can <a target="_blank" href="%s">edit</a> as a private page.</p></div>',esc_attr(admin_url('post.php?action=edit&post='.$display['iframe_sidebar'])));
         }
         update_option('qckply_display_'.$profile,$display);
+
         if(!empty($_POST['reset_cache'])) {
-            //post variables are sanitized in qckply_delete_caches
-            qckply_delete_caches($_POST['reset_cache'],$profile);
+            qckply_delete_caches(array_map('sanitize_text_field',$_POST['reset_cache']),$profile);
         }
         //variables escaped within qckply_get_button; output cannot be escaped by wp_kses without messing up svg code
         echo '<div class="notice notice-success"><p>Updated</p>';
@@ -74,7 +73,7 @@ function blueprint_settings_init($profile) {
         $settings['copy_pages'] = 0;
         $settings['copy_blogs'] = 10;
         $settings['copy_events'] = 1;
-        $settings['key_pages'] = 1;
+        $settings['qckply_key_pages'] = 1;
         $settings['origin_stylesheet'] = get_stylesheet();
     }
     if(isset($_GET['reset']) || empty($blueprint)) {
@@ -89,7 +88,7 @@ function blueprint_settings_init($profile) {
     }
     $screen = get_current_screen();
     $pagechoice = strpos($screen->id,'builder') ? '<input type="radio" name="page" value="quickplayground" /> Gallery <input type="radio" name="page" value="qckply_builder" checked="checked" /> Builder ' : '<input type="radio" name="page" value="quickplayground" checked="checked" /> Gallery <input type="radio" name="page" value="qckply_builder" /> Builder ';
-    printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile"><label>Profile</label> <select id="switcher" name="profile">%s</select> %s <button>Switch</button></div>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()));
+    printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile"><label>Profile</label> <select id="qckply-switcher" name="profile">%s</select> %s <button>Switch</button></div>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()));
     wp_nonce_field('quickplayground','playground',true,true);
     echo '</form>';
 }

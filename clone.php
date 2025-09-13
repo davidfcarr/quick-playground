@@ -67,7 +67,7 @@ function qckply_clone( $target = null ) {
         update_option('qckply_clone_posts_log',$clone['output']);
         return;
         }
-        $clone = qckply_sanitize_clone($clone);
+        $clone = qckply_sanitize($clone);
         $clone = qckply_clone_output($clone, $out);
         if(!is_array($clone)) {
             error_log('json decode error '.var_export($clone,true));
@@ -250,7 +250,7 @@ function qckply_clone( $target = null ) {
     else {
         $prompts = qckply_get_prompts_remote($qckply_profile);
         if(!empty($prompts)) {
-            set_transient('playgroundmessages',$prompts,5*DAY_IN_SECONDS);
+            set_transient('qckply_messages',$prompts,5*DAY_IN_SECONDS);
         }
     }
     }
@@ -283,7 +283,7 @@ function qckply_clone( $target = null ) {
     update_option('qckply_clone_posts_log',$clone['output']);
     return;
     }
-    $clone = qckply_sanitize_clone($clone);
+    $clone = qckply_sanitize($clone);
 
     $clone = qckply_clone_output($clone, $out);
     if(!is_array($clone)) {
@@ -432,7 +432,7 @@ function qckply_clone( $target = null ) {
     update_option('qckply_clone_custom_log',$clone['output']);
     return;
     }
-    $clone = qckply_sanitize_clone($clone);
+    $clone = qckply_sanitize($clone);
     $clone = qckply_clone_output($clone, $out);
     if(!is_array($clone)) {
         error_log('error decoding custom clone json');
@@ -602,7 +602,7 @@ function qckply_clone_images($target) {
     update_option('qckply_clone_images_log',$clone['output']);
     return;
     }
-    $clone = qckply_sanitize_clone($clone);
+    $clone = qckply_sanitize($clone);
 
     if(!empty($clone['site_logo'])) {
         $result = qckply_sideload($clone['site_logo'],['update_option'=>'site_logo']);

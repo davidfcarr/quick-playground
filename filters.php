@@ -15,7 +15,7 @@ function qckply_clone_footer_message() {
     $keymessage = apply_filters('qckply_key_message',$keymessage);
     if(!empty($keymessage['message'])) {
     ?>
-<div id="playground-overlay-message">
+<div id="qckply-overlay-message">
   <span><p><strong>Playground Prompt</strong></p>
     <?php
         echo wp_kses_post(wpautop($keymessage['message']));

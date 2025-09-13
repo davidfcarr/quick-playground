@@ -12,21 +12,11 @@ function qckply_loading() {
 <html>
 <head>
     <title><?php echo esc_html($title); ?> (Playground Loading)</title>
-    <?php wp_print_styles(); ?>
-    <style>
-    body {
-    background-color: #004165;
-  color: white;
-  font-size: 16px;
-  font-family: \'Comic Sans MS\', cursive, sans-serif;
-  padding: 50px;
-    }
-    a {
-        color: yellow;
-    }
-    </style>
+    <?php 
+    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.2' );
+    wp_print_styles(); ?>
 </head>
-<body>
+<body id="playground-loading">
 <svg fill="#FFFFFF" height="200px" width="200px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
 	 viewBox="0 0 512.001 512.001" xml:space="preserve">
 <g>
@@ -62,22 +52,50 @@ function qckply_loading() {
         if('images' == $target) {
             $more = qckply_clone_images('images');
             if($more) {
-                echo '<div id="playground-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div><script>window.location.href="'.esc_url(qckply_link(['qckply_clone'=>'thumbnails'])).'"</script>';
+                echo '<div id="qckply-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div>';
+                wp_print_inline_script_tag('window.location.href="'.esc_url(qckply_link(['qckply_clone'=>'thumbnails'])).'"',
+                    array(
+                        'id'    => 'hide-sidebar-js',
+                        'async' => true,
+                    )
+                );
             }
             else {
                 qckply_top_ids();
                 do_action('qckply_loading');
-                echo '<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href="'.esc_url(qckply_link()).'"</script>';
+                $landingpage = qckply_link();
+                printf('<div id="qckply-overlay-message"><p>Done, redirect to <a href="%s">%s</a></p></div>',esc_attr($landingpage),esc_html($landingpage));
+                wp_print_inline_script_tag('window.location.href="'.esc_url($landingpage).'"',
+                        array(
+                            'id'    => 'hide-sidebar-js',
+                            'async' => true,
+                        )
+                );
             }
         } 
         elseif('thumbnails' == $target) {
             $more = qckply_get_more_thumbnails();
             if($more) {
-                return '<div id="playground-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div><script>window.location.href="'.esc_url(qckply_link(['qckply_clone'=>'thumbnails'])).'"</script>';
+                echo '<div id="qckply-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div>';
+                wp_print_inline_script_tag('window.location.href="'.esc_url(qckply_link(['qckply_clone'=>'thumbnails'])).'"',
+                    array(
+                        'id'    => 'hide-sidebar-js',
+                        'async' => true,
+                    )
+                );
+                return;
             }
             qckply_top_ids();
             do_action('qckply_loading');
-            echo '<div id="playground-overlay-message"><p>Done</p></div><script>window.location.href="'.esc_url(qckply_link()).'"</script>';
+            $landingpage = qckply_link();
+            printf('<div id="qckply-overlay-message"><p>Done, redirect to <a href="%s">%s</a></p></div>',esc_attr($landingpage),esc_html($landingpage));
+            wp_print_inline_script_tag('window.location.href="'.esc_url($landingpage).'"',
+                    array(
+                        'id'    => 'hide-sidebar-js',
+                        'async' => true,
+                    )
+            );
+
         }
         else {
             qckply_clone( 'settings' );
@@ -85,7 +103,13 @@ function qckply_loading() {
             qckply_clone( 'custom' );
             qckply_clone( 'prompts' );
             $output = ob_get_clean();
-            echo '<div id="playground-overlay-message"><p>Loading images ...</p></div><script>window.location.href="'.esc_url(qckply_link($args = ['qckply_clone'=>'images'])).'"</script>';
+            echo '<div id="qckply-overlay-message"><p>Loading images ...</p></div>';
+            wp_print_inline_script_tag('window.location.href="'.esc_url(qckply_link(['qckply_clone'=>'images'])).'"',
+                array(
+                    'id'    => 'hide-sidebar-js',
+                    'async' => true,
+                )
+            );
         }
 ?>
 </body>

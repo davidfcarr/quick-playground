@@ -78,7 +78,7 @@ a {
     max-width: 800px;
 }
 
-.qckply label {
+.quick_playground label {
   font-weight: bold;
   display: inline-block;
   width: 10em;
@@ -106,7 +106,7 @@ ul.playgroundpro {
     margin: 20px;
 }
 
-#playground-overlay-message {
+#qckply-overlay-message {
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -123,12 +123,12 @@ ul.playgroundpro {
   max-width: 600px;
 }
 
-#playground-overlay-message a {
+#qckply-overlay-message a {
   color: yellow;
   font-weight: bold;
 }
 
-#playground-overlay-message button#overlay-close {
+#qckply-overlay-message button#overlay-close {
   background: none;
   border: none;
   color: #fff;
@@ -137,12 +137,12 @@ ul.playgroundpro {
   cursor: pointer;
 }
 
-#playground-overlay-message.fade-out {
+#qckply-overlay-message.fade-out {
   opacity: 0;
   pointer-events: none;
 }
 
-#playground-overlay-message button {
+#qckply-overlay-message button {
   cursor: pointer;
   background-color: var(--accent);
   color: var(--text-1);
@@ -170,4 +170,96 @@ ul.playgroundpro {
 .qckply-form option:focus-visible {
   color: var(--text-1);
   background: var(--surface-2);
+}
+
+#playground-loading {
+  background-color: #004165;
+  color: white;
+  font-size: 16px;
+  font-family: \'Comic Sans MS\', cursive, sans-serif;
+  padding: 50px;
+}
+#playground-loading a {
+    color: yellow;
+}
+
+body#quickplay-iframe-body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+#qckply-iframe-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+}
+#qckply-iframe-container {
+    flex: 1 1 0;
+    min-width: 0;
+    transition: width 0.3s;
+    background: #f9f9f9;
+    height: calc(100vh - 40px);
+}
+#qckply-iframe-container.full-width {
+    width: 100% !important;
+    flex: 1 1 100%;
+}
+#qckply-iframe-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+#qckply-iframe-sidebar {
+    width: 300px;
+    border-left: thick solid #222;
+    padding: 0px 16px 16px 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    transition: width 0.3s, opacity 0.3s;
+}
+#qckply-iframe-sidebar h2 {
+    margin-top: 0;
+    font-size: 1.3em;
+}
+#qckply-iframe-sidebar p {
+    margin-bottom: 1em;
+}
+#qckply-iframe-footer {
+    height: 40px;
+    background: #eee;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95em;
+}
+#qckply-iframe-closeline {
+    text-align: right;
+}
+#qckply-iframe-close {
+    background: #aaa;
+    border: thin solid #000;
+    border-radius: 6px;
+    padding: 16px 16px;
+    cursor: pointer;
+    margin-top: 1em;
+    color: red;
+    font-size: large;
+}
+@media (max-width: 700px) {
+    #qckply-iframe-sidebar {
+        display: none !important;
+    }
+    #qckply-iframe-container {
+        width: 100% !important;
+        flex: 1 1 100%;
+    }
 }

@@ -44,13 +44,14 @@ function qckply_get_category_data($clone) {
       return $clone;
     global $wpdb;
     $ids = $clone['ids'];
-    $ids = array_map('intval',$ids);    
+    $ids = array_map('intval',$ids);
+    $placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
 $cat = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_title, tr.*,tt.*, terms.*
   FROM %i AS p 
   LEFT JOIN %i AS tr ON tr.object_id = p.ID
   LEFT JOIN %i AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
   LEFT JOIN %i AS terms ON terms.term_id = tt.term_id
- WHERE p.ID IN (".implode(',',$ids).")",$wpdb->posts,$wpdb->term_relationships,$wpdb->term_taxonomy,$wpdb->terms) );
+ WHERE p.ID IN ($placeholders)",$wpdb->posts,$wpdb->term_relationships,$wpdb->term_taxonomy,$wpdb->terms,$ids) );
  $terms = [];
  $tax = [];
  if(empty($cat))

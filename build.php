@@ -8,11 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @return array           Array containing the blueprint and settings.
  */
 function qckply_build($postvars, $profile = 'default') {
-    if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
-    {
-        echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
-        return;
-    }
     $site_origin = rtrim(get_option('siteurl'),'/');
     $default_plugins = is_multisite() ? get_blog_option(1,'qckply_default_plugins',array()) : array();
     $excluded_plugins = is_multisite() ? get_blog_option(1,'qckply_excluded_plugins',array()) : array();
@@ -23,13 +18,13 @@ function qckply_build($postvars, $profile = 'default') {
         $slugs = array_merge($slugs,$excluded_plugins);
     if(!empty($default_plugins)) {
         foreach($default_plugins as $slug) {
-        $postvars['add_plugin'][] = sanitize_text_field($slug);
+        $postvars['add_plugin'][] = $slug;
         $postvars['activate_plugin'][] = 1;
         $postvars['ziplocal_plugin'][] = false;
         }
     }
     if(isset($postvars['all_active_plugins'])) {
-        $active_plugins = explode(',',sanitize_text_field($postvars['all_active_plugins']));
+        $active_plugins = explode(',',$postvars['all_active_plugins']);
         foreach($active_plugins as $slug) {
             printf('<p>active plugins %s</p>',esc_html($slug));
             $postvars['add_plugin'][] = $slug;
@@ -54,7 +49,7 @@ function qckply_build($postvars, $profile = 'default') {
         }
 
         foreach($postvars['settings'] as $key => $value)
-            $settings[$key] = is_string($value) ? sanitize_text_field(stripslashes($value)) : qckply_sanitize_clone($value);
+            $settings[$key] = $value;
         if(empty($settings['copy_pages'])) {
             $settings['copy_pages'] = 0;
         }
@@ -67,7 +62,7 @@ function qckply_build($postvars, $profile = 'default') {
         $settings['qckply_sync_origin']=$site_origin;
         $settings['qckply_site_dir'] = is_multisite() ? '/sites/'.get_current_blog_id() : '';
         $settings['demo_pages'] = [];
-        $settings['key_pages'] = empty($settings['key_pages']) ? 0 : 1; // 0 if not checked
+        $settings['qckply_key_pages'] = empty($settings['qckply_key_pages']) ? 0 : 1; // 0 if not checked
         if(isset($postvars['post_types']))
             $settings['post_types'] = $postvars['post_types'];
         if(isset($postvars['demo_pages']) && is_array($postvars['demo_pages'])) {
@@ -101,7 +96,6 @@ function qckply_build($postvars, $profile = 'default') {
     if(!empty($postvars['repo'])) {
         $urls = explode("\n",$postvars['repo']);
         foreach($urls as $url) {
-            $url = sanitize_text_field($url);
             if(strpos($url,'/plugins/'))
                 $steps[] = qckply_makePluginItem(basename($url),true,true);
             elseif(strpos($url,'/themes/'))
@@ -111,7 +105,6 @@ function qckply_build($postvars, $profile = 'default') {
 
     if(isset($postvars['add_theme'])) {
         foreach($postvars['add_theme'] as $i => $slug) {
-            $slug = sanitize_text_field(trim($slug));
             if(empty($slug) || in_array($slug, $themeslugs)) {
                 continue; // skip duplicate themes
             }
@@ -182,7 +175,7 @@ function qckply_build($postvars, $profile = 'default') {
     if(isset($postvars['add_plugin'])) {
 
         foreach($postvars['add_plugin'] as $i => $slug) {
-            $slug = sanitize_text_field(trim($slug));
+            $slug = trim($slug);
 
             if(!empty($slug) && !in_array($slug, $slugs)) { // check if slug is not empty and not already added
                 $slugs[] = $slug; // add to slugs to avoid duplicates
@@ -229,27 +222,8 @@ function qckply_build($postvars, $profile = 'default') {
         }
     }
 
-    if(!empty($postvars['add_code'])) {
+    $steps = apply_filters('qckply_blueprint_steps',$steps, $postvars);
 
-        foreach($postvars['add_code'] as $i => $code) {
-            $code = sanitize_textarea_field(trim(stripslashes($code)));
-            if(!empty($code)) {
-                $steps[] = qckply_makeCodeItem(stripslashes($code));
-            }
-        }
-    }
-    if(isset($postvars['json_steps'])) {
-        if(!empty($postvars['json_steps'])) {
-        $postvars['json_steps'] = $json = sanitize_textarea_field(stripslashes($postvars['json_steps']));
-        if(!strpos($json,']'))
-            $json = '['.$json.']';
-        $addsteps = json_decode($json);
-        foreach($addsteps as $add) {
-            $steps[] = $add;
-        }
-        }
-        update_option('json_steps_'.$profile, $postvars['json_steps']);
-    }
     $settings['origin_stylesheet'] = get_stylesheet();
     $settings['origin_template'] = get_template();
     $settings['qckply_origin_directories'] = qckply_get_directories();
@@ -270,23 +244,6 @@ function qckply_build($postvars, $profile = 'default') {
     $steps[] = qckply_makeCodeItem('qckply_clone("posts");');
 
     $blueprint = array('features'=>array('networking'=>true),'steps'=>$steps);
-    /*
-    if(!empty($postvars['landingPage'])) {
-        $landingpage = $postvars['landingPage'];
-        if(strpos($landingpage,'//'))
-        {
-            $parsed = wp_parse_url($landingpage);
-            if(!empty($parsed['path']))
-                $landingpage = $parsed['path'];
-            if(!empty($parsed['query']))
-                $landingpage .= '?'.$parsed['query'];
-            
-        }
-        update_option('qckply_landing_page_'.$profile,$landingpage);
-        $blueprint['landingPage'] = add_query_arg('qckply_clone',1,$landingpage);
-    }
-    else
-    */
     $blueprint['landingPage'] = add_query_arg('qckply_clone',1,'/');
 
     $blueprint = apply_filters('qckply_new_blueprint',$blueprint);

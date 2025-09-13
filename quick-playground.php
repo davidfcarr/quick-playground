@@ -3,12 +3,13 @@
  * Plugin Name: Quick Playground
  * Plugin URI:  https://quickplayground.com
  * Description: Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites.
- * Version:     0.9.8
+ * Version:     0.9.9.2
  * Author:      David F. Carr
 *  License:     GPL2
 *  Text Domain: quick-playground
 *  Domain Path: /languages
 */
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 require_once('includes.php');
 
 function qckply_get_directories()
@@ -39,12 +40,13 @@ function qckply_get_directories()
  * Handles form submission, loads and displays the current blueprint and settings,
  * and outputs the UI for managing playground profiles, themes, and plugins.
  */
-function quickplayground() {
-if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
-{
-    echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
-    return;
-}
+function qckply_main() {
+    //if the request includes anything other than $_GET['page'], check nonce
+    if(sizeof($_REQUEST) > 1 && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
+    {
+        echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
+        return;
+    }  
 
     global $wpdb;
     do_action('qckply_form_top');
@@ -96,23 +98,21 @@ echo '</div>';
  * @param string $hook The current admin page hook.
  */
 function qckply_enqueue_admin_script( $hook = '' ) {
-    if ( !strpos($hook,'qckply') && !strpos($hook,'quickplayground') && !qckply_is_playground()) {
+    if ( !strpos($hook,'uick-playground') && !strpos($hook,'quickplayground') && !qckply_is_playground()) {
         return;
     }
-    wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '1.0',['in_footer'=>true] );
-    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.0' );
+    wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.5',['in_footer'=>true] );
+    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.2' );
 }
 function qckply_enqueue_script( $hook = '' ) {
-    if ( qckply_is_playground() ) {
-        wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '1.0',['in_footer'=>true] );
-        wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.0' );
+    if ( qckply_is_playground()) {
+        wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.5',['in_footer'=>true] );
+        wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.2' );
     }
 }
 
 add_action( 'admin_enqueue_scripts', 'qckply_enqueue_admin_script' );
 add_action( 'wp_enqueue_scripts', 'qckply_enqueue_script' );
-
-
 
 /**
  * Generates the API URL for the playground based on the profile and optional parameters.
@@ -120,7 +120,7 @@ add_action( 'wp_enqueue_scripts', 'qckply_enqueue_script' );
  * @param string $profile    The profile name.
  * @return string            The API URL.
  */
-function get_qckply_api_url($args=[]) {
+function get_qckply_api_url($args=[], $json_url = false) {
     global $current_user;
     if(isset($args['url']))
         return 'https://playground.wordpress.net/?blueprint-url='.urlencode($args['url']);
@@ -136,9 +136,9 @@ function get_qckply_api_url($args=[]) {
     $display = get_option('qckply_display_'.$profile,[]);
     if(isset($args['iframe']))
         $display['iframe'] = sanitize_text_field($args['iframe']);
-    if(empty($display['iframe']) || 'no_iframe' != $display['iframe']) {
+    if(!$json_url && (empty($display['iframe']) || 'no_iframe' != $display['iframe'])) {
     $server_name = isset($_SERVER['SERVER_NAME']) ? sanitize_text_field(wp_unslash($_SERVER['SERVER_NAME'])) : '';
-    $getv = ['qckply'=>$profile,'domain'=>empty($args['domain']) ? $server_name : sanitize_text_field($args['domain'])];
+    $getv = ['quick_playground'=>$profile,'domain'=>empty($args['domain']) ? $server_name : sanitize_text_field($args['domain'])];
     if(!empty($display['iframe']) && 'no_sidebar' != $display['iframe'] && !empty($display['iframe_sidebar']))
         $getv['sidebar'] = intval($display['iframe_sidebar']); 
     if(!empty($display['iframe']) && 'no_sidebar' == $display['iframe'])
@@ -155,6 +155,8 @@ function get_qckply_api_url($args=[]) {
             $qckply_api_url .= '&'.sanitize_text_field($key).'='.sanitize_text_field($value);
         }
     }
+    if($json_url)
+        return $qckply_api_url;
     $qckply_api_url = 'https://playground.wordpress.net/?blueprint-url='.urlencode($qckply_api_url);
     return $qckply_api_url;
 }

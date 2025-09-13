@@ -4,7 +4,7 @@ return array(
 	'qckply' => array(
 		'$schema' => 'https://schemas.wp.org/trunk/block.json',
 		'apiVersion' => 3,
-		'name' => 'quick-playground/qckply',
+		'name' => 'qckply/qckply',
 		'version' => '0.1.0',
 		'title' => 'Quick Playground',
 		'category' => 'widgets',
@@ -42,7 +42,7 @@ return array(
 				'default' => '1000px'
 			)
 		),
-		'textdomain' => 'qckply',
+		'textdomain' => 'quick_playground',
 		'editorScript' => 'file:./index.js',
 		'editorStyle' => 'file:./index.css',
 		'style' => 'file:./style-index.css',

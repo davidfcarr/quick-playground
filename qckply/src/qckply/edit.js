@@ -20,7 +20,7 @@ export default function Edit({ attributes, setAttributes }) {
 	    return (
         <>
             <InspectorControls>
-                <PanelBody title={ __( 'Block Settings', 'qckply' ) }>
+                <PanelBody title={ __( 'Block Settings', 'quick_playground' ) }>
 					<RadioControl 
 					label="Display Type"
             help="Choose button, link, or iframe"
@@ -32,17 +32,17 @@ export default function Edit({ attributes, setAttributes }) {
             ] }
             onChange={ ( value ) => setAttributes( {type:value} ) } />
                     <TextControl
-                        label={ __( 'Label', 'qckply' ) }
+                        label={ __( 'Label', 'quick_playground' ) }
                         value={ label }
                         onChange={ ( value ) => setAttributes( { label: value } ) }
                     />
                     <TextControl
-                        label={ __( 'Domain', 'qckply' ) }
+                        label={ __( 'Domain', 'quick_playground' ) }
                         value={ domain || window.location.hostname }
                         onChange={ ( value ) => setAttributes( { domain: value } ) }
                     />
                     <TextControl
-                        label={ __( 'Profile', 'qckply' ) }
+                        label={ __( 'Profile', 'quick_playground' ) }
                         value={ profile }
                         onChange={ ( value ) => setAttributes( { profile: value } ) }
                     />
@@ -50,12 +50,12 @@ export default function Edit({ attributes, setAttributes }) {
                     ('iframe' == type) ? 
                     <div>
                     <TextControl
-                        label={ __( 'iframe Height', 'qckply' ) }
+                        label={ __( 'iframe Height', 'quick_playground' ) }
                         value={ iframeHeight }
                         onChange={ ( value ) => setAttributes( { iframeHeight: value } ) }
                     />
                     <TextControl
-                        label={ __( 'iframe Width', 'qckply' ) }
+                        label={ __( 'iframe Width', 'quick_playground' ) }
                         value={ iframeWidth }
                         onChange={ ( value ) => setAttributes( { iframeWidth: value } ) }
                     />
@@ -102,10 +102,10 @@ export default function Edit({ attributes, setAttributes }) {
 	</g>
 </g>
 </svg>
-&nbsp;&nbsp;&nbsp;  { label || __( 'Go to Playground', 'qckply' ) }
+&nbsp;&nbsp;&nbsp;  { label || __( 'Go to Playground', 'quick_playground' ) }
 </a></div>}
 				{'link' == type && 
-				<p><a href="#">{ label || __( 'Go to Playground', 'qckply' ) }</a></p>}
+				<p><a href="#">{ label || __( 'Go to Playground', 'quick_playground' ) }</a></p>}
 				{'iframe' == type && 
 				<div style={{backgroundColor:'#111',color:'#fff',width:iframeWidth,height:iframeHeight}}><p> iFrame version will be displayed here<br />
 				Domain: {domain} Profile: {profile}	

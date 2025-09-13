@@ -1,1 +1,1 @@
-console.log("Hello World! (from quick-playground-qckply block)");
+console.log("Hello World! (from quick-playground-quick_playground block)");

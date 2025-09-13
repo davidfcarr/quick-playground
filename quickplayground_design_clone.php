@@ -4,11 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * Displays the Design and Theme Playground admin page, handles cloning actions, and outputs API endpoints.
  */
 function qckply_clone_page() {
-    if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['profile']) || isset($_REQUEST['reset'])) && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
+    //if the request includes anything other than $_GET['page'], check nonce
+    if(sizeof($_REQUEST) > 1 && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
     {
         echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
         return;
-    }
+    }  
 
     echo '<h1>'.esc_html__('Quick Playground','quick-playground').'</h1>';
     echo '<h2>'.esc_html__('Design and Plugin Testing','quick-playground').'</h2>';

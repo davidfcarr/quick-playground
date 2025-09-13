@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  *
  * @return array Array of key page slugs.
  */
-function qckply_find_key_pages($profile = 'default') {
+function qckply_find_qckply_key_pages($profile = 'default') {
     $siteurl = rtrim(get_option('siteurl'),'/');
     $keypages = [];
     $output = '';
@@ -52,16 +52,16 @@ function qckply_find_key_pages($profile = 'default') {
         }
     }
 
-    set_transient('key_pages_html',$home_html); 
-    set_transient('key_pages',$keypages); 
+    set_transient('qckply_key_pages_html',$home_html); 
+    set_transient('qckply_key_pages',$keypages); 
     return $keypages;
 }
 
 /**
  * Outputs checkboxes for each key page found, for use in a form.
  */
-function qckply_key_pages_checkboxes() {
-    $keypages = qckply_find_key_pages();
+function qckply_qckply_key_pages_checkboxes() {
+    $keypages = qckply_find_qckply_key_pages();
     $done = [];
     foreach($keypages as $slug) {
         if(in_array($slug,$done))
@@ -78,8 +78,8 @@ function qckply_key_pages_checkboxes() {
  *
  * @return array Array of WP_Post objects for key pages.
  */
-function qckply_key_pages($profile = 'default') {
-    $keypages = qckply_find_key_pages($profile);
+function qckply_qckply_key_pages($profile = 'default') {
+    $keypages = qckply_find_qckply_key_pages($profile);
     $kp = [];
     $done = [];
     foreach($keypages as $slug) {
@@ -110,7 +110,7 @@ function qckply_find_key_images() {
         $extension = $matches[2][$index];
         $keyimages[] = $match.'.'.$extension;
     }
-    set_transient('key_pages_html',$home_html); 
+    set_transient('qckply_key_pages_html',$home_html); 
     set_transient('key_images',$keyimages); 
     return $keyimages;
 }
