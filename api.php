@@ -68,6 +68,7 @@ class Qckply_Blueprint extends WP_REST_Controller {
     }
     $blueprint = apply_filters('qckply_blueprint',$blueprint);
     $blueprint = qckply_fix_variables($blueprint);
+    qckply_hits($request['profile']);
     $response = new WP_REST_Response( $blueprint, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -389,12 +390,12 @@ class Qckply_Clone_Images extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
+	global $wpdb;
     $qckply_directories = qckply_get_directories();
     $qckply_site_uploads = $qckply_directories['site_uploads'];
     $qckply_uploads = $qckply_directories['uploads'];
     $qckply_uploads_url = $qckply_directories['uploads_url'];
     $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
-	global $wpdb;
   $profile = $request['profile'];
   $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
   $savedfile = $qckply_site_uploads.'/quickplayground_images_'.$profile.'.json';
@@ -423,7 +424,7 @@ class Qckply_Clone_Images extends WP_REST_Controller {
     //sanitized for only integer values
     $ids = $clone['ids'] = array_map('intval',$clone['ids']); 
     $placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
-    $results = $wpdb->get_results($wpdb->prepare("SELECT posts.* FROM %i meta JOIN %i ON meta.meta_value = posts.ID WHERE meta.post_id IN ($placeholders) and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC ",$wpdb->postmeta,$wpdb->posts,$ids));
+    $results = $wpdb->get_results($wpdb->prepare("SELECT posts.* FROM %i meta JOIN %i posts ON meta.meta_value = posts.ID  WHERE meta.post_id IN (".$placeholders.") and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC ",$wpdb->postmeta,$wpdb->posts,...$ids));
     if($first)
     { 
     $row = $wpdb->get_row($wpdb->prepare("SELECT posts.* FROM %i meta JOIN %i posts ON meta.meta_value = posts.ID WHERE meta.post_id = ".intval($first)." and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC ",$wpdb->postmeta,$wpdb->posts));

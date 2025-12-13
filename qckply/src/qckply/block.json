@@ -5,7 +5,7 @@
 	"version": "0.1.0",
 	"title": "Quick Playground",
 	"category": "widgets",
-	"icon": "smiley",
+	"icon": "superhero",
 	"description": "Configures and outputs a Quick Playground button, link, or iframe.",
 	"example": {},
 	"supports": {

@@ -51,7 +51,7 @@ $cat = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_title, tr.*,tt.*, 
   LEFT JOIN %i AS tr ON tr.object_id = p.ID
   LEFT JOIN %i AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
   LEFT JOIN %i AS terms ON terms.term_id = tt.term_id
- WHERE p.ID IN ($placeholders)",$wpdb->posts,$wpdb->term_relationships,$wpdb->term_taxonomy,$wpdb->terms,$ids) );
+ WHERE p.ID IN ($placeholders)",$wpdb->posts,$wpdb->term_relationships,$wpdb->term_taxonomy,$wpdb->terms,...$ids) );
  $terms = [];
  $tax = [];
  if(empty($cat))

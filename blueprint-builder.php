@@ -145,19 +145,24 @@ $qckply_json_url = get_qckply_api_url(['profile'=>$profile],true);
 
 $taxurl = rest_url('quickplayground/v1/clone_taxonomy/'.$profile.'?t='.time());
 $imgurl = rest_url('quickplayground/v1/clone_images/'.$profile.'?t='.time());
+$customurl = rest_url('quickplayground/v1/clone_custom/'.$profile.'?t='.time());
 
+echo '<a href="#qckply-builder-info" id="showtest">'.esc_html__('Show Test Links','quick-playground').'</a><div id="qckply-builder-info" class="hidden_item">';
 printf('<h3>For Testing</h3><p>Blueprint URL: <a href="%s" target="_blank">%s</a></p>',esc_url($qckply_api_url),esc_html($qckply_api_url));
 printf('<p>Blueprint, No Cache: <a href="%s&nocache=1" target="_blank">%s&nocache=1</a></p>',esc_url($qckply_api_url),esc_html($qckply_api_url));
 printf('<p>Blueprint API URL: <a href="%s&nocache=1" target="_blank">%s&nocache=1</a></p>',esc_url($qckply_json_url),esc_html($qckply_json_url));
 printf('<p>Clone Posts API URL: <br /><a href="%s" target="_blank">%s</a></p>',esc_url($qckply_clone_api_url),esc_html($qckply_clone_api_url));
 printf('<p>Clone Metadata/Taxonomy API URL: <br /><a href="%s" target="_blank">%s</a></p>',esc_url($taxurl),esc_html($taxurl));
 printf('<p>Clone Images API URL: <br /><a href="%s" target="_blank">%s</a></p>',esc_url($imgurl),esc_html($imgurl));
+printf('<p>Clone Custom API URL: <br /><a href="%s" target="_blank">%s</a></p>',esc_url($customurl),esc_html($customurl));
 //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
 printf('<p>Demo playground button code</p><p><textarea cols="100" rows="5">%s</textarea></p>',esc_html(qckply_get_button(['profile',$profile,'is_demo'=>1])));
 qckply_get_blueprint_link(['profile'=>$profile,'is_demo'=>1]);
 qckply_print_button_shortcode(['profile'=>$profile,'is_demo'=>1]);
 
 $pages = qckply_find_qckply_key_pages();
+show_qckply_hits();
+echo '</div>';
 
 }
 

@@ -85,10 +85,16 @@ function blueprint_settings_init($profile) {
         $blueprint = $result[0];
         $settings = $result[1];
         update_option('quickplay_clone_settings_'.$profile,$settings);
+        if('quickplayground' == $_GET['page']) {
+        printf('<div class="notice notice-success"><p>%s <a href="%s">%s</a></p></div>',esc_html__('Initialized with default settings and current theme but no plugins.','quick-playground'),esc_attr(admin_url('admin.php?page=qckply_builder')),esc_html__('Customize','quick-playground'));
+        }
+        else {
+        printf('<div class="notice notice-success"><p>%s</p></div>',esc_html__('Initialized with default settings and current theme but no plugins.','quick-playground'));
+        }
     }
     $screen = get_current_screen();
     $pagechoice = strpos($screen->id,'builder') ? '<input type="radio" name="page" value="quickplayground" /> Gallery <input type="radio" name="page" value="qckply_builder" checked="checked" /> Builder ' : '<input type="radio" name="page" value="quickplayground" checked="checked" /> Gallery <input type="radio" name="page" value="qckply_builder" /> Builder ';
-    printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile"><label>Profile</label> <select id="qckply-switcher" name="profile">%s</select> %s <button>Switch</button></div>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()));
+    printf('<form method="get" action="%s" class="qckply-form" > <div id="switch_add_profile"><label>Profile</label> <select id="qckply-switcher" name="profile">%s</select> %s <input type="checkbox" name="reset" value="1" /> %s <button>Switch</button></div>',esc_attr(admin_url('admin.php')),wp_kses($ppoptions, qckply_kses_allowed()),wp_kses($pagechoice, qckply_kses_allowed()),esc_html__('Reset','quick-playground'));
     wp_nonce_field('quickplayground','playground',true,true);
     echo '</form>';
 }

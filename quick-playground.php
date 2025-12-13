@@ -3,7 +3,7 @@
  * Plugin Name: Quick Playground
  * Plugin URI:  https://quickplayground.com
  * Description: Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites.
- * Version:     0.9.9.2
+ * Version:     1.0.2
  * Author:      David F. Carr
 *  License:     GPL2
 *  Text Domain: quick-playground
@@ -86,7 +86,7 @@ echo '</div>';
         //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
         printf('<div class="qckply-stylesheet"><div style="">Theme: %s</div><div class="qckply-theme-screenshot"><img src="%s" width="300" /></div><div class="qckply-theme-button">',esc_html($theme->Name),esc_attr($screenshot));
         qckply_get_button(['profile'=>$profile,'stylesheet'=>$theme->stylesheet],true);
-        printf('<br /></div><p><a href="%s">BluePrint JSON</a></p>%s</div>',esc_url($blueprint_url),wp_kses_post(qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet])));
+        printf('<br /></div>%s</div>',wp_kses_post(qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet])));
     }
     echo '</div>';
     }
@@ -101,12 +101,12 @@ function qckply_enqueue_admin_script( $hook = '' ) {
     if ( !strpos($hook,'uick-playground') && !strpos($hook,'quickplayground') && !qckply_is_playground()) {
         return;
     }
-    wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.5',['in_footer'=>true] );
+    wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.75',['in_footer'=>true] );
     wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.2' );
 }
 function qckply_enqueue_script( $hook = '' ) {
     if ( qckply_is_playground()) {
-        wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.5',['in_footer'=>true] );
+        wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.6',['in_footer'=>true] );
         wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.2' );
     }
 }

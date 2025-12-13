@@ -6,9 +6,9 @@ Tags: testing, staging, demo, playground
 
 Requires at least: 6.2  
 
-Tested up to: 6.8
+Tested up to: 6.9
 
-Stable tag: 0.9.9.2
+Stable tag: 1.0.2
 
 License: GPLv2 or later  
 
@@ -18,7 +18,9 @@ Simplify creation of WordPress Playground test, staging, and demo sites. Specify
 
 == Description ==
 
-The Quick Playground plugin provides a safe and convenient way to test new designs and features for your WordPress website, or to create demos and share proposed design changes. It creates a clone of your website's home page and key content, allowing you to experiment with design changes without affecting your live website.
+The Quick Playground plugin provides a safe and convenient way to test new designs and features for your WordPress website, or to create demos and share proposed design changes. It creates a clone of your website's home page and key content, allowing you to experiment with plugins, themes, and design changes without affecting your live website.
+
+https://youtu.be/2nrRLy6bXZk
 
 The plugin takes advantage of WordPress Playground, the innovative software that simulates a complete PHP/WordPress/database server environment running in your web browser for testing and experimentation. Quick Playground simplifies the creation of Playground Blueprints, which define steps such as installing themes and plugins and loading content. No need to hand-code JSON or arrange for code to be served from Github.
 
@@ -32,7 +34,7 @@ Features:
 
 - Test new designs in a WordPress Playground environment.
 
-- Works on WordPress multisite (clones the individual site, not the whole network). Network administrator can set default themes and plugins to include or exclude.
+- Works on WordPress multisite (clones the individual site, not the whole network). With the Pro version (see below), the multisite network administrator can set default themes and plugins to include or exclude.
 
 Pro Version Upgrades
 
@@ -82,11 +84,18 @@ Yes, the plugin includes an experimental feature for syncing changes back to you
 
 No, the Playground environment is completely separate from your live website. Changes made in the Playground do not affect your live website unless you explicitly sync them back.
 
+== Screenshots ==
+
+1. The Quick Playground Blueprint Builder screen lets you specify the themes, plugins, and content to be included in a Playground.
+2. A Go to Playground button embedded in a web page, good for demos or education.
+3. The Quick Playground block lets you specify a Playground profile and display options (button, link, or embedded iFrame).
+4. The optional iFrame display of a Playround lets you include a sidebar with an explanation or instructions, for example in the context of a tutorial.
+
 == Changelog ==
 
-= 0.9.6 to 0.9.9 =  
+= 1.0 =  
 
-* Pre-release revisions.
+* First public release to the WordPress plugins repository.
 
 == License ==
 

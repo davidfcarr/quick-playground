@@ -95,7 +95,7 @@ function qckply_design_qckply_menus() {
 function qckply_postmeta($ids) {
     global $wpdb;
     $placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
-    return $wpdb->get_results($wpdb->prepare("SELECT * FROM %i where post_id IN ($placeholders) ",$wpdb->postmeta,$ids));
+    return $wpdb->get_results($wpdb->prepare("SELECT * FROM %i where post_id IN ($placeholders) ",$wpdb->postmeta,...$ids));
 }
 
 /**
@@ -762,4 +762,20 @@ usort($image_sizes, function($a, $b) {
     return $a['filesize'] < $b['filesize'] ? 1 : -1; // PHP 7+ spaceship operator for concise comparison
 });
 return $image_sizes;
+}
+
+function qckply_hits($profile) {
+    $hits = get_option('qckply_hits',['default'=>0]);
+    $hits[$profile] = isset($hits[$profile]) ? $hits[$profile] + 1 : 1;
+    update_option('qckply_hits',$hits);
+    return $hits;
+}
+
+function show_qckply_hits() {
+    $hits = get_option('qckply_hits',['default'=>0]);
+    echo '<h3>'.esc_html__('Views','quick-playground').'</h3><ul>';
+    foreach($hits as $profile => $count) {
+        printf('<li>%s: %d</li>',esc_html($profile),intval($count));
+    }
+    echo '</ul>';
 }

@@ -52,6 +52,9 @@ function qckply_makeThemeItem($slug, $public = true, $activate = false) {
  * @return array       Blueprint step array.
  */
 function qckply_makeCodeItem($code) {
+    if(is_array($code)) {
+        die(var_export($code, true));
+    }
     $prefix = '';
     if(!strpos($code, '?php')) {
         $prefix = "<?php \n";

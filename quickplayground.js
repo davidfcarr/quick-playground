@@ -28,6 +28,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    const showTest = document.getElementById('showtest');
+
+    showTest.addEventListener('click', function(event) {
+      const info = document.getElementById('qckply-builder-info');
+      console.log('info',info);
+      info.classList.remove('hidden_item');
+      showTest.style.display = 'none';
+      info.style.display = 'block';
+    });
+
 });
 
 document.addEventListener("DOMContentLoaded", function () {

@@ -93,16 +93,6 @@ function qckply_build($postvars, $profile = 'default') {
     );
     $steps[] = qckply_makeBlueprintItem('login');
 
-    if(!empty($postvars['repo'])) {
-        $urls = explode("\n",$postvars['repo']);
-        foreach($urls as $url) {
-            if(strpos($url,'/plugins/'))
-                $steps[] = qckply_makePluginItem(basename($url),true,true);
-            elseif(strpos($url,'/themes/'))
-                $steps[] = qckply_makeThemeItem(basename($url),true,false);
-        }
-    }
-
     if(isset($postvars['add_theme'])) {
         foreach($postvars['add_theme'] as $i => $slug) {
             if(empty($slug) || in_array($slug, $themeslugs)) {
