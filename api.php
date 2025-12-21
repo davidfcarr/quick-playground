@@ -49,8 +49,8 @@ class Qckply_Blueprint extends WP_REST_Controller {
   public function get_items($request) {
     do_action('qckply_fetch_blueprint');
     qckply_zip_plugin("quick-playground");
-    $email = $key = '';
-    $blueprint = get_option('qckply_blueprint_'.$request['profile']);
+    $profile = sanitize_text_field($request['profile']);
+    $blueprint = get_option('qckply_blueprint_'.$profile);
     if (!$blueprint) {
         return new WP_REST_Response(array('error'=>'blueprint_not_found'), 404);
     }
@@ -58,8 +58,11 @@ class Qckply_Blueprint extends WP_REST_Controller {
       //no nonce check because this can be called from a static link
       $blueprint = qckply_swap_theme($blueprint, sanitize_text_field(wp_unslash($_GET['stylesheet'])));
     }
-    if(!empty($_GET['is_demo'])) {
+    if(empty($_GET['is_demo'])) {
       //no nonce check because this can be called from a static link
+      $blueprint = qckply_change_blueprint_setting($blueprint, array('qckply_sync_code'=>qckply_cloning_code($profile)));
+    } 
+    else {
       $blueprint = qckply_change_blueprint_setting($blueprint, array('qckply_is_demo'=>true));
     }
     if(!empty($_GET['nocache'])) {
@@ -67,8 +70,7 @@ class Qckply_Blueprint extends WP_REST_Controller {
       $blueprint = qckply_change_blueprint_setting($blueprint, array('qckply_no_cache'=>true));
     }
     $blueprint = apply_filters('qckply_blueprint',$blueprint);
-    $blueprint = qckply_fix_variables($blueprint);
-    qckply_hits($request['profile']);
+    qckply_hits($profile);
     $response = new WP_REST_Response( $blueprint, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -168,15 +170,18 @@ class Qckply_Clone extends WP_REST_Controller {
         }
     }
 
-    $sql = $wpdb->prepare("SELECT * FROM %i WHERE post_status='publish' AND (`post_type` = 'rsvpmaker_form' OR `post_type` = 'rsvpmaker_template' OR `post_type` = 'wp_block' OR `post_type` = 'wp_global_styles' OR `post_type` = 'wp_navigation' OR `post_type` = 'wp_template' OR `post_type` = 'wp_template_part' ",$wpdb->posts);
+    $params = [$wpdb->posts];
+    $sql = "SELECT * FROM %i WHERE post_status='publish' AND (`post_type` = 'rsvpmaker_form' OR `post_type` = 'rsvpmaker_template' OR `post_type` = 'wp_block' OR `post_type` = 'wp_global_styles' OR `post_type` = 'wp_navigation' OR `post_type` = 'wp_template' OR `post_type` = 'wp_template_part' ";
     if(!empty($settings['post_types']) && is_array($settings['post_types']))
     {
-      foreach($settings['post_types'] as $t)
+      foreach($settings['post_types'] as $t) {
         $t = sanitize_text_field($t);
-        $sql .= $wpdb->prepare(" OR `post_type` = %s ",$t);
+        $sql .= " OR `post_type` = %s ";
+        $params[] = $t;
+      }
     }
     $sql .= ")";
-    $templates = $wpdb->get_results($sql);
+    $templates = $wpdb->get_results($wpdb->prepare($sql, $params));
     foreach($templates as $p) {
       $clone['ids'][] = $p->ID;
       $posts[] = $p;

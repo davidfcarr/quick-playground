@@ -3,7 +3,7 @@
  * Plugin Name: Quick Playground
  * Plugin URI:  https://quickplayground.com
  * Description: Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites.
- * Version:     1.0.2
+ * Version:     1.0.3
  * Author:      David F. Carr
 *  License:     GPL2
 *  Text Domain: quick-playground
@@ -41,6 +41,11 @@ function qckply_get_directories()
  * and outputs the UI for managing playground profiles, themes, and plugins.
  */
 function qckply_main() {
+    if(qckply_is_playground()) {
+        qckply_clone_page();//client versionp
+        return;
+    }
+
     //if the request includes anything other than $_GET['page'], check nonce
     if(sizeof($_REQUEST) > 1 && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
     {
@@ -60,7 +65,7 @@ function qckply_main() {
     $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field(wp_unslash($_REQUEST['profile'])))) : 'default';
     printf('<h2>Quick Playground for %s: %s</h2>',esc_html(get_bloginfo('name')),esc_html($profile));
     $stylesheet = get_stylesheet();
-    blueprint_settings_init($profile);
+    qckply_blueprint_settings_init($profile);
     $origin_url = rtrim(get_option('siteurl'),'/');
     $blueprint = get_option('qckply_blueprint_'.$profile, array());
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
@@ -81,7 +86,7 @@ echo '</div>';
     foreach($themes as $theme) {
         if($theme->stylesheet == $stylesheet)
             continue;
-        $blueprint_url = get_qckply_api_url(['profile'=>$profile,'stylesheet'=>$theme->stylesheet]);
+        $blueprint_url = qckply_get_api_url(['profile'=>$profile,'stylesheet'=>$theme->stylesheet]);
         $screenshot = $theme->get_screenshot(); ///get_stylesheet_directory_uri().'/screenshot.png';
         //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
         printf('<div class="qckply-stylesheet"><div style="">Theme: %s</div><div class="qckply-theme-screenshot"><img src="%s" width="300" /></div><div class="qckply-theme-button">',esc_html($theme->Name),esc_attr($screenshot));
@@ -120,7 +125,7 @@ add_action( 'wp_enqueue_scripts', 'qckply_enqueue_script' );
  * @param string $profile    The profile name.
  * @return string            The API URL.
  */
-function get_qckply_api_url($args=[], $json_url = false) {
+function qckply_get_api_url($args=[], $json_url = false) {
     global $current_user;
     if(isset($args['url']))
         return 'https://playground.wordpress.net/?blueprint-url='.urlencode($args['url']);
@@ -136,7 +141,7 @@ function get_qckply_api_url($args=[], $json_url = false) {
     $display = get_option('qckply_display_'.$profile,[]);
     if(isset($args['iframe']))
         $display['iframe'] = sanitize_text_field($args['iframe']);
-    if(!$json_url && (empty($display['iframe']) || 'no_iframe' != $display['iframe'])) {
+    if(!$json_url && (!empty($display['iframe']) && 'no_iframe' != $display['iframe'])) {
     $server_name = isset($_SERVER['SERVER_NAME']) ? sanitize_text_field(wp_unslash($_SERVER['SERVER_NAME'])) : '';
     $getv = ['quick_playground'=>$profile,'domain'=>empty($args['domain']) ? $server_name : sanitize_text_field($args['domain'])];
     if(!empty($display['iframe']) && 'no_sidebar' != $display['iframe'] && !empty($display['iframe_sidebar']))
@@ -179,7 +184,7 @@ function qckply_get_button_shortcode($args) {
  */
 function qckply_get_button($args = ['profile' => 'default'], $echo = false) {
 global $current_user;
-$qckply_api_url = get_qckply_api_url($args);
+$qckply_api_url = qckply_get_api_url($args);
 ob_start();
 printf('<div><a target="_blank" href="%s" style="
   background-color: #004165;
@@ -246,12 +251,12 @@ else {
  */
 function qckply_get_blueprint_link($args = ['profile'=>'default','stylesheet' => '']) {
 $args['is_demo'] = true;
-$qckply_api_url = get_qckply_api_url($args);
+$qckply_api_url = qckply_get_api_url($args);
 return '<p><a href="'.$qckply_api_url.'">Public Link</a></p>';
 }
 
 function qckply_print_button_shortcode($args = ['profile'=>'default','is_demo' => '1']) {
-//$qckply_api_url = get_qckply_api_url($args);
+//$qckply_api_url = qckply_get_api_url($args);
 echo '<h3>Quick Playground Button Shortcode for Demos</h3>';
 echo '<p>[qckply_button ';
 if(empty($args['domain']))

@@ -8,7 +8,7 @@ Requires at least: 6.2
 
 Tested up to: 6.9
 
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 
 License: GPLv2 or later  
 
@@ -32,17 +32,19 @@ Features:
 
 - Experiment with themes and plugins, including unpublished custom code.
 
-- Test new designs in a WordPress Playground environment.
-
-- Works on WordPress multisite (clones the individual site, not the whole network). With the Pro version (see below), the multisite network administrator can set default themes and plugins to include or exclude.
-
-Pro Version Upgrades
+- Test new block theme design customizations in a WordPress Playground environment before implementing them on your live site. 
 
 - Save changes for future playground sessions, allowing you to keep experimenting.
 
 - Create demo environments separate from your live website content, for example to showcase themes, plugins, or hosting services.
 
 - Sync changes back to your live website. For example, you can prototype block theme changes in Playground and copy the updated templates or template parts back to the live site.
+
+- Define pop-up prompts / help tips to be displayed on any front end or admin page within the playground environment.
+
+- Works on WordPress multisite (clones the individual site, not the whole network). The multisite network administrator can set default themes and plugins to include or exclude.
+
+Note: some of these features were previously reserved for a "Pro" version but are now available for free. You're welcome.
 
 Learn more at [quickplayground.com](https://quickplayground.com)
 
@@ -90,6 +92,7 @@ No, the Playground environment is completely separate from your live website. Ch
 2. A Go to Playground button embedded in a web page, good for demos or education.
 3. The Quick Playground block lets you specify a Playground profile and display options (button, link, or embedded iFrame).
 4. The optional iFrame display of a Playround lets you include a sidebar with an explanation or instructions, for example in the context of a tutorial.
+
 
 == Changelog ==
 

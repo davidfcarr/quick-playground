@@ -53,7 +53,7 @@ function qckply_makeThemeItem($slug, $public = true, $activate = false) {
  */
 function qckply_makeCodeItem($code) {
     if(is_array($code)) {
-        die(var_export($code, true));
+        die(wp_kses_post(var_export($code, true)));
     }
     $prefix = '';
     if(!strpos($code, '?php')) {

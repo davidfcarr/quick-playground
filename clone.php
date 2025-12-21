@@ -17,27 +17,27 @@ function qckply_clone_init() {
  */
 function qckply_clone( $target = null ) {
 
-    global $wpdb, $current_user, $baseurl, $mysite_url;
+    global $wpdb, $current_user, $qckply_baseurl, $qckply_mysite_url;
     $localdir = trailingslashit(plugin_dir_path( __FILE__ ));
-    $baseurl = get_option('qckply_sync_origin');
-    $mysite_url = rtrim(get_option('siteurl'),'/');
+    $qckply_baseurl = get_option('qckply_sync_origin');
+    $qckply_mysite_url = rtrim(get_option('siteurl'),'/');
     $page_on_front = get_option('page_on_front');
-    if(empty($baseurl)) {
+    if(empty($qckply_baseurl)) {
         return '<p>Error: No base URL set for cloning. Please set the playground sync origin in the settings.</p>';
     }
     $qckply_profile = get_option('qckply_profile','default');
     
     update_user_meta( $current_user->ID, 'tm_member_welcome', time() );
 
-    if($baseurl == $mysite_url) {
+    if($qckply_baseurl == $qckply_mysite_url) {
         return '<p>Error: You cannot clone your own website</p>';
     }
 
-    $url = $baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
-    $taxurl = $baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$qckply_profile.'?t='.time();
-    $settingsurl = $baseurl .'/wp-json/quickplayground/v1/clone_settings/'.$qckply_profile.'?t='.time();
-    $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
-    $customurl = $baseurl .'/wp-json/quickplayground/v1/clone_custom/'.$qckply_profile.'?t='.time();
+    $url = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
+    $taxurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$qckply_profile.'?t='.time();
+    $settingsurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_settings/'.$qckply_profile.'?t='.time();
+    $imgurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
+    $customurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_custom/'.$qckply_profile.'?t='.time();
 
     error_log('qckply_clone called with url: '.$url);  
     if(empty($target) || 'posts' == $target) {
@@ -104,7 +104,7 @@ function qckply_clone( $target = null ) {
             $out = 'post: '.intval($post['ID']).' '.esc_html($post['post_title'].' '.$post['post_type'])."<br>\n";
             $clone = qckply_clone_output($clone, $out);
             if('wp_navigation' == $post['post_type']) {
-                $post['post_content'] = str_replace($baseurl,$mysite_url,$post['post_content']);
+                $post['post_content'] = str_replace($qckply_baseurl,$qckply_mysite_url,$post['post_content']);
             }
             //removed isset($_GET['page']) && 
             if($post['ID'] == $page_on_front) {
@@ -180,10 +180,10 @@ function qckply_clone( $target = null ) {
         if(empty($clone['make_menu_ids'])) {
             if(sizeof($page_ids) > 6)
                 $page_ids = array_slice($page_ids, 0, 6);
-            quickmenu_build_navigation($page_ids);
+            qckply_build_navigation($page_ids);
         }
         else {
-            quickmenu_build_navigation($clone['make_menu_ids']);
+            qckply_build_navigation($clone['make_menu_ids']);
         }
     } 
 
@@ -471,7 +471,7 @@ function qckply_clone( $target = null ) {
  *
  * @param array $ids Array of page IDs to include in the navigation.
  */
-function quickmenu_build_navigation($ids) {
+function qckply_build_navigation($ids) {
     global $wpdb;
 if(!wp_is_block_theme())
     return;
@@ -565,12 +565,12 @@ function qckply_clone_images($target) {
     $qckply_directories = qckply_get_directories();
     $qckply_uploads = $qckply_directories['uploads'];
     $localdir = trailingslashit(plugin_dir_path( __FILE__ ));
-    $baseurl = get_option('qckply_sync_origin');
+    $qckply_baseurl = get_option('qckply_sync_origin');
     $no_cache = get_option('qckply_no_cache',false);
-    $mysite_url = rtrim(get_option('siteurl'),'/');
+    $qckply_mysite_url = rtrim(get_option('siteurl'),'/');
     $qckply_profile = get_option('qckply_profile','default');
     
-    $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
+    $imgurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
     if($no_cache) $imgurl .= '&nocache=1';
    // || empty($target))
     if(('images' == $target) || empty($target))  {

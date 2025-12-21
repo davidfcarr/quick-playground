@@ -14,15 +14,15 @@ function qckply_clone_page() {
     echo '<h1>'.esc_html__('Quick Playground','quick-playground').'</h1>';
     echo '<h2>'.esc_html__('Design and Plugin Testing','quick-playground').'</h2>';
     echo '<p>'.esc_html__('Use this screen to manually re-import any content that may not have imported correctly','quick-playground').'</p>';
-    $baseurl = get_option('qckply_sync_origin');
+    $qckply_baseurl = get_option('qckply_sync_origin');
     $no_cache = get_option('qckply_no_cache',false);
     $qckply_profile = get_option('qckply_profile','default');
     $prompts = qckply_get_prompts_remote($qckply_profile);
-    $url = $baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
+    $url = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
     if($no_cache) $url .= '&nocache=1';
-    $taxurl = $baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$qckply_profile.'?t='.time();
+    $taxurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$qckply_profile.'?t='.time();
     if($no_cache) $taxurl .= '&nocache=1';
-    $imgurl = $baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
+    $imgurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
     if($no_cache) $imgurl .= '&nocache=1';
 
     $local_directories = qckply_get_directories();

@@ -17,7 +17,7 @@ function qckply_top_ids($fresh = false) {
     global $wpdb;
     if(!$fresh) {
     $top = get_option('qckply_top_ids',[]);
-    if(!empty($top['post_modified']))
+    if(is_array($top) && !empty($top['post_modified']))
         return $top;
     }
     $top['posts'] = $wpdb->get_var($wpdb->prepare("SELECT ID FROM %i ORDER BY ID DESC",$wpdb->posts));

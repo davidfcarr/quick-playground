@@ -226,10 +226,6 @@ function qckply_build($postvars, $profile = 'default') {
     }
     $steps[] = qckply_makeBlueprintItem('setSiteOptions',null, $settings);    
     qckply_zip_plugin("quick-playground");
-    if(function_exists('Proqckply_playgroundData')) {
-        $plugindata = Proqckply_playgroundData();
-        $steps[] = qckply_makeBlueprintItem('installPlugin', array('pluginData'=>$plugindata), array('activate'=>true));
-    }
     $steps[] = qckply_makePluginItem("quick-playground", false, true);
     $steps[] = qckply_makeCodeItem('qckply_clone("posts");');
 

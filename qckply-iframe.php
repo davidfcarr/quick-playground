@@ -33,7 +33,7 @@ function qckply_sidebar_default() {
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>For more information on what Quick Playground can do, visit <a href="https://quickplayground.com" target="_blank" rel="noopener">quickplayground.com</a>.</p>
+<p>For more on Quick Playground, visit <a href="https://quickplayground.com" target="_blank" rel="noopener">quickplayground.com</a>.</p>
 <!-- /wp:paragraph -->';
 }
 
@@ -50,7 +50,7 @@ function qckply_iframe() {
         $blueprint_domain = sanitize_text_field(wp_unslash($_GET['domain']));
         $blueprint_profile =  sanitize_text_field(wp_unslash($_GET['quick_playground']));
         //as noted in readme.txt, users may configure Quick Playground to display content from other websites that also run Quick Playground
-        $blueprint_url = 'https://'.$blueprint_domain.'/wp-json/quickplayground/v1/blueprint/'.$blueprint_profile.'?t='.time();
+        $blueprint_url = 'https://'.$blueprint_domain.'/wp-json/quickplayground/v1/blueprint/'.$blueprint_profile.'?ts='.time();
         $display = get_option('qckply_display_'.$blueprint_profile,[]);
         $title = empty($display['iframe_title']) ? 'Quick Playground' : sanitize_text_field($display['iframe_title']);
         $sidebar_id = isset($_GET['sidebar']) ? intval($_GET['sidebar']) : 0;

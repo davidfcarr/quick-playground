@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @param string $profile    The profile name.
  * @param string $stylesheet The current theme stylesheet.
  */
-function blueprint_settings_init($profile) {
+function qckply_blueprint_settings_init($profile) {
     if(isset($_POST['build_profile'])) {
     //if the request includes anything other than $_GET['page'], check nonce
     if(sizeof($_REQUEST) > 1 && (empty( $_REQUEST['playground']) || !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) )) 
@@ -21,6 +21,7 @@ function blueprint_settings_init($profile) {
         $settings = $result[1];
         $cachemessage = qckply_cache_message($profile,$settings);
         update_option('quickplay_clone_settings_'.$profile,$settings);
+        update_option('qckply_disable_sync_'.$profile,!empty($_POST['qckply_disable_sync']));
         $display = isset($_POST['qckply_display']) ? array_map('sanitize_text_field',wp_unslash($_POST['qckply_display'])) : [];
         if($display['iframe'] == 'custom_sidebar' && empty($display['iframe_sidebar'])) {
             $new['post_content'] = qckply_sidebar_default();
