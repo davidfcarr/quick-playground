@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 add_action('init','qckply_update_tracking');
 function qckply_update_tracking() {
     //if we're in a playground and the initial import is done
-    if(qckply_is_playground() && get_option('qckply_sync_date',false)) {
+    if(qckply_is_playground()) {
     add_action('wp_after_insert_post','qckply_post_updated');
     add_action('post_updated','qckply_post_updated');
     add_action('updated_option','qckply_updated_option');
@@ -13,7 +13,7 @@ function qckply_update_tracking() {
     }
 }
 
-function qckply_top_ids($fresh = false) {
+function qckply_top_ids($fresh = false, $update = true) {
     global $wpdb;
     if(!$fresh) {
     $top = get_option('qckply_top_ids',[]);
@@ -25,7 +25,7 @@ function qckply_top_ids($fresh = false) {
     $top['terms'] = $wpdb->get_var($wpdb->prepare("SELECT term_id FROM %i ORDER BY term_id DESC",$wpdb->terms));
     $top['term_taxonomy'] = $wpdb->get_var($wpdb->prepare("SELECT term_taxonomy_id FROM %i ORDER BY term_taxonomy_id DESC",$wpdb->term_taxonomy));
     $top['post_modified'] = $wpdb->get_var($wpdb->prepare("SELECT post_modified FROM %i ORDER BY post_modified DESC",$wpdb->posts));
-    if(!$fresh)
+    if($update)
         update_option('qckply_top_ids',$top);
     return $top;
 }
@@ -41,12 +41,10 @@ function qckply_post_updated($post_id) {
     }
 }
 
-/**
-*/
 function qckply_updated_option($option) {
-    if(strpos($option,'layground_updated'))
+    if(strpos($option,'ckply_updated'))
         return;
-    $excluded = ['cron','wp_user_roles','fresh_site','users_can_register'];
+    $excluded = ['cron','wp_user_roles','fresh_site','users_can_register','siteurl','home'];
     if(in_array($option,$excluded) || strpos($option,'transient'))
         return;
     $updated = get_option('qckply_updated_options',array());

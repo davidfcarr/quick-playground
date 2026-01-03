@@ -24,7 +24,7 @@ printf('<h1>%s: %s</h1>', esc_html(get_bloginfo('name')), esc_html($profile));
 qckply_blueprint_settings_init($profile);
 $qckply_api_url = rest_url('quickplayground/v1/blueprint/'.$profile).'?x='.time().'&user_id='.$current_user->ID;
 $qckply_clone_api_url = rest_url('quickplayground/v1/clone_posts/'.$profile);
-$origin_url = rtrim(get_option('siteurl'),'/');
+$origin_url = site_url();
 $blueprint = get_option('qckply_blueprint_'.$profile, array());
 $settings = get_option('quickplay_clone_settings_'.$profile,array());
 $stylesheet = $settings['qckply_clone_stylesheet'] ?? $stylesheet;
@@ -38,6 +38,7 @@ do_action('qckply_form_top');
 
 printf('<form class="qckply-form" method="post" action="%s"> <input type="hidden" name="build_profile" value="1">',esc_attr(admin_url('admin.php?page=qckply_builder')));
 wp_nonce_field('quickplayground','playground',true,true);
+printf('<p><input type="checkbox" name="reset_cache[]" value="all" /> %s %s</p>',esc_html__('Reset','quick-playground'),esc_html__('All','quick-playground'));
 echo '<p><button>Refresh</button></p>';
 echo '<h2>Customization Options</h2>';
 printf('<p>Loading saved blueprint for profile %s with %d steps defined. You can add or modify themes, plugins, and settings below.</p>',esc_html($profile),intval(sizeof($blueprint['steps'])));
@@ -77,7 +78,7 @@ printf('<p><label>%s</label> <select name="settings[page_on_front]">%s</select><
 
 printf('<p><input type="checkbox" name="settings[qckply_key_pages]" value="1" %s > Include key pages and posts (linked to from the home page or menu)</p>',(!isset($settings['qckply_key_pages']) || $settings['qckply_key_pages']) ? ' checked="checked" ' : '');
 
-printf('<p><label>Copy</label> <input type="checkbox" name="settings[copy_pages]" value="1" %s > all published pages <input style="width:5em" type="number" name="settings[copy_blogs]" value="%d" size="3" > latest blog posts</p>',!empty($settings['copy_pages']) ? ' checked="checked" ' : '',(!isset($settings['copy_blogs']) || $settings['copy_blogs']) ? intval($settings['copy_blogs']) : 10);
+printf('<p><label>Copy</label> <input type="checkbox" name="settings[copy_pages]" value="1" %s > all published pages <input style="width:5em" type="number" name="settings[copy_blogs]" value="%d" size="3" > latest blog posts</p>',!empty($settings['copy_pages']) ? ' checked="checked" ' : '',intval($settings['copy_blogs']));
 
 if(!empty($settings['demo_pages']) && is_array($settings['demo_pages'])) {
     foreach($settings['demo_pages'] as $page_id) {
@@ -109,23 +110,14 @@ for($i = 0; $i < 10; $i++) {
         '<option value="">' . esc_html__('Choose Blog Post', 'quick-playground') . '</option>' . wp_kses($post_options, qckply_kses_allowed())
     );
 }
+$att = get_option('qckply_profile_images_'.$profile,[]);
+printf('<p><label>%s</label> <input type="text" name="attachments" value="%s" size="80" /><br /><em>%s</em></p>',esc_html__('Attachment IDs','quick-playground'),implode(',',$att),esc_html__('If you want to include specific media files in the Playground, enter a comma-separated list of attachment IDs.','quick-playground'));
 
 do_action('qckply_form_demo_content',$settings);
 
 printf('<p><label>%s</label> <input name="settings[%s]" type="text" value="%s" /></p>','Site Name','blogname',esc_attr($settings['blogname']));
 printf('<p><label>%s</label> <input name="settings[%s]" type="text" value="%s" /></p>','Site Description','blogdescription',esc_attr($settings['blogdescription']));
 
-echo '<h2>'.esc_html__('Content Saved from Past Sessions','quick-playground').'</h2>';
-$caches = qckply_caches($profile);
-if(empty($caches)) {
-echo '<p>'.esc_html__('none','quick-playground').'</p>';
-}
-else {
-    foreach($caches as $cache) {
-        printf('<p><input type="checkbox" name="reset_cache[]" value="%s" /> %s %s</p>',esc_attr($cache),esc_html__('Reset','quick-playground'),esc_html(ucfirst($cache)));
-    }
-    echo '<p>'.esc_html__('Resetting will force the playground to fetch fresh content.','quick-playground').'</p>';
-}
 
 printf('<p><label>%s</label> <input type="text" name="settings[qckply_landing]" value="%s" /><br /><em>%s</em></p>',esc_html__('Landing Page (optional)','quick-playground'),empty($settings['qckply_landing']) ? '' : esc_attr($settings['qckply_landing']),esc_html__('If you want the user to start somewhere other than the home page, enter the path. Example "/wp-admin/" or "/demo-instructions/"','quick-playground'));
 printf('<p><label>%s</label> <input type="radio" name="settings[show_playground_prompt_keys]" value="1" %s /> %s <input type="radio" name="settings[show_playground_prompt_keys]" value="0" %s /> %s<br /><em>%s</em></p>',esc_html__('Prompt for Prompts','quick-playground'),
@@ -135,6 +127,7 @@ printf('<p>%s:<br /><input type="radio" name="qckply_display[iframe]" value="no_
 printf('<input type="hidden" name="qckply_display[iframe_sidebar]" value="%d" />%s',empty($display['iframe_sidebar']) ? '0' : intval($display['iframe_sidebar']),empty($display['iframe_sidebar']) ? '' : '<p><a target="_blank" href="'.esc_attr(admin_url('post.php?action=edit&post='.intval($display['iframe_sidebar']))).'">'.esc_html__('Edit Custom Sidebar','quick-playground').'</a></p>');
 printf('<p><label>%s</label> <input type="number" class="number_input" name="qckply_display[sidebar_width]" value="%d" /> (pixels)</p>',esc_html__('Sidebar Width','quick-playground'),empty($display['sidebar_width']) ? 300 : intval($display['sidebar_width']));
 printf('<p><label>%s</label> <input type="text" name="qckply_display[iframe_title]" value="%s" /> </p>',esc_html__('Page Title for iframe','quick-playground'),empty($display['iframe_title']) ? esc_attr(get_option('blogname')) : esc_attr($display['iframe_title']));
+printf('<p><em>%s</em></p><ul></ul>',esc_html__('Enable the iframe to add more branding to your playground. One tradeoff to keep in mind: Links opened in a new tab do not display properly. If your purpose is to demonstrate editor functions, iframe display will tend to get in the way because the View Post link displayed after content is saved opens in a new tab by default.'));
 
 echo '<p><input type="checkbox" name="show_details" value="1" /> Show Detailed Output</p>';
 echo '<p><input type="checkbox" name="show_blueprint" value="1" /> Show Blueprint JSON</p>';
@@ -142,8 +135,22 @@ echo '<p><input type="checkbox" name="logerrors" value="1" /> Log Errors in Play
 printf('<input type="hidden" name="profile" value="%s" />', esc_attr($profile));
 $sync_disable = get_option('qckply_disable_sync_'.$profile,false);
 printf('<p><input type="radio" name="qckply_disable_sync" value="0" %s /> Enable <input type="radio" name="qckply_disable_sync" value="1" %s /> Disable saving Playground content and settings</p>',!empty($settings['qckply_disable_image_upload']) ? '' : 'checked="checked"',empty($sync_disable) ? '' : 'checked="checked"');
-printf('<p><input type="radio" name="settings[qckply_disable_image_upload]" value="0" %s /> Enable <input type="radio" name="settings[qckply_disable_image_upload]" value="1" %s /> Disable saving of Playground images (Pro feature)</p>',!empty($settings['qckply_disable_image_upload']) ? '' : 'checked="checked"',empty($settings['qckply_disable_image_upload']) ? '' : 'checked="checked"');
+printf('<p><input type="radio" name="settings[qckply_disable_image_upload]" value="0" %s /> Enable <input type="radio" name="settings[qckply_disable_image_upload]" value="1" %s /> Disable saving of Playground images</p>',!empty($settings['qckply_disable_image_upload']) ? '' : 'checked="checked"',empty($settings['qckply_disable_image_upload']) ? '' : 'checked="checked"');
 do_action('qckply_additional_setup_form_fields',$settings);
+
+echo '<h2>'.esc_html__('Content Saved from Past Sessions','quick-playground').'</h2>';
+$caches = qckply_caches($profile);
+if(empty($caches)) {
+echo '<p>'.esc_html__('none','quick-playground').'</p>';
+}
+else {
+    printf('<p><input type="checkbox" name="reset_cache[]" value="all" /> %s %s</p>',esc_html__('Reset','quick-playground'),esc_html__('All','quick-playground'));
+    foreach($caches as $cache) {
+        printf('<p><input type="checkbox" name="reset_cache[]" value="%s" /> %s %s</p>',esc_attr($cache),esc_html__('Reset','quick-playground'),esc_html(ucfirst($cache)));
+    }
+    echo '<p>'.esc_html__('Resetting will force the playground to fetch fresh content.','quick-playground').'</p>';
+}
+
 echo '<p><button>Submit</button></p>';
 echo '</form>';
 $qckply_api_url = qckply_get_api_url(['profile'=>$profile]);
@@ -166,8 +173,19 @@ printf('<p>Demo playground button code</p><p><textarea cols="100" rows="5">%s</t
 qckply_get_blueprint_link(['profile'=>$profile,'is_demo'=>1]);
 qckply_print_button_shortcode(['profile'=>$profile,'is_demo'=>1]);
 
-$pages = qckply_find_qckply_key_pages();
+//$pages = qckply_find_qckply_key_pages();
+qckply_qckply_key_pages_checkboxes();
 qckply_show_hits();
+
+$clone = qckply_get_clone_posts($profile);
+$clone = qckply_zip_images($profile,$clone,true);
+
+printf('<h2>Zip images Test</h2><p>%s</p><pre>%s</pre>',$clone['images_zip'],var_export($clone['added_images'],true));
+foreach($clone['posts'] as $post) {
+    if($post->post_type == 'attachment')
+    printf('<h3>Post ID %d: %s</h3><div>%s</div>',intval($post->ID),esc_html($post->post_title),wp_kses_post($post->guid));
+}
+
 echo '</div>';
 
 }

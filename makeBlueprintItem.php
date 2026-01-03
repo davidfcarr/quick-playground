@@ -46,6 +46,20 @@ function qckply_makeThemeItem($slug, $public = true, $activate = false) {
 }
 
 /**
+ * Creates a blueprint step for installing a theme.
+ *
+ * @param string  $slug     The theme slug.
+ * @param bool    $public   Optional. Whether the theme is public. Default true.
+ * @param bool    $activate Optional. Whether to activate the theme. Default false.
+ * @return array            Blueprint step array.
+ */
+function qckply_makeZipImagesItem($profile) {
+    $qckply_directories = qckply_get_directories();
+    $path = trailingslashit($qckply_directories['uploads_url']).$profile.'_images.zip';
+    return qckply_makeBlueprintItem('importWordPressFiles', array("wordPressFilesZip"=>array('resource'=>'url','url'=>$path)));
+}
+
+/**
  * Creates a blueprint step for running custom PHP code.
  *
  * @param string $code The PHP code to run.

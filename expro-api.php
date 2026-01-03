@@ -61,13 +61,100 @@ class Quick_Playground_Save_Posts extends WP_REST_Controller {
     $profile = $request['profile'];
     $savedfile = $qckply_site_uploads.'/quickplayground_posts_'.$profile.'.json';
     $data = $request->get_json_params();
-    $data = apply_filters('qckply_saved_posts',$data);
+    if(file_exists($savedfile) && !isset($_GET['refresh'])) {
+      $json = file_get_contents($savedfile);
+      if($json && $cache = json_decode($json,true)) {
+        $post_ids = [];
+        foreach($data['posts'] as $post) {
+          $post = (object) $post;
+          $post_ids[] = $post->ID;
+        }
+        $sync_response['cached_posts_included'] = 0;
+        foreach($cache['posts'] as $post) {
+          $post = (object) $post;
+          if(!in_array($post->ID,$post_ids)) {
+            //if the post is not already in the data being sent, include it
+            $data['posts'][] = $post;
+            $sync_response['cached_posts_included']++;
+          }
+        }
+      }
+    }
+
+    //$data = apply_filters('qckply_saved_posts',$data);
+    $data['cache_saved'] = date('r');
+    $data['post_not_empty'] = !empty($data['posts']);
+    $data['post_count'] = !empty($data['posts']) ? count($data['posts']) : 0;
     /* not sanitized here, except as valid json. sanitized in the playground if used there */
-    $bytes_written = file_put_contents($savedfile,json_encode($data));
+    $json = json_encode($data);
+    if($json !== false) {
+    $bytes_written = file_put_contents($savedfile,$json);
     $sync_response['saved'] = $bytes_written;
+    }
+    else {
+    $sync_response['saved'] = json_last_error_msg();
+    }
     $sync_response['file'] = $savedfile;
     $response = new WP_REST_Response( $sync_response, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
+	}
+}
+
+class Quick_Playground_Sync_Ids extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for saving posts.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'sync_ids';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'POST',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+  
+
+    /**
+     * Permissions check for saving posts.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+	  	return 'https://playground.wordpress.net/' == $_SERVER['HTTP_REFERER'];
+	}
+
+    /**
+     * Handles POST requests for saving posts data.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+
+	global $wpdb;
+    $data = $request->get_json_params();
+    $server_top = qckply_top_ids(true);
+    $client_top = $data['top_ids'];
+    foreach($client_top as $key => $value) {
+        $response[$key] = $value - $server_top[$key];
+    }
     return $response;
 	}
 }
@@ -338,6 +425,8 @@ class Quick_Playground_Upload_Image extends WP_REST_Controller {
      */
   public function get_items($request) {
 	global $wpdb;
+    $profile = $request['profile'];
+    $qckply_image_uploads = get_option('qckply_image_uploads',[]);
     $qckply_directories = qckply_get_directories();
     $qckply_site_uploads = $qckply_directories['site_uploads'];
     $qckply_uploads = $qckply_directories['uploads'];
@@ -349,21 +438,39 @@ class Quick_Playground_Upload_Image extends WP_REST_Controller {
     $sync_code = isset($params['sync_code']) ? $params['sync_code'] : '';
     $sync_response['sync_code'] = $sync_code;
     $sync_response['correct_code'] = $code;
-
-    if (!empty($params['base64'])) {
+    $filename = sanitize_text_field($params['filename']);
+    $last_image = get_transient('qckply_last_image_uploaded');
+    if($last_image == $filename) {
+        $sync_response['message'] = 'duplicate image';
+        $response = new WP_REST_Response( $sync_response, 300 );
+    }
+    elseif (empty($params['base64'])) {
+        $sync_response['message'] = 'no base 64';
+        $response = new WP_REST_Response( $sync_response, 300 );
+    }
+    else {
+        set_transient('qckply_last_image_uploaded',$filename);
         $filedata = base64_decode($params['base64']);
-        $filename = sanitize_text_field($params['filename']);
         $newpath = $qckply_site_uploads.'/'.$filename;
         $newurl = $qckply_site_uploads_url.'/'.$filename;
         $saved = file_put_contents($newpath,$filedata);
         $sync_response['message'] = 'saving to '.$newpath .' '.var_export($saved,true);
         $sync_response['sideload_meta'] = qckply_sideload_saved_image($newurl);
-        //$result = wp_schedule_single_event( time()+HOUR_IN_SECONDS, 'qckply_sideload_saved_image', array($newurl),true);
-        //update_option('qckply_sideload_schedule',var_export($result,true));
-    } else {
-        $sync_response['message'] = 'no base 64';
+        $server_attachment_id = $sync_response['sideload_meta']['attachment_id'];
+        if($sync_response['sideload_meta']['attachment_id'] <= $params['top_id'])
+        {
+        $server_attachment_id = $params['top_id'] + 1;
+        $attachment_id = intval($sync_response['sideload_meta']['attachment_id']);
+        $sync_response['change_id'] = sprintf('Changing attachment ID from %d to %d (ID on live site)',$attachment_id,$server_attachment_id);
+        $sync_response['sideload_meta']['attachment_id'] = $server_attachment_id;
+        $wpdb->query($wpdb->prepare("update %i set ID=%d WHERE ID=%d",$wpdb->posts,$server_attachment_id,$attachment_id));
+        $wpdb->query($wpdb->prepare("update %i set post_id=%d WHERE post_id=%d",$wpdb->postmeta,$server_attachment_id,$attachment_id));
+        }
+        $qckply_image_uploads[] = $server_attachment_id;
+        update_option('qckply_image_uploads',$qckply_image_uploads);
+
+        $response = new WP_REST_Response( $sync_response, 200 );
     }
-    $response = new WP_REST_Response( $sync_response, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
 
@@ -422,6 +529,10 @@ class Quick_Playground_Upload_Image extends WP_REST_Controller {
                 'type'           => $movefile['type'],
                 'meta'           => $meta,
             );
+
+            $qckply_uploaded_images = get_option('qckply_uploaded_images',[]);
+            $qckply_uploaded_images[] = $attachment_id;
+            update_option('qckply_uploaded_images',$qckply_uploaded_images);
         }
     } else {
         $sync_response = new WP_Error('upload_error', $movefile['error'], array('status' => 500));
@@ -559,6 +670,67 @@ class Quick_Playground_Save_Prompts extends WP_REST_Controller {
 	}
 }
 
+class Quick_Playground_Get_Prompts extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for saving posts.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'prompts/(?P<profile>[a-z0-9_]+)';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'GET, POST',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+    /**
+     * Permissions check for saving posts.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+	  	return true;
+	}
+
+    /**
+     * Handles POST requests for saving posts data.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+
+	global $wpdb;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads'];
+    $qckply_uploads = $qckply_directories['uploads'];
+    $profile = $request['profile'];
+    $savedfile = $qckply_site_uploads.'/quickplayground_prompts_'.$profile.'.json';
+    $contents = file_get_contents($savedfile);
+    /* not sanitized here, except as valid json. sanitized in the playground if used there */
+    $sync_response = json_decode($contents,true);
+    $sync_response['found_contents'] = !empty($contents);
+    $response = new WP_REST_Response( $sync_response, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
+	}
+}
+
 add_action('rest_api_init', function () {
   $hook = new Quick_Playground_Save_Posts();
 	$hook->register_routes();           
@@ -574,4 +746,8 @@ add_action('rest_api_init', function () {
 	 $hook->register_routes();
   $hook = new Quick_Playground_Save_Prompts();
 	 $hook->register_routes();
+  $hook = new Quick_Playground_Get_Prompts();
+	 $hook->register_routes();
+   $hook = new Quick_Playground_Sync_Ids();
+   $hook->register_routes();
 } );

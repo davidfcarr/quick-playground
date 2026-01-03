@@ -12,12 +12,12 @@ function qckply_clone_page() {
     }  
 
     echo '<h1>'.esc_html__('Quick Playground','quick-playground').'</h1>';
+
     echo '<h2>'.esc_html__('Design and Plugin Testing','quick-playground').'</h2>';
     echo '<p>'.esc_html__('Use this screen to manually re-import any content that may not have imported correctly','quick-playground').'</p>';
     $qckply_baseurl = get_option('qckply_sync_origin');
     $no_cache = get_option('qckply_no_cache',false);
     $qckply_profile = get_option('qckply_profile','default');
-    $prompts = qckply_get_prompts_remote($qckply_profile);
     $url = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
     if($no_cache) $url .= '&nocache=1';
     $taxurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$qckply_profile.'?t='.time();

@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @return array Array of key page slugs.
  */
 function qckply_find_qckply_key_pages($profile = 'default') {
-    $siteurl = rtrim(get_option('siteurl'),'/');
+    $siteurl = site_url();
     $keypages = [];
     $output = '';
     $landingpage = get_option('qckply_landing_page_'.$profile);
@@ -94,7 +94,7 @@ function qckply_qckply_key_pages($profile = 'default') {
 }
 
 function qckply_find_key_images() {
-    $siteurl = rtrim(get_option('siteurl'),'/');
+    $siteurl = site_url();
     $response = wp_remote_get($siteurl);
     if(is_wp_error($response)) {
         $output .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';

@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 add_action('init', 'qckply_loading');
 function qckply_loading() {
     global $post;
-    $title = get_option('blogname');
     //cannot be checked by nonce. This is relayed from the live server to the playground environment
     if(qckply_is_playground() && isset($_GET['qckply_clone'])) {
+    $title = get_option('blogname');
 ?>
 <!DOCTYPE html>
 <html>
@@ -49,68 +49,22 @@ function qckply_loading() {
 <?php
         $target = sanitize_text_field(wp_unslash($_GET['qckply_clone']));
         $output = '';
-        if('images' == $target) {
-            $more = qckply_clone_images('images');
-            if($more) {
-                echo '<div id="qckply-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div>';
-                wp_print_inline_script_tag('window.location.href="'.esc_url(qckply_link(['qckply_clone'=>'thumbnails'])).'"',
-                    array(
-                        'id'    => 'hide-sidebar-js',
-                        'async' => true,
-                    )
-                );
-            }
-            else {
-                qckply_top_ids();
-                do_action('qckply_loading');
-                $landingpage = qckply_link();
-                printf('<div id="qckply-overlay-message"><p>Done, redirect to <a href="%s">%s</a></p></div>',esc_attr($landingpage),esc_html($landingpage));
-                wp_print_inline_script_tag('window.location.href="'.esc_url($landingpage).'"',
-                        array(
-                            'id'    => 'hide-sidebar-js',
-                            'async' => true,
-                        )
-                );
-            }
-        } 
-        elseif('thumbnails' == $target) {
-            $more = qckply_get_more_thumbnails();
-            if($more) {
-                echo '<div id="qckply-overlay-message"><p>Loading '.esc_html($more).' more images ...</p></div>';
-                wp_print_inline_script_tag('window.location.href="'.esc_url(qckply_link(['qckply_clone'=>'thumbnails'])).'"',
-                    array(
-                        'id'    => 'hide-sidebar-js',
-                        'async' => true,
-                    )
-                );
-                return;
-            }
-            qckply_top_ids();
-            do_action('qckply_loading');
-            $landingpage = qckply_link();
-            printf('<div id="qckply-overlay-message"><p>Done, redirect to <a href="%s">%s</a></p></div>',esc_attr($landingpage),esc_html($landingpage));
-            wp_print_inline_script_tag('window.location.href="'.esc_url($landingpage).'"',
-                    array(
-                        'id'    => 'hide-sidebar-js',
-                        'async' => true,
-                    )
-            );
-
-        }
-        else {
             qckply_clone( 'settings' );
             qckply_clone( 'taxonomy' );
             qckply_clone( 'custom' );
-            qckply_clone( 'prompts' );
-            $output = ob_get_clean();
-            echo '<div id="qckply-overlay-message"><p>Loading images ...</p></div>';
-            wp_print_inline_script_tag('window.location.href="'.esc_url(qckply_link(['qckply_clone'=>'images'])).'"',
+            //qckply_clone( 'prompts' );
+            qckply_top_ids(true);
+            set_transient('qckply_welcome_shown',false);
+            $url = qckply_link();
+            printf('<div id="qckply-overlay-message"><p>Done, redirect to <a href="%s">%s</a></p></div>',esc_attr($url),esc_html($url));
+            //$output = ob_get_clean();
+            //echo '<div id="qckply-overlay-message"><p>Loading images ...</p></div>';
+            wp_print_inline_script_tag('window.location.href="'.esc_url($url).'"',
                 array(
                     'id'    => 'hide-sidebar-js',
                     'async' => true,
                 )
             );
-        }
 ?>
 </body>
 </html>

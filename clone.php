@@ -20,7 +20,7 @@ function qckply_clone( $target = null ) {
     global $wpdb, $current_user, $qckply_baseurl, $qckply_mysite_url;
     $localdir = trailingslashit(plugin_dir_path( __FILE__ ));
     $qckply_baseurl = get_option('qckply_sync_origin');
-    $qckply_mysite_url = rtrim(get_option('siteurl'),'/');
+    $qckply_mysite_url = site_url();
     $page_on_front = get_option('page_on_front');
     if(empty($qckply_baseurl)) {
         return '<p>Error: No base URL set for cloning. Please set the playground sync origin in the settings.</p>';
@@ -119,14 +119,15 @@ function qckply_clone( $target = null ) {
             $out = '<p>Inserting post: '.intval($post['ID']).' '.esc_html($post['post_title'].' '.$post['post_type']).' '.($index+1).' of '.sizeof($clone['posts']).'</p>';
             $clone = qckply_clone_output($clone, $out);
 
-            unset($post['filter']);  
+            unset($post['filter']);
+            if(is_array($post)) {
             $result = $wpdb->replace($wpdb->posts,$post);
             error_log('Result of post insert: '.var_export($result,true));
             error_log('Last error: '.var_export($wpdb->last_error,true));
-
             if(!$result) {
                 $out = '<p>Error: '.esc_html($wpdb->last_error).'</p>'; $clone = qckply_clone_output($clone, $out);
             }
+            }  
         }
         do_action('qckply_clone',$url,$clone);
         update_option('qckply_downloaded',true);
@@ -142,7 +143,9 @@ function qckply_clone( $target = null ) {
                         $pagecount++;
                     $out = '<p>Inserting post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type'].'</p>';
                     $clone = qckply_clone_output($clone, $out);
-                    unset($post['filter']);  
+                    unset($post['filter']);
+                    if(is_array($post)) {
+  
                     $result = $wpdb->replace($wpdb->posts,$post);
                     error_log('Result of post insert: '.var_export($result,true));
                     error_log('Last error: '.var_export($wpdb->last_error,true));
@@ -150,6 +153,8 @@ function qckply_clone( $target = null ) {
                     if(!$result) {
                         $out = '<p>Error: '.esc_html($wpdb->last_error).'</p>';
                         $clone = qckply_clone_output($clone, $out);
+                    }
+
                     }
                 }
             }   
@@ -161,7 +166,9 @@ function qckply_clone( $target = null ) {
                         $clone = qckply_clone_output($clone, $out);
                         $out = '<p>Inserting post: '.$post['ID'].' '.$post['post_title'].' '.$post['post_type'].'</p>';
                         $clone = qckply_clone_output($clone, $out);
-                        unset($post['filter']);  
+                        unset($post['filter']);
+                        if(is_array($post)) {
+  
                         $result = $wpdb->replace($wpdb->posts,$post);
                         $out = "<p>$wpdb->last_query</p>";
                         $clone = qckply_clone_output($clone, $out);
@@ -171,6 +178,8 @@ function qckply_clone( $target = null ) {
                         if(!$result) {
                             $out = '<p>Error: '.esc_html($wpdb->last_error).'</p>';$clone = qckply_clone_output($clone, $out);
                             error_log('error saving demo post '.$post['post_title']);
+                        }
+
                         }
                 }
             }   
@@ -239,20 +248,6 @@ function qckply_clone( $target = null ) {
     }
 
     update_option('quickplay_clone_settings_log',$clone['output']);
-    }
-
-    if('prompts' == $target) {
-    $localjson = $localdir.'qckply_prompts.json';
-    if(file_exists($localjson)) {
-        $promptjson = file_get_contents($localjson);
-        $out = '<p>Using '.$localjson.'</p>';
-    }
-    else {
-        $prompts = qckply_get_prompts_remote($qckply_profile);
-        if(!empty($prompts)) {
-            set_transient('qckply_messages',$prompts,5*DAY_IN_SECONDS);
-        }
-    }
     }
 
     //run before the taxonomy / metadata stage so attachment ids can be added to those checked for metadata
@@ -567,7 +562,7 @@ function qckply_clone_images($target) {
     $localdir = trailingslashit(plugin_dir_path( __FILE__ ));
     $qckply_baseurl = get_option('qckply_sync_origin');
     $no_cache = get_option('qckply_no_cache',false);
-    $qckply_mysite_url = rtrim(get_option('siteurl'),'/');
+    $qckply_mysite_url = site_url();
     $qckply_profile = get_option('qckply_profile','default');
     
     $imgurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
@@ -825,12 +820,14 @@ function qckply_insert_attachment( $args, $file = false, $parent_post_id = 0, $w
 	$data['post_type'] = 'attachment';
     $file = $data['file'];
     unset($data['file']);
+    if(is_array($data)) {
     $result = $wpdb->replace($wpdb->posts,$data);
     if(!$result) {
         return new WP_Error( 'error_code', 'Failed to insert attachment '.intval($args['ID']));
     }
     $attachment_id = intval($args['ID']);
     update_attached_file( $attachment_id, $file );
+    }
 	return $attachment_id;//wp_insert_post( $data, $wp_error, $fire_after_hooks );
 }
 

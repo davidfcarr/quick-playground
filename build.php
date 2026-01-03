@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * @return array           Array containing the blueprint and settings.
  */
 function qckply_build($postvars, $profile = 'default') {
-    $site_origin = rtrim(get_option('siteurl'),'/');
+    $site_origin = site_url();
     $default_plugins = is_multisite() ? get_blog_option(1,'qckply_default_plugins',array()) : array();
     $excluded_plugins = is_multisite() ? get_blog_option(1,'qckply_excluded_plugins',array()) : array();
     $default_themes = is_multisite() ? get_blog_option(1,'qckply_default_themes',array()) : array();
@@ -33,6 +33,18 @@ function qckply_build($postvars, $profile = 'default') {
         }
     }
 
+    if(isset($_POST['attachments'])) {
+        $attachment_ids = explode(',',sanitize_text_field($_POST['attachments']));
+        $attachment_ids_clean = [];
+        foreach($attachment_ids as $id) {
+            $id = intval(trim($id));
+            if(!empty($id)) {
+                $attachment_ids_clean[] = $id;
+            }
+        }
+        update_option('qckply_profile_images_'.$profile,$attachment_ids_clean);
+    }
+
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
     unset($settings['demo_pages']);
     unset($settings['demo_posts']);
@@ -48,9 +60,7 @@ function qckply_build($postvars, $profile = 'default') {
                 $postvars['settings']['qckply_landing'] .= '?'.$parsed['query'];
         }
 
-        foreach($postvars['settings'] as $key => $value)
-            $settings[$key] = $value;
-        if(empty($settings['copy_pages'])) {
+        if(empty($postvars['settings']['copy_pages'])) {
             $settings['copy_pages'] = 0;
         }
         if(empty($settings['copy_events'])) {
@@ -92,6 +102,8 @@ function qckply_build($postvars, $profile = 'default') {
         )
     );
     $steps[] = qckply_makeBlueprintItem('login');
+
+    $steps[] = qckply_makeZipImagesItem($profile);
 
     if(isset($postvars['add_theme'])) {
         foreach($postvars['add_theme'] as $i => $slug) {
@@ -217,6 +229,7 @@ function qckply_build($postvars, $profile = 'default') {
     $settings['origin_stylesheet'] = get_stylesheet();
     $settings['origin_template'] = get_template();
     $settings['qckply_origin_directories'] = qckply_get_directories();
+    //printf('<p>qckply_build 222</p><pre>%s</pre>',esc_html(json_encode($settings, JSON_PRETTY_PRINT)));
 
     $settings_to_copy = apply_filters('qckply_settings_to_copy',array('timezone_string'));
     foreach($settings_to_copy as $setting) {
@@ -224,6 +237,8 @@ function qckply_build($postvars, $profile = 'default') {
         $data = apply_filters('qckply_settings_content',$data,$setting);
         $settings[$setting] = $data;
     }
+    //printf('<p>qckply_build 230</p><pre>%s</pre>',esc_html(json_encode($settings, JSON_PRETTY_PRINT)));
+
     $steps[] = qckply_makeBlueprintItem('setSiteOptions',null, $settings);    
     qckply_zip_plugin("quick-playground");
     $steps[] = qckply_makePluginItem("quick-playground", false, true);

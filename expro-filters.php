@@ -115,11 +115,3 @@ $meta = wp_get_attachment_metadata($id);
 $meta['attachment_id'] = $id;
 return $meta;
 }
-
-/*
-add_action('qckply_additional_setup_form_fields','qckply_additional_setup_form_fields_pro',10,1);
-function qckply_additional_setup_form_fields_pro ($settings = array()) {
-    printf('<p><input type="radio" name="qckply_disable_sync" value="0" %s /> Enable <input type="radio" name="settings[qckply_disable_image_upload]" value="1" %s /> Disable saving of Playground images (Pro feature)</p>',!empty($settings['qckply_disable_image_upload']) ? '' : 'checked="checked"',empty($settings['qckply_disable_image_upload']) ? '' : 'checked="checked"');
-    printf('<p><input type="radio" name="settings[qckply_disable_image_upload]" value="0" %s /> Enable <input type="radio" name="settings[qckply_disable_image_upload]" value="1" %s /> Disable saving of Playground images (Pro feature)</p>',!empty($settings['qckply_disable_image_upload']) ? '' : 'checked="checked"',empty($settings['qckply_disable_image_upload']) ? '' : 'checked="checked"');
-}
-*/

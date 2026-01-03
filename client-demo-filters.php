@@ -31,7 +31,7 @@ function qckply_upload_resized_image($choice) {
 }
 
 $qckply_just_uploaded = '';
-add_action('updated_post_meta', 'qckply_wp_attachment_metadata',10,4);
+//add_action('updated_post_meta', 'qckply_wp_attachment_metadata',10,4);
 function qckply_wp_attachment_metadata($mid, $attachment_id, $meta_key, $meta_value) {
     global $qckply_just_uploaded;
     $limit = 750000;

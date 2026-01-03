@@ -11,7 +11,7 @@ function qckply_clone_footer_message() {
     $slug = trim(preg_replace('/[^A-Za-z0-9]/','-',$url_nopath),'-');
     if(is_home() || is_front_page())
         $slug = 'home';
-    $keymessage = array('key'=>$slug,'message'=>'','welcome'=> is_admin() ? 'admin-welcome' : 'welcome');
+    $keymessage = array('key'=>$slug,'message'=>'');
     $keymessage = apply_filters('qckply_key_message',$keymessage);
     if(!empty($keymessage['message'])) {
     ?>
@@ -30,20 +30,22 @@ function qckply_clone_footer_message() {
 add_filter('qckply_key_message','qckply_key_message');
 
 function qckply_key_message($keymessage) {
+    if(!empty($_GET['qckply_clone']))
+        return $keymessage;
     $landing = trim(preg_replace('/[^A-Za-z0-9]/','-',get_option('qckply_landing')),'-');
     $show = get_option('show_playground_prompt_keys');
     extract($keymessage);//key, message, welcome
-    $messages = get_transient('qckply_messages');
-    $welcome_shown = intval(get_transient('qckply_welcome_shown'));
+    $messages = qckply_get_prompt_messages();
+    $welcome_shown = get_transient('qckply_welcome_shown');
     $type = get_post_type();
     if(isset($messages[$key])) {
         if(!empty($messages[$key])) {
         $keymessage['message'] .= $messages[$key];
         }
     }
-    elseif(!$welcome_shown && ($landing == $key) && !empty($messages[$welcome])) {
-        $keymessage['message'] .= $messages[$welcome];
-        $key = $welcome;
+    elseif(!$welcome_shown  && !empty($messages['welcome'] && (('home' == $key && empty($landing)) || ($landing == $key)))) {
+        $keymessage['message'] .= $messages['welcome'];
+        $key = 'welcome';
         set_transient('qckply_welcome_shown',true,DAY_IN_SECONDS);
     }
     elseif(isset($messages['post_type:'.$type])) {
@@ -52,8 +54,11 @@ function qckply_key_message($keymessage) {
         $keymessage['message'] .= $messages['post_type:'.$type];
         }
     }
-    //if(empty($keymessage['message'] ))
-        //$keymessage['message'] = sprintf('No match for %s welcome %d %s',$key,$welcome_shown,var_export($messages,true)); 
+    /*
+    else {
+        $keymessage['message'] = sprintf('No prompt message found for key%s landing %s show %s',$key,$landing,var_export($show,true));
+    }
+    */
     if($show) {
         $url = admin_url('admin.php?page=qckply_clone_prompts&key='.$key);
         $keymessage['message'] .= "\n\n".sprintf('Edit message for <a href="%s">%s</a>',$url,$key);

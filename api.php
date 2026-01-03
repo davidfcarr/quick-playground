@@ -47,9 +47,14 @@ class Qckply_Blueprint extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
-    do_action('qckply_fetch_blueprint');
-    qckply_zip_plugin("quick-playground");
     $profile = sanitize_text_field($request['profile']);
+    do_action('qckply_fetch_blueprint',$profile);
+    $clone = qckply_get_clone_posts($profile);
+    $clone = qckply_zip_images($profile,$clone);
+    set_transient('qckply_clone_posts_'.$profile,$clone);
+    update_option('qckply_ids_'.$profile,$clone['ids']);
+
+    qckply_zip_plugin("quick-playground");
     $blueprint = get_option('qckply_blueprint_'.$profile);
     if (!$blueprint) {
         return new WP_REST_Response(array('error'=>'blueprint_not_found'), 404);
@@ -133,21 +138,56 @@ class Qckply_Clone extends WP_REST_Controller {
     $qckply_uploads = $qckply_directories['uploads'];
     $qckply_uploads_url = $qckply_directories['uploads_url'];
     $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
-  $profile = sanitize_text_field($request['profile']);
+    $profile = sanitize_text_field($request['profile']);
     
+    $clone = qckply_get_clone_posts($profile);
+    $clone['post_count'] = count($clone['posts']);
+    $clone = qckply_zip_images($profile,$clone);
+    $clone['post_count_with_images'] = count($clone['posts']);
+    unset($clone['ids']);
+
+    $response = new WP_REST_Response( $clone, 200 );
+    $response->header( "Access-Control-Allow-Origin", "*" );
+    return $response;
+}
+}
+
+function qckply_get_clone_posts($profile) {
+  global $wpdb;
+    $qckply_directories = qckply_get_directories();
+    $qckply_site_uploads = $qckply_directories['site_uploads'];
+    $qckply_uploads = $qckply_directories['uploads'];
+    $qckply_uploads_url = $qckply_directories['uploads_url'];
+    $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
+    $top = qckply_top_ids(true);
+    $posts = array();
     if(empty($_GET['nocache'])) {
       $savedfile = $qckply_site_uploads.'/quickplayground_posts_'.$profile.'.json';
       if(file_exists($savedfile) && !isset($_GET['refresh'])) {
       $json = file_get_contents($savedfile);
-      if($json && $clone = json_decode($json)) {
-        $response = new WP_REST_Response( $clone, 200 );
-        $response->header( "Access-Control-Allow-Origin", "*" );
-        return $response;
+      if($json && $cache = json_decode($json,true)) {
+        if(empty($cache['posts']))
+          $clone['cache_posts_empty'] = true;
+        else
+        foreach($cache['posts'] as $post) {
+          $post = (object) $post;
+          $clone['posts_from_cache'][] = $post->ID.': '.$post->post_title;
+          $clone['ids'][] = $post->ID;
+          $posts[] = $post;
+        }
+        $clone['json_error'] = json_last_error_msg();
+      }
+      else
+        $clone['error_reading_file'] = false;
+      }
+      else {
+        $clone['error_file_not_found'] = $savedfile;
       }
     }
-    }
-    
+
     $clone['profile'] = $profile;
+    $top_post = qckply_top_ids()['posts'];
+    $clone['top_post'] = $top_post;
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $template_part = get_block_template( get_stylesheet() . '//header', 'wp_template_part' );
     $header_content = (empty($template_part->content)) ? '' : $template_part->content;
@@ -159,14 +199,15 @@ class Qckply_Clone extends WP_REST_Controller {
     }
 
     $clone['ids'] = array();
-    $posts = array();
     if(!empty($settings['page_on_front'])) {
         $front_page = intval($settings['page_on_front']);
+        if(!in_array($front_page,$clone['ids'])) {
         $page = get_post($front_page);
         $clone['ids'][] = $front_page;
         if($page) {
             $page->post_status = 'publish'; // ensure it is published, even if it was copied from a draft
             $posts[] = $page;
+        }
         }
     }
 
@@ -183,8 +224,10 @@ class Qckply_Clone extends WP_REST_Controller {
     $sql .= ")";
     $templates = $wpdb->get_results($wpdb->prepare($sql, $params));
     foreach($templates as $p) {
-      $clone['ids'][] = $p->ID;
-      $posts[] = $p;
+      if(!in_array($p->ID,$clone['ids'])) {
+        $clone['ids'][] = $p->ID;
+        $posts[] = $p;
+      }
     }
     if(!empty($settings['copy_blogs'])) {
         $blogs = get_posts(array('numberposts'=>intval($settings['copy_blogs'])));
@@ -255,13 +298,17 @@ class Qckply_Clone extends WP_REST_Controller {
       }
     }
     $clone['posts'] = $posts;
+  
+    $clone['posts'][] = (object) array(
+      'ID' => $top_post + 1,
+      'post_type' => 'qckply_placeholder',
+      'post_title' => 'Playground Placeholder',
+      'post_content' => '',
+      'post_status' => 'draft'
+    );
+
     $clone = apply_filters('qckply_qckply_clone_posts',$clone, $settings);
-    update_option('qckply_ids_'.$profile,$clone['ids']);
-    unset($clone['ids']);
-    $response = new WP_REST_Response( $clone, 200 );
-    $response->header( "Access-Control-Allow-Origin", "*" );
-    return $response;
-}
+    return $clone;
 }
 
 /**
@@ -320,17 +367,6 @@ class Qckply_Clone_Settings extends WP_REST_Controller {
     $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
     $profile = sanitize_text_field($request['profile']);
     
-    if(empty($_GET['nocache'])) {
-      $savedfile = $qckply_site_uploads.'/quickplayground_settings_'.$profile.'.json';
-      if(file_exists($savedfile) && !isset($_GET['refresh'])) {
-      $json = file_get_contents($savedfile);
-      if($json && $clone = json_decode($json)) {
-        $response = new WP_REST_Response( $clone, 200 );
-        $response->header( "Access-Control-Allow-Origin", "*" );
-        return $response;
-      }
-    }
-    }
     $clone['profile'] = $profile;
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $settings['timezone_string'] = get_option('timezone_string');
@@ -341,113 +377,22 @@ class Qckply_Clone_Settings extends WP_REST_Controller {
       }
     }
     $clone['settings'] = $settings;
+    if(empty($_GET['nocache'])) {
+      $savedfile = $qckply_site_uploads.'/quickplayground_settings_'.$profile.'.json';
+      if(file_exists($savedfile) && !isset($_GET['refresh'])) {
+      $json = file_get_contents($savedfile);
+      if($json && $cache_clone = json_decode($json,true)) {
+        foreach($cache_clone['settings'] as $key => $value) {
+          $clone['settings'][$key] = $value;
+        }
+      }
+    }
+    }
     $clone = apply_filters('qckply_qckply_clone_settings',$clone);
     $response = new WP_REST_Response( $clone, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
 }
-}
-
-/**
- * REST controller for cloning images and attachments for the playground.
- */
-class Qckply_Clone_Images extends WP_REST_Controller {
-
-    /**
-     * Registers REST API routes for cloning images.
-     */
-    public function register_routes() {
-
-	  $namespace = 'quickplayground/v1';
-
-	  $path = 'clone_images/(?P<profile>[a-z0-9_]+)';
-
-	  register_rest_route( $namespace, '/' . $path, [
-
-		array(
-
-		  'methods'             => 'GET',
-
-		  'callback'            => array( $this, 'get_items' ),
-
-		  'permission_callback' => array( $this, 'get_items_permissions_check' )
-
-			  ),
-
-		  ]);     
-
-	  }
-
-    /**
-     * Permissions check for getting image items.
-     *
-     * @param WP_REST_Request $request The REST request.
-     * @return bool True if allowed.
-     */
-	public function get_items_permissions_check($request) {
-	  	return true;
-	}
-
-    /**
-     * Handles GET requests for cloning images and attachments.
-     *
-     * @param WP_REST_Request $request The REST request.
-     * @return WP_REST_Response The response object.
-     */
-  public function get_items($request) {
-	global $wpdb;
-    $qckply_directories = qckply_get_directories();
-    $qckply_site_uploads = $qckply_directories['site_uploads'];
-    $qckply_uploads = $qckply_directories['uploads'];
-    $qckply_uploads_url = $qckply_directories['uploads_url'];
-    $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
-  $profile = $request['profile'];
-  $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
-  $savedfile = $qckply_site_uploads.'/quickplayground_images_'.$profile.'.json';
-  
-  if(file_exists($savedfile) && empty($_GET['nocache'])) {
-    $json = file_get_contents($savedfile);
-    if($json)
-    $saved = json_decode($json, true);
-  }
-    $clone['savedfile'] = $savedfile;
-    $clone['saved'] = (empty($saved)) ? 'none' : var_export($saved,true);
-    $site_logo = get_option('site_logo');
-    if(!empty($site_logo)) {
-        $attachment = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE ID = %d AND post_type = 'attachment' ", $wpdb->posts,$site_logo));
-        $clone['site_logo'] = $attachment;
-    }
-    $site_icon = get_option('site_icon');
-    if(!empty($site_icon)) {
-        $attachment = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE ID = %d AND post_type = 'attachment' ",$wpdb->posts,$site_icon));
-        $clone['site_icon'] = $attachment;
-    }
-    $clone['thumbnails'] = [];
-    $attachment_ids = [];
-    $clone['ids'] = get_option('qckply_ids_'.$profile, array());
-    $first = array_shift($clone['ids']);
-    //sanitized for only integer values
-    $ids = $clone['ids'] = array_map('intval',$clone['ids']); 
-    $placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
-    $results = $wpdb->get_results($wpdb->prepare("SELECT posts.* FROM %i meta JOIN %i posts ON meta.meta_value = posts.ID  WHERE meta.post_id IN (".$placeholders.") and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC ",$wpdb->postmeta,$wpdb->posts,...$ids));
-    if($first)
-    { 
-    $row = $wpdb->get_row($wpdb->prepare("SELECT posts.* FROM %i meta JOIN %i posts ON meta.meta_value = posts.ID WHERE meta.post_id = ".intval($first)." and meta.meta_key='_thumbnail_id' ORDER BY post_date DESC ",$wpdb->postmeta,$wpdb->posts));
-    if($row)
-      $results = array_merge([$row],$results);
-    }    
-    foreach($results as $row) {
-      $a = basename(get_post_meta($row->ID,'_wp_attached_file',true));
-      $g = basename($row->guid);
-      if($a != $g) // use the scaled version
-        $row->guid = str_replace($g,$a,$row->guid);
-      $clone['thumbnails'][] = $row;
-    }
-    unset($clone['ids']);
-    $response = new WP_REST_Response( $clone, 200 );
-    $response->header( "Access-Control-Allow-Origin", "*" );
-    return $response;
-  }
 }
 
 /**
@@ -510,16 +455,6 @@ class Qckply_Clone_Taxonomy extends WP_REST_Controller {
   $site_dir = is_multisite() ? '/sites/'.get_current_blog_id() : '';
   $savedfile = $qckply_site_uploads.'/quickplayground_meta_'.$profile.'.json';
   
-  if(file_exists($savedfile) && empty($_GET['nocache'])) {
-    $json = file_get_contents($savedfile);
-    if($json && $clone = json_decode($json, true)) {
-        $clone['savedfile'] = $savedfile;
-        $response = new WP_REST_Response( $clone, 200 );
-        $response->header( "Access-Control-Allow-Origin", "*" );
-        return $response;
-    }
-  }
-  
     $clone = [];
     $clone['savedfile'] = $savedfile;
     $clone['ids'] = get_option('qckply_ids_'.$profile, array());
@@ -543,7 +478,17 @@ class Qckply_Clone_Taxonomy extends WP_REST_Controller {
         $clone['users'][] = qckply_fake_user($user->ID);
     }
     $clone = apply_filters('qckply_qckply_clone_meta',$clone);
-    unset($clone['ids']);
+    if(file_exists($savedfile) && empty($_GET['nocache'])) {
+    $json = file_get_contents($savedfile);
+    if($json && $cache_clone = json_decode($json, true)) {
+        $clone['savedfile'] = $savedfile;
+        if(!empty($cache_clone['related']))
+        foreach($cache_clone['related'] as $key => $related)
+        {
+          $clone['related'][$key] = $related;
+        }
+    }
+  }  unset($clone['ids']);
     $response = new WP_REST_Response( $clone, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -699,8 +644,6 @@ add_action('rest_api_init', function () {
 	 $hook = new Qckply_Clone_Taxonomy();
 	 $hook->register_routes();           
 	 $hook = new Qckply_Clone_Settings();
-	 $hook->register_routes();           
-	 $hook = new Qckply_Clone_Images();
 	 $hook->register_routes();           
 	 $hook = new Qckply_Clone_Custom();
 	 $hook->register_routes();           

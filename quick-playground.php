@@ -66,12 +66,12 @@ function qckply_main() {
     printf('<h2>Quick Playground for %s: %s</h2>',esc_html(get_bloginfo('name')),esc_html($profile));
     $stylesheet = get_stylesheet();
     qckply_blueprint_settings_init($profile);
-    $origin_url = rtrim(get_option('siteurl'),'/');
+    $origin_url = site_url();
     $blueprint = get_option('qckply_blueprint_'.$profile, array());
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $stylesheet = $settings['qckply_clone_stylesheet'] ?? $stylesheet;
     printf('<p>Theme: %s, Plugins: %s. For Customization options, see the <a href="%s">Playground Builder page</a>.</p>',esc_html($stylesheet),esc_html(implode(', ', qckply_plugin_list($blueprint))),esc_attr(admin_url('admin.php?page=qckply_builder')));
-echo '<div class="qckply-doc">';
+    echo '<div class="qckply-doc">';
 
     $welcome_message = "<p>Quick Playground allows you to test themes, plugins, design ideas, and configuration settings on a virtual WordPress Playground copy of your website, without worrying about breaking your live site.</p>";
     $welcome_message .= "<p>Learn more about what it can do at <a href=\"https://quickplayground.com\">quickplayground.com</a>.</a>";
@@ -95,6 +95,7 @@ echo '</div>';
     }
     echo '</div>';
     }
+
 }
 
 /**

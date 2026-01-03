@@ -31,10 +31,10 @@ function quickplayground_expro_includes() {
     if(qckply_is_playground()) {
         require_once plugin_dir_path( __FILE__ ) . 'client.php';
         require_once plugin_dir_path( __FILE__ ) . 'client-save-playground.php';
+        require_once plugin_dir_path( __FILE__ ) . 'client-save-images.php';
         require_once plugin_dir_path( __FILE__ ) . 'client-demo-filters.php';
         require_once plugin_dir_path( __FILE__ ) . 'client-prompts.php';
         require_once plugin_dir_path( __FILE__ ) . 'client-qckply_data.php';
-        require_once plugin_dir_path( __FILE__ ) . 'client-menu.php';
     }
 }
 
