@@ -292,28 +292,6 @@ function qckply_json_incoming($json) {
         }
     }
     return $json;
-/*   $parts = wp_parse_url(get_option('qckply_sync_origin'));
-    $sync_origin = $parts['host'];
-    $parts = wp_parse_url(site_url());
-    $playground = $parts['host'].'/'.$parts['path'];
-*/
-    $pattern = '/'.preg_quote($sync_origin, '/').'(?!.{1,3}wp-content)/';
-    $json = preg_replace($pattern,$playground,$json);
-    $clone = json_decode($json,true);
-    if(!empty($clone['added_images'])) {
-        foreach($clone['added_images'] as $index => $img) {
-            $found_at = strpos($json, $sync_origin.$img);
-            error_log('Replacing image paths in incoming JSON:'.$sync_origin.$img . ' to '.$playground.$img.' Found at: '.$found_at);
-            $json = str_replace($sync_origin.$img,$playground.$img,$json);
-        }
-    }
-    return $json;   
-/*
-    $sync_origin = get_option('qckply_sync_origin');
-    $playground = site_url();
-    $json = str_replace($sync_origin,$playground,$json);
-    return $json;   
-*/
 }
 
 function qckply_playground_path() {
@@ -333,22 +311,6 @@ function qckply_json_outgoing($json, $image_dir = '') {
     $playground = site_url();
     $json = str_replace($playground,$sync_origin,$json);
     return $json;
-    /*
-    $uploaded = get_transient('qckply_successful_uploads');
-    if(is_array($uploaded) && count($uploaded)) {
-        foreach($uploaded as $up) {
-            $json = str_replace($up['search'],$up['replace'],$json);
-        }
-    }
-    $sync_origin = str_replace("/","\/",get_option('qckply_sync_origin'));
-    $qckply_mysite_url = str_replace("/","\/",site_url());
-    if($image_dir) {
-        $pattern = '~'.str_replace("\\","\\\\",$qckply_mysite_url.'\/wp-content\/uploads').'([^"]+\.[A-Za-z0-9/]{3,4})~ix'; //+
-        $replacement = str_replace("/","\/",$image_dir).'$1';
-        $json = preg_replace($pattern, $replacement, $json);
-    }
-    return str_replace($qckply_mysite_url,$sync_origin,$json);
-    */
 }
 
 /**
@@ -790,47 +752,6 @@ function qckply_get_social_image($sidebar_id) {
     }
     return ['src'=>plugins_url('images/quick-playground.png',__FILE__),'width'=>1544,'height'=>500]; // if nothing else matched, use default
 }
-
-/*
-function qckply_social_image_select($display) {
-    global $wpdb;
-    $playground_image = plugins_url('images/quick-playground.png',__FILE__);
-    $possibilities = ['quick-playground.png',$playground_image.'|1544|500'];
-    $results = $wpdb->get_results("select ID, guid from $wpdb->posts WHERE  post_type='attachment' ORDER BY ID DESC ");
-    foreach($results as $index => $post) {
-        $metadata = wp_get_attachment_metadata($post->ID);
-        if(!empty($metadata['height']) && $metadata['height'] > $metadata['width'])
-            continue; // don't want landscape
-        $basename = basename($post->guid);
-        if(!empty($metadata['height']) && $metadata['width'] > 1200 && $metadata['width'] < 2000)
-        {
-            printf('<p>Fullsize %s</p>',$post->guid);
-            $possibilities[$basename] = $post->guid.'|'.$metadata['width'].'|'.$metadata['height'];
-        }
-        else {
-            $sizes = qckply_image_largest_smallest($metadata['sizes']);
-            foreach($sizes as $label => $s) {
-                if($s['height'] > $s['width'])
-                    break; //no landscape
-                if($s['width'] < 2000 && $s['width'] > 800)
-                {
-                    printf('<p>%s width %s  %s</p>',$label,$s['width'],$s['file']);
-                    $possibilities[$basename] = str_replace($basename,$s['file'],$post->guid).'|'.$s['width'].'|'.$s['height'];
-                    break;
-                }
-            }
-        }
-        if($index > 10)
-            break;
-    }
-    print_r($possibilities);
-    $options = '';
-    foreach($possibilities as $base => $full)
-        $options .= sprintf('<option value="%s">%s</option>',$full,$base);
-    printf('<p>Social Media Image <select name="display[social_image]">%s</select></p>',$options);
-    printf('<p>Current Selection<br /><img width="200" src="%s" </p>',$playground_image);
-}
-*/
 
 function qckply_image_largest_smallest($image_sizes) {
 usort($image_sizes, function($a, $b) {

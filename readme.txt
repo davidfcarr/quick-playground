@@ -99,7 +99,7 @@ No, the Playground environment is completely separate from your live website. Ch
 = 1.0.3 =
 
 * Incorporated features for saving playground content between sessions and syncing it back to the live website.
-* Faster downloading of image attachments and images on a page.
+* Faster downloading of images and attachments.
 
 = 1.0 =  
 

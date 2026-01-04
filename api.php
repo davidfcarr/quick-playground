@@ -212,7 +212,7 @@ function qckply_get_clone_posts($profile) {
     }
 
     $params = [$wpdb->posts];
-    $sql = "SELECT * FROM %i WHERE post_status='publish' AND (`post_type` = 'rsvpmaker_form' OR `post_type` = 'rsvpmaker_template' OR `post_type` = 'wp_block' OR `post_type` = 'wp_global_styles' OR `post_type` = 'wp_navigation' OR `post_type` = 'wp_template' OR `post_type` = 'wp_template_part' ";
+    $sql = "SELECT * FROM %i WHERE post_status='publish' AND (`post_type` = 'wp_block' OR `post_type` = 'wp_global_styles' OR `post_type` = 'wp_navigation' OR `post_type` = 'wp_template' OR `post_type` = 'wp_template_part' ";
     if(!empty($settings['post_types']) && is_array($settings['post_types']))
     {
       foreach($settings['post_types'] as $t) {
@@ -377,6 +377,7 @@ class Qckply_Clone_Settings extends WP_REST_Controller {
       }
     }
     $clone['settings'] = $settings;
+    $clone['settings_from_cache'] = [];
     if(empty($_GET['nocache'])) {
       $savedfile = $qckply_site_uploads.'/quickplayground_settings_'.$profile.'.json';
       if(file_exists($savedfile) && !isset($_GET['refresh'])) {
@@ -384,6 +385,7 @@ class Qckply_Clone_Settings extends WP_REST_Controller {
       if($json && $cache_clone = json_decode($json,true)) {
         foreach($cache_clone['settings'] as $key => $value) {
           $clone['settings'][$key] = $value;
+          $clone['settings_from_cache'][] = $key;
         }
       }
     }

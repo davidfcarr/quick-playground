@@ -24,15 +24,12 @@ function qckply_top_ids($fresh = false, $update = true) {
     $top['postmeta'] = $wpdb->get_var($wpdb->prepare("SELECT meta_id FROM %i ORDER BY meta_id DESC",$wpdb->postmeta));
     $top['terms'] = $wpdb->get_var($wpdb->prepare("SELECT term_id FROM %i ORDER BY term_id DESC",$wpdb->terms));
     $top['term_taxonomy'] = $wpdb->get_var($wpdb->prepare("SELECT term_taxonomy_id FROM %i ORDER BY term_taxonomy_id DESC",$wpdb->term_taxonomy));
-    $top['post_modified'] = $wpdb->get_var($wpdb->prepare("SELECT post_modified FROM %i ORDER BY post_modified DESC",$wpdb->posts));
+    $top['post_modified'] = date('Y-m-d H:i:s', strtotime('-1 day'));
     if($update)
         update_option('qckply_top_ids',$top);
     return $top;
 }
 
-/**
-
-*/
 function qckply_post_updated($post_id) {
     $updated = get_option('qckply_updated_posts',array());
     if(!in_array($post_id,$updated)) {

@@ -1,6 +1,7 @@
 <?php
 
 function qckply_data() {
+    global $wpdb;
     echo '<h2>Quick Playground Data</h2>';
     if(isset($_GET['att'])) {
         print_r(wp_get_attachment_metadata(intval($_GET['att'])));
@@ -19,6 +20,15 @@ function qckply_data() {
     $results = $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE meta_key LIKE %s OR meta_key LIKE %s ORDER BY meta_key",$wpdb->postmeta,'%qckply%','%playground%'));
     foreach($results as $row) {
         printf('<h1>Post %d Meta: %s</h1><pre>%s</pre>',intval($row->post_id),esc_html($row->meta_key),wp_kses_post(htmlentities($row->meta_value)));
+    }
+    $results = $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE post_status='publish' or (post_status='inherit' and post_type='attachment') order by ID DESC",$wpdb->posts));
+    printf('<h2>All Published Posts and Attachments: %d</h2>',count($results));
+    $types = [];
+    foreach($results as $row) {
+        $types[$row->post_type][] = $row->ID;
+    }
+    foreach($types as $type => $ids) {
+        printf('<h3>Type: %s (%d)</h3>',esc_html($type),count($ids));
     }
 }
 

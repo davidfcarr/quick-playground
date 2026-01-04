@@ -17,6 +17,8 @@ function qckply_clone_save_playground($clone) {
 
     $local_directories = qckply_get_directories();
     $remote_directories = get_option('qckply_origin_directories');
+    if(!empty($clone['posts']))
+    {
     printf('<h3>Saving %d Posts</h3>',esc_html(sizeof($clone['posts'])));
         $json = json_encode($clone);
         if(!$json) {
@@ -41,16 +43,27 @@ function qckply_clone_save_playground($clone) {
             }
             $json = json_encode($clone);
         }
-        printf('<h3>%d Posts to Save</h3>',sizeof($clone['posts']));
+        if(!$json) {
+            echo '<p>Error encoding JSON: '.esc_html(json_last_error_msg()).'</p>';
+        }
+        else
+            printf('<h3>%d Posts to Save, JSON length %s</h3>',sizeof($clone['posts']),strlen($json));
         $json = qckply_json_outgoing($json,$sync_origin.$site_dir);
         $response = wp_remote_post($save_posts_url, array(
             'body' => $json,
             'headers' => array('Content-Type' => 'application/json')
         ));
-
+    $status_code = wp_remote_retrieve_response_code( $response );
     if(is_wp_error($response)) {
         echo '<p>Error: '.esc_html( htmlentities($response->get_error_message()) ).'</p>';
-    } else {
+    }
+    elseif(200 != $status_code) {
+        echo '<p>Error: HTTP status code '.esc_html( $status_code ).'</p>';
+        if(!empty($returned['message']))
+        printf('<p>%s</p>',esc_html('Server message: '.$returned['message']));
+        return;
+    }
+    else {
         $returned = $response['body'];
         if(!is_array($returned)) {
             $returned = json_decode($returned, true);
@@ -63,17 +76,11 @@ function qckply_clone_save_playground($clone) {
         if(!empty($returned['message']))
         printf('<p>%s</p>',esc_html('Server message: '.$returned['message']));
    }
+    }
     $clone = [];
     $clone['settings']['cache_created'] = time();
-    $saved_options = get_option('qckply_clone_options',[]);
-    foreach($saved_options as $option) {
-        $v = get_option($option);
-        $clone['settings'][$option] = $v;
-    }
     $updated_options = get_option('qckply_updated_options',[]);
     foreach($updated_options as $option) {
-        if(in_array($option,$saved_options))
-            continue;
         $v = get_option($option);
         $clone['settings'][$option] = $v;
     }
@@ -87,6 +94,7 @@ function qckply_clone_save_playground($clone) {
 
     if(is_wp_error($response)) {
         echo '<p>Error: '.esc_html( htmlentities($response->get_error_message()) ).'</p>';
+        return;
     } else {
         $returned = $response['body'];
         if(!is_array($returned)) {
@@ -181,61 +189,18 @@ function qckply_clone_save_playground($clone) {
 function qckply_posts() {
     global $wpdb;
     $qckply_mysite_url = site_url();
+    $top = qckply_top_ids();
     $sync_origin = get_option('qckply_sync_origin');
     $site_dir = '/wp-content/uploads'.get_option('qckply_site_dir');
     $search_path = $qckply_mysite_url.'/wp-content/uploads';
     $replace_path = $sync_origin.$site_dir;
-    $sql = $wpdb->prepare("SELECT * FROM %i WHERE post_status='publish' AND post_type != 'attachment' AND post_modified > %s ORDER BY post_modified DESC",$wpdb->posts, date('Y-m-d H:i:s', strtotime('-1 day')));
+    $sql = $wpdb->prepare("SELECT * FROM %i WHERE post_status='publish' AND post_type != 'attachment' AND post_modified > %s ORDER BY post_modified DESC",$wpdb->posts, $top['post_modified']);
     $posts = $wpdb->get_results($sql);
-    print_r($posts);
     printf('<p>Found %d posts modified since last sync with %s</p>',esc_html(count($posts)),esc_html($sql));
-    $test_posts = get_posts(array(
-        'post_type' => 'any',
-        'post_status' => 'publish',
-        'numberposts' => 2
-    ));
-    print_r($test_posts[0]);
-    return ['posts'=>$posts];
-    $play_posts = ['posts'=>$posts, 'sync_prompts'=>[]];
-    $sync_prompts = ['posts_and_pages'=>[],'blocks'=>[],'images'=>[]];
-    $results = $wpdb->get_results("select * from $wpdb->postmeta where meta_key='_thumbnail_id' ");
-    foreach($results as $row)
-        $thumbnail_ids[] = $row->meta_value;
-    $site_icon = get_option('site_icon');
-    $site_logo = get_option('site_logo');
-    $updated_posts = [];
-    foreach($posts as $post) {
-        if($post->ID > $top['posts']) {
-            $play_posts['new_ids'][] = $post->ID;
-            $status = 'new';
-        }
-        elseif($post->post_modified > $top['post_modified']) {
-            $play_posts['updated_ids'][] = $post->ID;
-            $status = 'updated';
-        }
-        else {
-            $status = 'cloned';
-        }
-        
-            //replace image paths
-            $post->post_content = str_replace($search_path,$replace_path,$post->post_content);
-            //replace link paths
-            $post->post_content = str_replace($qckply_mysite_url,$sync_origin,$post->post_content);
-            $play_posts['posts'][] = $post;
-            if(in_array($post->post_type,['wp_template','wp_template_part','wp_navigation','wp_global_styles'])) {
-                if('new' == $status || 'updated' == $status) {
-                    $excerpt = htmlentities($post->post_content);
-                    $play_posts['sync_prompts']['blocks'][] = ['id'=>$post->ID, 'import_type'=>'posts', 'status'=>$status, 'title'=>$post->post_title, 'post_type'=>$post->post_type, 'excerpt'=>$excerpt];
-                }                
-            }
-            else {
-                if('new' == $status || 'updated' == $status) {
-                    $excerpt = ($post->post_excerpt) ? $post->post_excerpt : substr(trim(wp_strip_all_tags($post->post_content)),1,200);
-                    $play_posts['sync_prompts']['posts_and_pages'][] = ['id'=>$post->ID, 'import_type'=>'posts', 'status'=>$status, 'title'=>$post->post_title, 'post_type'=>$post->post_type, 'excerpt'=>$excerpt];
-                }
-        }
+    foreach($posts as $index => $post) {
+        printf('<p>%s %s (%s) %s</p>',esc_html($post->ID),esc_html($post->post_title),esc_html($post->post_type),esc_html($post->post_modified));
     }
-    return $play_posts;
+    return ['posts'=>$posts];
 }
 
 function qckply_save() {

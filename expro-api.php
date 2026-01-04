@@ -61,6 +61,13 @@ class Quick_Playground_Save_Posts extends WP_REST_Controller {
     $profile = $request['profile'];
     $savedfile = $qckply_site_uploads.'/quickplayground_posts_'.$profile.'.json';
     $data = $request->get_json_params();
+    if(empty($request->get_body())) {
+      return new WP_Error(
+            'empty',          // A unique error code (string)
+            __( 'An empty message body was submitted.' ), // A human-readable message (translatable)
+            array( 'status' => 400 )      // The HTTP status code (e.g., 400 Bad Request)
+        );
+    }
     if(file_exists($savedfile) && !isset($_GET['refresh'])) {
       $json = file_get_contents($savedfile);
       if($json && $cache = json_decode($json,true)) {

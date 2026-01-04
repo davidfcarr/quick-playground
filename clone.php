@@ -244,7 +244,6 @@ function qckply_clone( $target = null ) {
             update_option($setting,$value);
             $saved_options[] = $setting;
         }
-        update_option('qckply_clone_options',$saved_options);
     }
 
     update_option('quickplay_clone_settings_log',$clone['output']);
