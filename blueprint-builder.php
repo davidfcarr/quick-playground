@@ -160,7 +160,7 @@ $taxurl = rest_url('quickplayground/v1/clone_taxonomy/'.$profile.'?t='.time());
 $imgurl = rest_url('quickplayground/v1/clone_images/'.$profile.'?t='.time());
 $customurl = rest_url('quickplayground/v1/clone_custom/'.$profile.'?t='.time());
 
-echo '<a href="#qckply-builder-info" id="showtest">'.esc_html__('Show Test Links','quick-playground').'</a><div id="qckply-builder-info" class="hidden_item">';
+echo '<p><a href="#qckply-builder-info" id="showtest">'.esc_html__('Show Test and Debugging Info','quick-playground').'</a></p><div id="qckply-builder-info" class="hidden_item">';
 printf('<h3>For Testing</h3><p>Blueprint URL: <a href="%s" target="_blank">%s</a></p>',esc_url($qckply_api_url),esc_html($qckply_api_url));
 printf('<p>Blueprint, No Cache: <a href="%s&nocache=1" target="_blank">%s&nocache=1</a></p>',esc_url($qckply_api_url),esc_html($qckply_api_url));
 printf('<p>Blueprint API URL: <a href="%s&nocache=1" target="_blank">%s&nocache=1</a></p>',esc_url($qckply_json_url),esc_html($qckply_json_url));
@@ -173,18 +173,19 @@ printf('<p>Demo playground button code</p><p><textarea cols="100" rows="5">%s</t
 qckply_get_blueprint_link(['profile'=>$profile,'is_demo'=>1]);
 qckply_print_button_shortcode(['profile'=>$profile,'is_demo'=>1]);
 
-//$pages = qckply_find_qckply_key_pages();
-qckply_qckply_key_pages_checkboxes();
+qckply_key_pages_list();
 qckply_show_hits();
 
 $clone = qckply_get_clone_posts($profile);
 $clone = qckply_zip_images($profile,$clone,true);
 
-printf('<h2>Zip images Test</h2><p>%s</p><pre>%s</pre>',$clone['images_zip'],var_export($clone['added_images'],true));
+printf('<h2>Zip Images Test</h2><p>%s</p><pre>%s</pre><pre>%s</pre>',$clone['images_zip'],var_export($clone['added_images'],true),var_export($clone['not_found'],true));
 foreach($clone['posts'] as $post) {
     if($post->post_type == 'attachment')
     printf('<h3>Post ID %d: %s</h3><div>%s</div>',intval($post->ID),esc_html($post->post_title),wp_kses_post($post->guid));
 }
+
+printf('<p>Quickplay Directories:</p><pre>%s</pre><p>WP Directories</p><pre>%s</pre>',var_export($qckply_directories,true),var_export(wp_get_upload_dir(),true));
 
 echo '</div>';
 

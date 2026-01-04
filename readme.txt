@@ -8,7 +8,7 @@ Requires at least: 6.2
 
 Tested up to: 6.9
 
-Stable tag: 1.0.3
+Stable tag: 1.0.7
 
 License: GPLv2 or later  
 
@@ -96,7 +96,11 @@ No, the Playground environment is completely separate from your live website. Ch
 
 == Changelog ==
 
-= 1.0.3 =
+= 1.0.7 =
+
+* Fix for zip images function, multisite
+
+= 1.0.4 =
 
 * Incorporated features for saving playground content between sessions and syncing it back to the live website.
 * Faster downloading of images and attachments.

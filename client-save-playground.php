@@ -19,7 +19,7 @@ function qckply_clone_save_playground($clone) {
     $remote_directories = get_option('qckply_origin_directories');
     if(!empty($clone['posts']))
     {
-    printf('<h3>Saving %d Posts</h3>',esc_html(sizeof($clone['posts'])));
+        $clone = qckply_posts_related($clone, true);
         $json = json_encode($clone);
         if(!$json) {
             foreach($clone['posts'] as $index => $p) {
@@ -47,7 +47,7 @@ function qckply_clone_save_playground($clone) {
             echo '<p>Error encoding JSON: '.esc_html(json_last_error_msg()).'</p>';
         }
         else
-            printf('<h3>%d Posts to Save, JSON length %s</h3>',sizeof($clone['posts']),strlen($json));
+            printf('<h3>Save %d Posts and %s Related Items</h3><p>Sample JSON: %s</p>',empty($clone['posts']) ? 0 : sizeof($clone['posts']),empty($clone['related']) ? 0 : sizeof($clone['related']),esc_html(substr($json,0,300)));
         $json = qckply_json_outgoing($json,$sync_origin.$site_dir);
         $response = wp_remote_post($save_posts_url, array(
             'body' => $json,
@@ -61,6 +61,8 @@ function qckply_clone_save_playground($clone) {
         echo '<p>Error: HTTP status code '.esc_html( $status_code ).'</p>';
         if(!empty($returned['message']))
         printf('<p>%s</p>',esc_html('Server message: '.$returned['message']));
+        printf('<p><a href="%s">Retry</a></p>',esc_attr(admin_url('admin.php?page=qckply_save')));
+        echo '<p>If you see this repeatedly, please report the issue via <a href="https://wordpress.org/support/plugin/quick-playground/">https://wordpress.org/support/plugin/quick-playground/</a></p>';
         return;
     }
     else {
@@ -104,11 +106,12 @@ function qckply_clone_save_playground($clone) {
             echo 'not an array: '.esc_html(var_export($returned,true));
         }
         if(!empty($returned['saved']))
-        printf('<p>Saved %s bytes of settings to %s</p>',esc_html($returned['saved']),esc_html($returned['file']));
+        printf('<p>Saved %s bytes of settings to %s %s</p>',esc_html($returned['saved']),esc_html($returned['file']),($returned['saved'] < 10) ? '(probable error)' : '');
         if(!empty($returned['message']))
         printf('<p>%s</p>',esc_html($returned['message']));
    }
 
+   /*
     $clone = [];
     $clone['related'] = qckply_posts_related($post_ids);
     $clone['postmeta'] = $wpdb->get_results("SELECT * FROM $wpdb->postmeta");
@@ -148,6 +151,7 @@ function qckply_clone_save_playground($clone) {
         if(!empty($returned['message']))
         printf('<p>%s</p>',esc_html($returned['message']));
    }
+    */
 
    $clone = qckply_custom_tables_clone([]);
     printf('<h3>Checking for Custom Table Data</h3><p>%s</p>',esc_html( var_export(!empty($clone['custom_tables']),true)) );
@@ -176,14 +180,14 @@ function qckply_clone_save_playground($clone) {
             echo 'not an array: '.esc_html(var_export($returned,true));
         }
         if(!empty($returned['saved']))
-        printf('<p>Saved %s bytes to %s</p>',esc_html($returned['saved']),esc_html($returned['file']));
+        printf('<p>Saved %s bytes to %s %s</p>',esc_html($returned['saved']),esc_html($returned['file']),($returned['saved'] < 10) ? '(probable error)' : '');
         if(!empty($returned['message']))
         printf('<p>%s</p>',esc_html($returned['message']));
    }
 
+}
     printf('<h3 style="color: green; font-weight: bold;">Playground save complete %s</h3>',esc_html(date('r')) );
     printf('<p><a href="%s" target="_blank">Save to Live Website</a> - administrator approval required on %s.</p>',esc_attr($sync_origin.'/wp-admin/admin.php?page=qckply_sync'),esc_html($sync_origin));
-}
 }
 
 function qckply_posts() {
@@ -197,10 +201,12 @@ function qckply_posts() {
     $sql = $wpdb->prepare("SELECT * FROM %i WHERE post_status='publish' AND post_type != 'attachment' AND post_modified > %s ORDER BY post_modified DESC",$wpdb->posts, $top['post_modified']);
     $posts = $wpdb->get_results($sql);
     printf('<p>Found %d posts modified since last sync with %s</p>',esc_html(count($posts)),esc_html($sql));
+    $ids = [];
     foreach($posts as $index => $post) {
-        printf('<p>%s %s (%s) %s</p>',esc_html($post->ID),esc_html($post->post_title),esc_html($post->post_type),esc_html($post->post_modified));
+        printf('<p>ID %s %s (%s) %s</p>',esc_html($post->ID),esc_html($post->post_title),esc_html($post->post_type),esc_html($post->post_modified));
+        $ids[] = $post->ID;
     }
-    return ['posts'=>$posts];
+    return ['posts'=>$posts,'ids'=>$ids];
 }
 
 function qckply_save() {

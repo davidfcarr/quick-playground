@@ -85,6 +85,10 @@ class Quick_Playground_Save_Posts extends WP_REST_Controller {
             $sync_response['cached_posts_included']++;
           }
         }
+        foreach($cache['related'] as $pid => $value) {
+          if(empty($data['related'][$pid]))
+            $data['related'][$pid] = $value;
+        }
       }
     }
 

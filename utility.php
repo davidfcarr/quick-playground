@@ -649,11 +649,14 @@ function qckply_kses_allowed() {
     return array_merge($allowed, $allowed2, $allowed3);
 }
 
-function qckply_posts_related($post_ids) {
+function qckply_posts_related($clone, $debug = false) {
+    $post_ids = $clone['ids'];
     global $wpdb;
     $related = [];
     foreach($post_ids as $post_id) {
       $pid = 'p'.intval($post_id);
+      if(!empty($clone['related'][$pid]) && empty($_GET['nocache']))
+        continue; //don't overwrite cached data if present
 $cat = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_title, p.post_type, tr.*,tt.*, terms.*
   FROM %i AS p 
   LEFT JOIN %i AS tr ON tr.object_id = p.ID
@@ -683,7 +686,8 @@ $cat = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_title, p.post_type
             }
         }
     }
-    return $related;
+    $clone['related'] = $related;
+    return $clone;
 }
 
 function qckply_link($args = []) {
@@ -1041,7 +1045,7 @@ function qckply_get_site_images( $profile ='default',$debug =false ) {
 function qckply_zip_images($profile,$clone,$debug = false) {
     $qckply_directories = qckply_get_directories();
     $get_all_attachments = get_option('qckply_get_all_attachments',false);
-    $qckply_uploads = $qckply_directories['uploads'];
+    $qckply_uploads = $qckply_directories['site_uploads'];
     $upload = wp_get_upload_dir();
     $att_ids = [];
     $all_images = [];
@@ -1125,16 +1129,21 @@ function qckply_zip_images($profile,$clone,$debug = false) {
     $zip_filepath = $qckply_uploads . '/' . $zip_filename;
 
     if ($zip->open($zip_filepath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
+        error_log(sprintf('<p>Zip creation failed for %s</p>',$zip_filepath));
         return false; // Zip file creation failed
     }
 
     // Add each image file to zip with /wp-content/uploads relative path
     $added = [];
+    $notfound = [];
     foreach ($all_images as $file_path) {
+        if(empty($file_path))
+            continue;
         if(strpos($file_path,$base_dir) === false) {
             $file_path = $base_dir . $file_path;
         }
         if (!file_exists($file_path) || in_array($file_path, $added)) {
+            $notfound[] = 'not found '.$file_path;
             //if($debug) printf('<p>skipping %s</p>',$file_path);
             continue;
         }
@@ -1145,10 +1154,14 @@ function qckply_zip_images($profile,$clone,$debug = false) {
         $relative_path = 'wp-content/uploads/' . ltrim($relative_path, '/');
 
         //if($debug) printf('<p>adding %s</p>',$file_path);
-        $zip->addFile($file_path, $relative_path);
+        $result = $zip->addFile($file_path, $relative_path);
+        if(!$result)
+        error_log(sprintf('<p>file path %s<br />relative %s<br />%s</p>',$file_path,$relative_path,var_export($result,true)));
+
     }
 
     if (!$zip->close()) {
+        if (method_exists($zip, 'getStatusString')) error_log('zip status text: ' . $zip->getStatusString());
         return false; // Failed to close zip
     }
 
@@ -1168,6 +1181,7 @@ function qckply_zip_images($profile,$clone,$debug = false) {
         $added[$index] = str_replace($base_dir, '/wp-content/uploads', $file);
     }
     $clone['added_images'] = $added;
+    $clone['not_found'] = $notfound;
     $clone['images_zip'] = sprintf(
         __('Images zipped successfully! %d files added. Zip file: %s', 'quick-playground'),
         count($added),

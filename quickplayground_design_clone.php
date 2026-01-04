@@ -20,10 +20,8 @@ function qckply_clone_page() {
     $qckply_profile = get_option('qckply_profile','default');
     $url = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
     if($no_cache) $url .= '&nocache=1';
-    $taxurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_taxonomy/'.$qckply_profile.'?t='.time();
-    if($no_cache) $taxurl .= '&nocache=1';
-    $imgurl = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_images/'.$qckply_profile.'?t='.time();
-    if($no_cache) $imgurl .= '&nocache=1';
+    $settings_url = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_settings/'.$qckply_profile.'?t='.time();
+    if($no_cache) $settings_url .= '&nocache=1';
 
     $local_directories = qckply_get_directories();
     $remote_directories = get_option('qckply_origin_directories');
@@ -40,12 +38,6 @@ function qckply_clone_page() {
             }
             if('enable' == $_REQUEST['toggle_cache']) {
                 update_option('qckply_no_cache',false);
-            }
-        }
-        if('images' == $target) {
-            $response = qckply_clone_images('images');
-            if(!empty($response['message'])) {
-                echo wp_kses_post($response['message']);
             }
         }
 
@@ -75,21 +67,15 @@ function qckply_clone_page() {
         <p>
             <input type="radio" name="target" value="" checked="checked" /> %s 
             <input type="radio" name="target" value="posts" /> %s 
-            <input type="radio" name="target" value="taxonomy" /> %s 
-            <input type="radio" name="target" value="images" /> %s
             <input type="radio" name="target" value="settings" /> %s
             <input type="radio" name="target" value="custom" /> %s
-            <input type="radio" name="target" value="prompts" /> %s
         </p>
         %s
         <p><button class="button button-primary">%s</button></p>',
         esc_html__('All','quick-playground'),
         esc_html__('Posts','quick-playground'),
-        esc_html__('Taxonomy and Metadata','quick-playground'),
-        esc_html__('Images','quick-playground'),
         esc_html__('Settings','quick-playground'),
         esc_html__('Custom','quick-playground'),
-        esc_html__('Prompts','quick-playground'),
         wp_kses_post($cache_notice),
         esc_html__('Clone Now','quick-playground'),
     );
@@ -173,13 +159,8 @@ function qckply_clone_log() {
     );
     printf(
         '<a href="%s">%s</a> | ',
-        esc_url(admin_url('admin.php?page=qckply_clone_log&tax=1&nonce=' . $nonce)),
-        esc_html__('Taxonomy and Metadata', 'quick-playground')
-    );
-    printf(
-        '<a href="%s">%s</a> | ',
-        esc_url(admin_url('admin.php?page=qckply_clone_log&images=1&nonce=' . $nonce)),
-        esc_html__('Images', 'quick-playground')
+        esc_url(admin_url('admin.php?page=qckply_clone_log&settings=1&nonce=' . $nonce)),
+        esc_html__('settings', 'quick-playground')
     );
     printf(
         '<a href="%s">%s</a>',
@@ -193,17 +174,11 @@ function qckply_clone_log() {
         echo '<h2>'.esc_html__('Incoming JSON modified','quick-playground').'</h2>';
         echo '<pre>'.esc_html(json_encode(json_decode(get_option('qckply_clone_posts_modified')),JSON_PRETTY_PRINT)).'</pre>';
     } 
-    elseif(isset($_GET['tax']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'])), 'qckply_clone_log')) {
+    elseif(isset($_GET['settings']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'])), 'qckply_clone_log')) {
         echo '<h2>'.esc_html__('Metadata Copy','quick-playground').'</h2>';
-        echo wp_kses_post(get_option('qckply_clone_tax_log'));
+        echo wp_kses_post(get_option('qckply_clone_settings_log'));
         echo '<h2>'.esc_html__('JSON','quick-playground').'</h2>';
-        echo '<pre>'.esc_html(json_encode(json_decode(get_option('qckply_clone_tax_json')), JSON_PRETTY_PRINT)).'</pre>';
-    }
-    elseif(isset($_GET['images']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'])), 'qckply_clone_log')) {
-        echo '<h2>'.esc_html__('Images','quick-playground').'</h2>';
-        echo wp_kses_post(get_option('qckply_clone_images_log'));
-        echo '<h2>'.esc_html__('JSON','quick-playground').'</h2>';
-        echo '<pre>'.esc_html(json_encode(json_decode(get_option('qckply_clone_images_json')),JSON_PRETTY_PRINT)).'</pre>';
+        echo '<pre>'.esc_html(json_encode(json_decode(get_option('qckply_clone_settings_json')), JSON_PRETTY_PRINT)).'</pre>';
     }
     elseif(isset($_GET['custom']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['nonce'])), 'qckply_clone_log')) {
         echo '<h2>'.esc_html__('Custom','quick-playground').'</h2>';

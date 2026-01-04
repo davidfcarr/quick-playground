@@ -60,7 +60,7 @@ function qckply_find_qckply_key_pages($profile = 'default') {
 /**
  * Outputs checkboxes for each key page found, for use in a form.
  */
-function qckply_qckply_key_pages_checkboxes() {
+function qckply_key_pages_checkboxes() {
     $keypages = qckply_find_qckply_key_pages();
     $done = [];
     foreach($keypages as $slug) {
@@ -70,6 +70,24 @@ function qckply_qckply_key_pages_checkboxes() {
         $page = get_page_by_path($slug, OBJECT,['page', 'post']);
         if($page)
         printf('<p><input type="checkbox" value="%d"> %s %s %d</p>',intval($page->ID),esc_html($page->post_title),esc_html($page->post_status),intval($page->ID));
+    }
+}
+
+function qckply_key_pages_list() {
+    $keypages = qckply_find_qckply_key_pages();
+    $done = [];
+    $output = '';
+    foreach($keypages as $slug) {
+        if(in_array($slug,$done))
+            continue;
+        $done[] = $slug;
+        $page = get_page_by_path($slug, OBJECT,['page', 'post']);
+        if($page)
+        $output .= sprintf('<p>%s %s %s (ID %d)</p>',esc_html($page->post_title),esc_html($page->post_type),esc_html($page->post_status),intval($page->ID));
+    }
+    if(!empty($output))
+    {
+        echo '<h3>Key Pages</h3>'.$output;
     }
 }
 

@@ -3,7 +3,7 @@
  * Plugin Name: Quick Playground
  * Plugin URI:  https://quickplayground.com
  * Description: Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites.
- * Version:     1.0.3
+ * Version:     1.0.7
  * Author:      David F. Carr
 *  License:     GPL2
 *  Text Domain: quick-playground

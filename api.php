@@ -143,9 +143,10 @@ class Qckply_Clone extends WP_REST_Controller {
     $clone = qckply_get_clone_posts($profile);
     $clone['post_count'] = count($clone['posts']);
     $clone = qckply_zip_images($profile,$clone);
-    $clone['post_count_with_images'] = count($clone['posts']);
+    $clone['post_count_with_images'] = is_array($clone['posts']) ? count($clone['posts']) : 'error';
+    $clone = qckply_posts_related($clone);
+    $clone = qckply_get_menu_data($clone);
     unset($clone['ids']);
-
     $response = new WP_REST_Response( $clone, 200 );
     $response->header( "Access-Control-Allow-Origin", "*" );
     return $response;
@@ -377,6 +378,22 @@ class Qckply_Clone_Settings extends WP_REST_Controller {
       }
     }
     $clone['settings'] = $settings;
+    $blog_id = get_current_blog_id();
+    $blogusers = get_users(
+      array(
+        'blog_id' => $blog_id
+      )
+    );
+    $one = false;
+    $user_ids = [];
+    if(sizeof($blogusers) > 30)
+      $blogusers = array_slice($blogusers,0,30);
+    $clone['users'] = $clone['usermeta'] = [];
+    foreach($blogusers as $user) {
+    if(1 != $user->ID)
+        $clone['users'][] = qckply_fake_user($user->ID);
+    }
+
     $clone['settings_from_cache'] = [];
     if(empty($_GET['nocache'])) {
       $savedfile = $qckply_site_uploads.'/quickplayground_settings_'.$profile.'.json';
@@ -460,7 +477,7 @@ class Qckply_Clone_Taxonomy extends WP_REST_Controller {
     $clone = [];
     $clone['savedfile'] = $savedfile;
     $clone['ids'] = get_option('qckply_ids_'.$profile, array());
-    $clone['related'] = qckply_posts_related($clone['ids']);
+    $clone = qckply_posts_related($clone);
     //$clone = qckply_get_category_data($clone);
     $clone = qckply_get_menu_data($clone);
     //$clone['postmeta'] = qckply_postmeta($clone['ids']);

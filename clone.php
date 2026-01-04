@@ -195,97 +195,6 @@ function qckply_clone( $target = null ) {
             qckply_build_navigation($clone['make_menu_ids']);
         }
     } 
-
-    // incudes posts that might be rsvpmakers
-    $clone = apply_filters('qckply_clone_posts',$clone);
-    update_option('qckply_clone_posts_log',$clone['output']);
-    }
-    if('settings' == $target || empty($target)) {
-    $localjson = $localdir.'settings.json';
-    if(file_exists($localjson)) {
-        $json = file_get_contents($localjson);
-        $out = '<p>Using '.$localjson.'</p>';
-    }
-    else {
-
-    $response = wp_remote_get($settingsurl);
-    $out = "<p>trying $settingsurl </p>";
-    if(is_wp_error($response)) {
-        $out .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
-        error_log('Error retrieving clone data: '.$response->get_error_message());
-        return $clone['output'];
-    }
-    $json = $response['body'];
-    }
-    $clone = json_decode($json,true);
-    if(!$clone) {
-        $clone = qckply_clone_output($clone, $out."<p>Unable to decode JSON ".substr($json,0,50)."</p>");
-        update_option('quickplay_clone_settings_log',$clone['output']);
-        return;
-    }
-    $clone = qckply_clone_output($clone, $out);
-    if(!empty($clone["settings"]))
-    {
-    $blueprint_only_settings = ["qckply_no_cache",
-        "qckply_is_demo",
-        "origin_stylesheet",
-        "is_qckply_clone",
-        "qckply_profile",
-        "qckply_sync_origin"];
-        foreach($clone["settings"] as $setting => $value) {
-            if(in_array($setting,$blueprint_only_settings))
-                continue;
-            if(is_array($value))
-                $value = array_map('sanitize_text_field',$value);
-            else
-                $value = sanitize_text_field($value);
-            $out = '<p>setting '.esc_html($setting).' = '.esc_html(var_export($value,true)).'</p>';$clone = qckply_clone_output($clone, $out);
-            error_log('setting '.$setting.' = '.var_export($value,true));
-            update_option($setting,$value);
-            $saved_options[] = $setting;
-        }
-    }
-
-    update_option('quickplay_clone_settings_log',$clone['output']);
-    }
-
-    //run before the taxonomy / metadata stage so attachment ids can be added to those checked for metadata
-    qckply_clone_images($target);
-
-    if(empty($target) || 'taxonomy' == $target) {
-    $out = '';
-    $localjson = $localdir.'taxonomy.json';
-    if(file_exists($localjson)) {
-        $json = file_get_contents($localjson);
-        $out .= '<p>Using '.$localjson.'</p>';
-    }
-    else {
-    $out .= "<p>$taxurl</p>";
-    $response = wp_remote_get($taxurl);
-    if(is_wp_error($response)) {
-        $out .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
-        error_log('Error retrieving clone data: '.$response->get_error_message());
-        return $clone['output'];
-    }
-    $json = $response['body'];
-    }
-    //update_option('qckply_clone_tax_json',$json);
-
-    $clone = json_decode($json,true);
-    if(!$clone) {
-    $clone = qckply_clone_output($clone, $out."<p>Unable to decode JSON ".substr($json,0,50)."</p>");
-    update_option('qckply_clone_posts_log',$clone['output']);
-    return;
-    }
-    $clone = qckply_sanitize($clone);
-
-    $clone = qckply_clone_output($clone, $out);
-    if(!is_array($clone)) {
-        error_log('error decoding taxonomy clone json');
-        $clone['output'] = '<p>Error decoding taxonomy clone json</p>';
-        return $clone['output'];
-    }
-
     $out = "<h2>Cloning Metadata and Taxonomy</h2>";$clone = qckply_clone_output($clone, $out);
 
     if(!empty($clone['related'])) {
@@ -358,27 +267,67 @@ function qckply_clone( $target = null ) {
         }
 
         }//end related loop
+    }//end if related        
+    // incudes posts that might be rsvpmakers
+    $clone = apply_filters('qckply_clone_posts',$clone);
+    update_option('qckply_clone_posts_log',$clone['output']);
     }
-    
-    $out = "<h2>Cloning users</h2>";$clone = qckply_clone_output($clone, $out);
+    if('settings' == $target || empty($target)) {
+    $localjson = $localdir.'settings.json';
+    if(file_exists($localjson)) {
+        $json = file_get_contents($localjson);
+        $out = '<p>Using '.$localjson.'</p>';
+    }
+    else {
+    $response = wp_remote_get($settingsurl);
+    $out = "<p>trying $settingsurl </p>";
+    if(is_wp_error($response)) {
+        $out .=  '<p>Error: '.esc_html($response->get_error_message()).'</p>';
+        error_log('Error retrieving clone data: '.$response->get_error_message());
+        return $clone['output'];
+    }
+    $json = $response['body'];
+    }
+    $clone = json_decode($json,true);
+    if(!$clone) {
+        $clone = qckply_clone_output($clone, $out."<p>Unable to decode JSON ".substr($json,0,50)."</p>");
+        update_option('quickplay_clone_settings_log',$clone['output']);
+        return;
+    }
+    $clone = qckply_clone_output($clone, $out);
+    if(!empty($clone["settings"]))
+    {
+    $blueprint_only_settings = ["qckply_no_cache",
+        "qckply_is_demo",
+        "origin_stylesheet",
+        "is_qckply_clone",
+        "qckply_profile",
+        "qckply_sync_origin"];
+        foreach($clone["settings"] as $setting => $value) {
+            if(in_array($setting,$blueprint_only_settings))
+                continue;
+            if(is_array($value))
+                $value = array_map('sanitize_text_field',$value);
+            else
+                $value = sanitize_text_field($value);
+            $out = '<p>setting '.esc_html($setting).' = '.esc_html(var_export($value,true)).'</p>';$clone = qckply_clone_output($clone, $out);
+            error_log('setting '.$setting.' = '.var_export($value,true));
+            update_option($setting,$value);
+            $saved_options[] = $setting;
+        }
+    }
+    error_log('users included in settings download '.var_export(!empty($clone["users"]),true).' is array '.var_export(is_array($clone["users"]),true));
     if(!empty($clone["users"]))
     {
+        $out = "<h2>Cloning users</h2>";$clone = qckply_clone_output($clone, $out);
         foreach($clone['users'] as $user) {
-            if(empty($user['first_name']) || $user['last_name'])
-                continue;
             $first_name = $user['first_name'];
             $last_name = $user['last_name'];
             unset($user['first_name']);
             unset($user['last_name']); 
-            if(!$user['ID'] == 1) {
-            $result = $wpdb->replace($wpdb->users,$user);
-                $log = printf('%s <br />User Result: %s<br />',esc_html($wpdb->last_query), esc_html(var_export($result,true)));
+            if(1 != $user['ID']) {
+                $result = $wpdb->insert($wpdb->users,$user);
             }
-            else {
-                $log = sprintf('User %d %s %s', intval($user['ID']), $first_name, $last_name);
-            }
-            error_log($log);
-            $out = '<p>'.esc_html($log).'</p>';$clone = qckply_clone_output($clone, $out);
             update_user_meta($user['ID'],'first_name',$first_name);
             update_user_meta($user['ID'],'last_name',$last_name);
         }
@@ -389,11 +338,9 @@ function qckply_clone( $target = null ) {
         foreach($clone['adminuser'] as $key => $value)
             update_user_meta(1,$key,$value);
     }
-    update_option('qckply_clone_tax_log',$clone['output']);
 
+    update_option('quickplay_clone_settings_log',$clone['output']);
     }
-
-    //empty($target) || 
 
     $out = '<h2>Custom</h2>';
     if(empty($target) || 'custom' == $target) {

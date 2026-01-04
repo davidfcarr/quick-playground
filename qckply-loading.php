@@ -50,7 +50,7 @@ function qckply_loading() {
         $target = sanitize_text_field(wp_unslash($_GET['qckply_clone']));
         $output = '';
             qckply_clone( 'settings' );
-            qckply_clone( 'taxonomy' );
+            //qckply_clone( 'taxonomy' );
             qckply_clone( 'custom' );
             //qckply_clone( 'prompts' );
             qckply_top_ids(true);
