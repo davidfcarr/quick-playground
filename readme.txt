@@ -8,7 +8,7 @@ Requires at least: 6.2
 
 Tested up to: 6.9
 
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 
 License: GPLv2 or later  
 
@@ -95,6 +95,10 @@ No, the Playground environment is completely separate from your live website. Ch
 
 
 == Changelog ==
+
+= 1.0.8 =
+
+* Download / upload mechanism as an alternative to file sync.
 
 = 1.0.7 =
 

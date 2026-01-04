@@ -50,8 +50,10 @@ function qckply_build($postvars, $profile = 'default') {
     unset($settings['demo_posts']);
     unset($settings['demo_rsvpmakers']);
     unset($settings['post_types']);
-    if(!empty($postvars['settings'])) 
+    if(!empty($postvars['settings']))     
     {
+        foreach($postvars['settings'] as $key => $value)
+            $settings[$key] = $value;
         if(!empty($postvars['settings']['qckply_landing'])) {
             $parsed = wp_parse_url($postvars['settings']['qckply_landing']);
             if(!empty($parsed['path']))

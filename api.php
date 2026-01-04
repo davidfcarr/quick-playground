@@ -162,6 +162,7 @@ function qckply_get_clone_posts($profile) {
     $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
     $top = qckply_top_ids(true);
     $posts = array();
+    $clone['ids'] = array();
     if(empty($_GET['nocache'])) {
       $savedfile = $qckply_site_uploads.'/quickplayground_posts_'.$profile.'.json';
       if(file_exists($savedfile) && !isset($_GET['refresh'])) {
@@ -199,7 +200,6 @@ function qckply_get_clone_posts($profile) {
         $clone['nav_id'] = $match[1];
     }
 
-    $clone['ids'] = array();
     if(!empty($settings['page_on_front'])) {
         $front_page = intval($settings['page_on_front']);
         if(!in_array($front_page,$clone['ids'])) {
@@ -657,6 +657,90 @@ class Qckply_Download extends WP_REST_Controller {
     }
 }
 
+/**
+ * REST controller for cloning posts and related data for the playground.
+ */
+class Qckply_Download_Json extends WP_REST_Controller {
+
+    /**
+     * Registers REST API routes for cloning posts.
+     */
+    public function register_routes() {
+
+	  $namespace = 'quickplayground/v1';
+
+	  $path = 'download_json/(?P<profile>[a-z0-9_]+)';
+
+	  register_rest_route( $namespace, '/' . $path, [
+
+		array(
+
+		  'methods'             => 'GET',
+
+		  'callback'            => array( $this, 'get_items' ),
+
+		  'permission_callback' => array( $this, 'get_items_permissions_check' )
+
+			  ),
+
+		  ]);     
+
+	  }
+
+    /**
+     * Permissions check for getting items.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return bool True if allowed.
+     */
+	public function get_items_permissions_check($request) {
+
+	  return true;
+
+	}
+
+    /**
+     * Handles GET requests for cloning posts and related data.
+     *
+     * @param WP_REST_Request $request The REST request.
+     * @return WP_REST_Response The response object.
+     */
+  public function get_items($request) {
+  require('getmenus.php');
+  global $wpdb;
+    $local_directories = qckply_get_directories();
+    $profile = sanitize_text_field($request['profile']);
+    $file = 'quickplayground_posts_'.$profile.'.json';
+    $filename = trailingslashit($local_directories['site_uploads']).$file;
+
+    if(!file_exists($filename)){ // file does not exist
+
+        die($filename.' file not found');
+
+    } else {
+
+        header("Cache-Control: public");
+
+        header("Content-Description: File Transfer");
+
+        header("Content-Disposition: attachment; filename=".$file);
+
+        header("Content-Type: application/zip");
+
+        header("Content-Transfer-Encoding: binary");
+
+        header("Access-Control-Allow-Origin: *");
+
+        // read the file from disk
+
+        readfile($filename);
+
+  }
+}
+
+}
+
+
 add_action('rest_api_init', function () {
 	 $hook = new Qckply_Clone();
 	 $hook->register_routes();
@@ -670,4 +754,8 @@ add_action('rest_api_init', function () {
 	 $hook->register_routes();           
   $hook = new Qckply_Download();
 	 $hook->register_routes();
+   if(qckply_is_playground()) {
+    $hook = new Qckply_Download_Json();
+	  $hook->register_routes();
+   }
 } );

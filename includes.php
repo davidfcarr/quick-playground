@@ -36,6 +36,9 @@ function quickplayground_expro_includes() {
         require_once plugin_dir_path( __FILE__ ) . 'client-prompts.php';
         require_once plugin_dir_path( __FILE__ ) . 'client-qckply_data.php';
     }
+    else {
+        require_once plugin_dir_path( __FILE__ ) . 'qckply_upload.php';
+    }
 }
 
 add_action('admin_notices','quickplayground_expro_notice');

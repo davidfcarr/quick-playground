@@ -60,9 +60,13 @@ function qckply_clone_save_playground($clone) {
     elseif(200 != $status_code) {
         echo '<p>Error: HTTP status code '.esc_html( $status_code ).'</p>';
         if(!empty($returned['message']))
+        printf('<div class="notice notice-error"><p>Error saving over the network. Try <a href="%s">downloading</a> instead.</p></div>',esc_attr(rest_url('quickplayground/v1/download_json/'.$profile)));
         printf('<p>%s</p>',esc_html('Server message: '.$returned['message']));
         printf('<p><a href="%s">Retry</a></p>',esc_attr(admin_url('admin.php?page=qckply_save')));
         echo '<p>If you see this repeatedly, please report the issue via <a href="https://wordpress.org/support/plugin/quick-playground/">https://wordpress.org/support/plugin/quick-playground/</a></p>';
+        $file = 'quickplayground_posts_'.$profile.'.json';
+        $filename = trailingslashit($local_directories['site_uploads']).$file;
+        file_put_contents($filename,$json);
         return;
     }
     else {
