@@ -168,6 +168,7 @@ function qckply_get_clone_posts($profile) {
       if(file_exists($savedfile) && !isset($_GET['refresh'])) {
       $json = file_get_contents($savedfile);
       if($json && $cache = json_decode($json,true)) {
+        $clone['related'] = empty($cache['related']) ? [] : $cache['related'];
         if(empty($cache['posts']))
           $clone['cache_posts_empty'] = true;
         else

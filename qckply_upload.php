@@ -31,8 +31,8 @@ function qckply_json_upload() {
 <p>If the save function fails, you will get a prompt to "download instead" and can upload the Json file using the form below.</p>
 <form action="<?php echo admin_url( 'admin.php?page=qckply_json_upload' ); ?>" method="post" enctype="multipart/form-data">
 <p>File: <input type="file" name="json_upload" id="json_upload"></p>
-<p><input type="submit" value="Submit" name="submit"></p>
-<?php wp_nonce_field('quickplayground','playground',true,true); ?>
+<?php wp_nonce_field('quickplayground','playground',true,true); 
+submit_button('Upload'); ?>
 </form>
 	<?php
 }

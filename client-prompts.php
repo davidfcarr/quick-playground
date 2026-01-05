@@ -50,8 +50,14 @@ function qckply_clone_prompts() {
     $targets = array_merge($targets,$menu_keys);
     $key_options = '';
     if(isset($_GET['key'])) $key = sanitize_text_field($_GET['key']);
-    if($targets[$key]) {
+    if(!empty($key)) {
+    if(!empty($targets[$key])) {
         $key_options .= sprintf('<option value="%s">%s</option>',$key,esc_html(strip_tags($targets[$key])));
+    }
+    else {
+        $key_options .= sprintf('<option value="%s">%s</option>',$key,esc_html($key));
+    }
+ 
     }
     foreach($targets as $target => $label) {
         if($target == $key)
@@ -85,11 +91,11 @@ function qckply_post_prompt_keys() {
         $keys[$target] = 'PAGE: '.substr($page->post_title,0,80);
     }
     foreach($posts as $post) {
-        $target = preg_replace( '/[^A-Za-z0-9]/', '-', str_replace($site_url,'',get_permalink($post->ID)));
+        $target = trim(preg_replace( '/[^A-Za-z0-9]/', '-', str_replace($site_url,'',get_permalink($post->ID))),'-');
         $keys[$target] = 'POST: '.substr($post->post_title,0,80);
     }
     foreach($other as $item) {
-        $target = preg_replace( '/[^A-Za-z0-9]/', '-', str_replace($site_url,'',get_permalink($item->ID)));
+        $target = trim(preg_replace( '/[^A-Za-z0-9]/', '-', str_replace($site_url,'',get_permalink($item->ID))),'-');
         $keys[$target] = strtoupper($item->post_type).': '.substr($item->post_title,0,80);
     }
     return $keys;

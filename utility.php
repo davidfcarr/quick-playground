@@ -132,7 +132,7 @@ function qckply_design_qckply_menus() {
     else {
         add_menu_page('Quick Playground', 'Quick Playground', 'manage_options', 'quickplayground', 'qckply_main','data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkZGRkZGIiBoZWlnaHQ9IjgwMHB4IiB3aWR0aD0iODAwcHgiIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIAoJIHZpZXdCb3g9IjAgMCA1MTIuMDAxIDUxMi4wMDEiIHhtbDpzcGFjZT0icHJlc2VydmUiPgo8Zz4KCTxnPgoJCTxwYXRoIGQ9Ik01MDEuMzM1LDE3MC41ODdoLTM1MnYtMjEuMzMzaDEwLjY2N2M0LjE4MSwwLDcuOTc5LTIuNDUzLDkuNzI4LTYuMjUxYzEuNzI4LTMuODE5LDEuMDY3LTguMjk5LTEuNjg1LTExLjQzNQoJCQlMOTMuMzc3LDQ2LjIzNWMtNC4wNTMtNC42NTEtMTIuMDExLTQuNjUxLTE2LjA2NCwwTDIuNjQ3LDEzMS41NjljLTIuNzUyLDMuMTU3LTMuNDM1LDcuNjE2LTEuNjg1LDExLjQzNQoJCQljMS43MjgsMy43OTcsNS41MjUsNi4yNTEsOS43MDcsNi4yNTFoMTAuNjY3djMwOS4zMzNjMCw1Ljg4OCw0Ljc3OSwxMC42NjcsMTAuNjY3LDEwLjY2N3MxMC42NjctNC43NzksMTAuNjY3LTEwLjY2N3YtMTAuNjY3CgkJCWg4NS4zMzN2MTAuNjY3YzAsNS44ODgsNC43NzksMTAuNjY3LDEwLjY2NywxMC42NjdzMTAuNjY3LTQuNzc5LDEwLjY2Ny0xMC42NjdWMTkxLjkyMWg2NFYzMDAuNTUKCQkJYy0xMi4zOTUsNC40MTYtMjEuMzMzLDE2LjE0OS0yMS4zMzMsMzAuMDM3YzAsMTcuNjQzLDE0LjM1NywzMiwzMiwzMnMzMi0xNC4zNTcsMzItMzJjMC0xMy44ODgtOC45MzktMjUuNjIxLTIxLjMzMy0zMC4wMzcKCQkJVjE5MS45MjFoODUuMzMzdjg3LjI5NmMtMTIuMzk1LDQuNDE2LTIxLjMzMywxNi4xNDktMjEuMzMzLDMwLjAzN2MwLDE3LjY0MywxNC4zNTcsMzIsMzIsMzJjMTcuNjQzLDAsMzItMTQuMzU3LDMyLTMyCgkJCWMwLTEzLjg4OC04LjkzOS0yNS42MjEtMjEuMzMzLTMwLjAzN3YtODcuMjk2aDY0djI2Ni42NjdjMCw1Ljg4OCw0Ljc3OSwxMC42NjcsMTAuNjY3LDEwLjY2N2M1Ljg4OCwwLDEwLjY2Ny00Ljc3OSwxMC42NjctMTAuNjY3CgkJCVYxOTEuOTIxaDQyLjY2N3YyMy41NzNjLTYuNCwyLjY2Ny0xMC42NjcsNy41MzEtMTAuNjY3LDEzLjc2YzAsNi4yMjksNC4yNjcsMTEuMDkzLDEwLjY2NywxMy43NnYzMS4xNDcKCQkJYy02LjQsMi42NjctMTAuNjY3LDcuNTMxLTEwLjY2NywxMy43NnM0LjI2NywxMS4wOTMsMTAuNjY3LDEzLjc2djMxLjE0N2MtNi40LDIuNjY3LTEwLjY2Nyw3LjUzMS0xMC42NjcsMTMuNzYKCQkJYzAsNi4yMjksNC4yNjcsMTEuMDkzLDEwLjY2NywxMy43NnYzMS4xNDdjLTYuNCwyLjY2Ny0xMC42NjcsNy41MzEtMTAuNjY3LDEzLjc2YzAsNi4yMjksNC4yNjcsMTEuMDkzLDEwLjY2NywxMy43NnYxOC4yNAoJCQljMCw1Ljg4OCw0Ljc3OSwxMC42NjcsMTAuNjY3LDEwLjY2N2M1Ljg4OCwwLDEwLjY2Ny00Ljc3OSwxMC42NjctMTAuNjY3di0xOC4yNGM2LjQtMi42NjcsMTAuNjY3LTcuNTMxLDEwLjY2Ny0xMy43NgoJCQljMC02LjIyOS00LjI2Ny0xMS4wOTMtMTAuNjY3LTEzLjc2di0zMS4xNDdjNi40LTIuNjY3LDEwLjY2Ny03LjUzMSwxMC42NjctMTMuNzZjMC02LjIyOS00LjI2Ny0xMS4wOTMtMTAuNjY3LTEzLjc2di0zMS4xNDcKCQkJYzYuNC0yLjY2NywxMC42NjctNy41MzEsMTAuNjY3LTEzLjc2YzAtNi4yMjktNC4yNjctMTEuMDkzLTEwLjY2Ny0xMy43NnYtMzEuMTQ3YzYuNC0yLjY2NywxMC42NjctNy41MzEsMTAuNjY3LTEzLjc2CgkJCXMtNC4yNjctMTEuMDkzLTEwLjY2Ny0xMy43NnYtMjMuNTczaDEwLjY2N2M1Ljg4OCwwLDEwLjY2Ny00Ljc3OSwxMC42NjctMTAuNjY3UzUwNy4yMjMsMTcwLjU4Nyw1MDEuMzM1LDE3MC41ODd6CgkJCSBNMTI4LjAwMSw0MjYuNTg3SDQyLjY2OHYtNDIuNjY3aDg1LjMzM1Y0MjYuNTg3eiBNMTI4LjAwMSwzNjIuNTg3SDQyLjY2OHYtNDIuNjY3aDg1LjMzM1YzNjIuNTg3eiBNMTI4LjAwMSwyOTguNTg3SDQyLjY2OAoJCQl2LTQyLjY2N2g4NS4zMzNWMjk4LjU4N3ogTTEyOC4wMDEsMjM0LjU4N0g0Mi42Njh2LTg1LjMzM2g4NS4zMzNWMjM0LjU4N3ogTTM0LjE3NywxMjcuOTIxbDUxLjE1Ny01OC40NzVsNTEuMTU3LDU4LjQ3NUgzNC4xNzd6CgkJCSBNMjI0LjAwMSwzNDEuMjU0Yy01Ljg4OCwwLTEwLjY2Ny00Ljc3OS0xMC42NjctMTAuNjY3czQuNzc5LTEwLjY2NywxMC42NjctMTAuNjY3czEwLjY2Nyw0Ljc3OSwxMC42NjcsMTAuNjY3CgkJCVMyMjkuODg5LDM0MS4yNTQsMjI0LjAwMSwzNDEuMjU0eiBNMzMwLjY2OCwzMTkuOTIxYy01Ljg4OCwwLTEwLjY2Ny00Ljc3OS0xMC42NjctMTAuNjY3czQuNzc5LTEwLjY2NywxMC42NjctMTAuNjY3CgkJCXMxMC42NjcsNC43NzksMTAuNjY3LDEwLjY2N1MzMzYuNTU2LDMxOS45MjEsMzMwLjY2OCwzMTkuOTIxeiIvPgoJPC9nPgo8L2c+Cjwvc3ZnPg==', 65);
         add_submenu_page('quickplayground','Playground Builder', 'Playground Builder', 'manage_options', 'qckply_builder', 'qckply_builder');
-        add_submenu_page('quickplayground','Playground Sync *', 'Playground Sync *', 'manage_options', 'qckply_sync', 'qckply_sync');
+        add_submenu_page('quickplayground','Playground', 'Playground Sync', 'manage_options', 'qckply_sync', 'qckply_sync');
         add_submenu_page('quickplayground','Json Upload', 'Json Upload', 'manage_options', 'qckply_json_upload', 'qckply_json_upload');
         if(is_multisite())
             add_submenu_page('quickplayground','Network Administrator Controls', 'Network Administrator Controls', 'manage_network', 'qckply_networkadmin', 'qckply_networkadmin');
@@ -311,6 +311,9 @@ function qckply_json_outgoing($json, $image_dir = '') {
     $sync_origin = get_option('qckply_sync_origin');
     $playground = site_url();
     $json = str_replace($playground,$sync_origin,$json);
+    $search = str_replace('/','\/',$playground);
+    $replace = str_replace('/','\/',$sync_origin);
+    $json = str_replace($search,$replace,$json);
     return $json;
 }
 
@@ -653,7 +656,8 @@ function qckply_kses_allowed() {
 function qckply_posts_related($clone, $debug = false) {
     $post_ids = $clone['ids'];
     global $wpdb;
-    $related = [];
+    if(empty($clone['related']))
+        $clone['related'] = [];
     foreach($post_ids as $post_id) {
       $pid = 'p'.intval($post_id);
       if(!empty($clone['related'][$pid]) && empty($_GET['nocache']))
@@ -669,31 +673,31 @@ $cat = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_title, p.post_type
  $tax = [];
         if(!empty($cat))
         foreach($cat as $c) {
-            $related[$pid]['post_title'] = $c->post_title;
-            $related[$pid]['post_type'] = $c->post_type;
-            $related[$pid]['postmeta'] = $wpdb->get_results($wpdb->prepare("select * from %i where post_id=%d",$wpdb->postmeta,$post_id));
-            $related[$pid]['term_join'][$c->taxonomy][] = $c;
+            $clone['related'][$pid]['post_title'] = $c->post_title;
+            $clone['related'][$pid]['post_type'] = $c->post_type;
+            $clone['related'][$pid]['postmeta'] = $wpdb->get_results($wpdb->prepare("select * from %i where post_id=%d",$wpdb->postmeta,$post_id));
+            $clone['related'][$pid]['term_join'][$c->taxonomy][] = $c;
             if($c->object_id) {                
-            $related[$pid]['term_relationships'][] = (object) array('object_id'=>$c->object_id,'term_order'=>$c->term_order,'term_taxonomy_id'=>$c->term_taxonomy_id);
+            $clone['related'][$pid]['term_relationships'][] = (object) array('object_id'=>$c->object_id,'term_order'=>$c->term_order,'term_taxonomy_id'=>$c->term_taxonomy_id);
             }
             if($c->term_taxonomy_id && !in_array($c->term_taxonomy_id,$tax)) {
-            $related[$pid]['term_taxonomy'][] = (object) array('term_taxonomy_id'=>$c->term_taxonomy_id,'term_id'=>$c->term_id,'taxonomy'=>$c->taxonomy,'description'=>$c->description,'parent'=>$c->parent,'count'=>$c->count);
+            $clone['related'][$pid]['term_taxonomy'][] = (object) array('term_taxonomy_id'=>$c->term_taxonomy_id,'term_id'=>$c->term_id,'taxonomy'=>$c->taxonomy,'description'=>$c->description,'parent'=>$c->parent,'count'=>$c->count);
             $tax[] = $c->term_taxonomy_id;
             }
             if($c->term_id && !in_array($c->term_id,$terms)) 
             {
-            $related[$pid]['terms'][] = (object) array('term_id'=>$c->term_id,'name'=>$c->name,'slug'=>$c->slug);
+            $clone['related'][$pid]['terms'][] = (object) array('term_id'=>$c->term_id,'name'=>$c->name,'slug'=>$c->slug);
             $terms[] = $c->term_id;
             }
         }
     }
-    $clone['related'] = $related;
     return $clone;
 }
 
 function qckply_link($args = []) {
-    if(empty($args))
-        return site_url(get_option('qckply_landing','/'));
+    if(empty($args)) {
+        return site_url().get_option('qckply_landing','/');
+    }
     else
         return add_query_arg($args,site_url());
 }

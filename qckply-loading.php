@@ -59,7 +59,7 @@ function qckply_loading() {
             printf('<div id="qckply-overlay-message"><p>Done, redirect to <a href="%s">%s</a></p></div>',esc_attr($url),esc_html($url));
             //$output = ob_get_clean();
             //echo '<div id="qckply-overlay-message"><p>Loading images ...</p></div>';
-            wp_print_inline_script_tag('window.location.href="'.esc_url($url).'"',
+            wp_print_inline_script_tag('window.location.href="'.$url.'"',
                 array(
                     'id'    => 'hide-sidebar-js',
                     'async' => true,
