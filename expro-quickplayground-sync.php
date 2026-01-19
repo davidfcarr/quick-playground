@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
  * Displays a preview of proposed changes and, upon approval, applies changes to posts, meta, terms, taxonomies, and relationships.
  */
 function qckply_sync() {
-    if((!empty($_POST) || isset($_REQUEST['update']) || isset($_REQUEST['profile']) || isset($_REQUEST['reset'])) && !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) ) 
+    if(!empty($_POST) && !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_REQUEST['playground'])), 'quickplayground' ) ) 
     {
         echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
         return;
@@ -41,12 +41,6 @@ function qckply_sync() {
     if(file_exists($savedfile)) {
     $saved = json_decode(file_get_contents($savedfile),true);
     }    
-    $savedfile = $qckply_site_uploads.'/quickplayground_meta_'.$profile.'.json';
-    if(file_exists($savedfile)) {
-    $temp = json_decode(file_get_contents($savedfile),true);
-    if(is_array($temp))
-        $saved = array_merge($saved,$temp);
-    }
     $savedfile = $qckply_site_uploads.'/quickplayground_settings_'.$profile.'.json';
     if(file_exists($savedfile)) {
     $temp = json_decode(file_get_contents($savedfile),true);
@@ -188,29 +182,61 @@ function qckply_sync() {
     printf('<h1>Saved Data from Playground "%s"</h1>',esc_html($profile));
     printf('<form method="post" action="%s">',esc_attr($action));
     wp_nonce_field('quickplayground','playground',true,true);
+    $taxtracker = [];
     foreach($saved['posts'] as $index => $saved_post) {
+        $out = '';
         if(is_array($saved_post)) {
             $iddate = $saved_post['ID'].$saved_post['post_date'];
+            $pid = 'p'.$saved_post['ID'];
             if(in_array($iddate,$shown))
                 continue;
             $shown[] = $iddate;
             $existing_post = empty($playground_imported[$iddate]) ? get_post($saved_post['ID']) : get_post($playground_imported[$iddate]);
             if(empty($existing_post) || $existing_post->post_date != $saved_post['post_date']) {
-                printf('<h2>%s</h2>',esc_html($saved_post['post_title']));
-                printf('<p><input type="checkbox" name="import_from[]" value="%d"> New content, ID %s %s</p>',esc_attr($saved_post['ID']),esc_html($saved_post['ID']), esc_html($saved_post['post_title']));
-                printf('<input type="hidden" name="new_posts[]" value="%d" />',esc_html($saved_post['ID']));
+                $out .= sprintf('<h2>%s (%s)</h2>',esc_html($saved_post['post_title']),esc_html($saved_post['post_type']));
+                $out .= sprintf('<p><input type="checkbox" name="import_from[]" value="%d"> New content, ID %s %s</p>',esc_attr($saved_post['ID']),esc_html($saved_post['ID']), esc_html($saved_post['post_title']));
+                $out .= sprintf('<input type="hidden" name="new_posts[]" value="%d" />',esc_html($saved_post['ID']));
             }
             else {
                 if($existing_post->post_modified != $saved_post['post_modified']) {
-                    printf('<h2>%s</h2>',esc_html($saved_post['post_title']));
+                    $out .= sprintf('<h2>%s (%s)</h2>',esc_html($saved_post['post_title']),esc_html($saved_post['post_type']));
                     $oldernewer = $saved_post['post_modified'] > $existing_post->post_modified ? '<strong>Newer</strong>' : 'Older';
-                    printf('<p><input type="checkbox" name="import_from[]" value="%d"> Modified content, ID %s %s<br />Playground version %s, Live site version %s (playground version is '.$oldernewer.')</p>',esc_html($saved_post['ID']),esc_html($saved_post['ID']),esc_html($saved_post['post_title']), esc_html($saved_post['post_modified']), esc_html($existing_post->post_modified));
+                    $out .= sprintf('<p><input type="checkbox" name="import_from[]" value="%d"> Modified content, ID %s %s<br />Playground version %s, Live site version %s (playground version is '.$oldernewer.')</p>',esc_html($saved_post['ID']),esc_html($saved_post['ID']),esc_html($saved_post['post_title']), esc_html($saved_post['post_modified']), esc_html($existing_post->post_modified));
                 }
             }
+            if(!empty($saved['related'][$pid])) {
+                if(!empty($saved['related'][$pid]['term_join'])) {
+                    ksort($saved['related'][$pid]['term_join']);
+                    $out .= '<div>Taxonomy: ';
+                    $track = $saved_post['post_title'];
+                    foreach($saved['related'][$pid]['term_join'] as $taxonomy => $values_array) {
+                        foreach($values_array as $values) {
+                            $out .= sprintf('%s: <strong>%s</strong> ',$taxonomy, $values['name']);
+                            $track .= '/'.$taxonomy.':'.$values['name'];
+                        }
+                    }
+                    if(in_array($track,$taxtracker))
+                    {
+                        printf('<p>Skipping duplicate %s</p>',$track);
+                        continue; //next post
+                    }
+                    $out .= '</div>';
+                }
+                if(!empty($saved['related'][$pid]['postmeta'])) {
+                    $out .= '<div>Metadata: ';
+                    foreach($saved['related'][$pid]['postmeta'] as $meta) {
+                        $out .= sprintf('%s: <strong>%s</strong> ',$meta['meta_key'], $meta['meta_value']);
+                    }
+                    $out .= '</div>';
+                }
+                //printf('<pre>%s</pre>',var_export($saved['related'][$pid],true));
+            }
+            $out .= sprintf('<div id="detail_control_%d"><button href="#qckply_hidden_detail_%d" class="detail_control_button" value="%s">Show Code</button></div><pre class="qckply_hidden_detail" id="qckply_hidden_detail_%d">%s</pre>',$saved_post['ID'],$saved_post['ID'],$saved_post['ID'],$saved_post['ID'],esc_html($saved_post['post_content']));
+            echo $out;
         }
     }
     printf('<p><input type="checkbox" name="show_details" value="1" /> %s</p>',esc_html__('Show Details for Debugging','quick-playground'));
-    if($qckply_stylesheet != $current_stylesheet) {
+    if(!empty($qckply_stylesheet) && $qckply_stylesheet != $current_stylesheet) {
         printf('<p><input type="checkbox" name="switch_theme" value="%s" /> Switch to Playground theme to "%s" (currently "%s").</p>',esc_attr($qckply_stylesheet),esc_html($qckply_stylesheet),esc_html($current_stylesheet));
     }
     submit_button('Preview','primary','preview_button',false,['style'=>'float: left; background-color: black;margin-right: 10px;']);

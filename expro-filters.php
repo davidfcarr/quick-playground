@@ -102,12 +102,12 @@ function qckply_cloning_code($profile) {
 } 
 
 add_action('qckply_sideload_saved_image','qckply_sideload_saved_image');
-function qckply_sideload_saved_image($file = '') {
+function qckply_sideload_saved_image($file = '', $post_id = 0) {
 set_transient('qckply_sideload_url',var_export($file,true));
 require_once(ABSPATH . 'wp-admin/includes/media.php');
 require_once(ABSPATH . 'wp-admin/includes/file.php');
 require_once(ABSPATH . 'wp-admin/includes/image.php');
-$id = media_sideload_image( $file, 0, 'playground uploaded image', 'id' );
+$id = media_sideload_image( $file, $post_id, 'playground uploaded image', 'id' );
 if(!$id)
     return [];
 set_transient('qckply_sideload_id',$id);

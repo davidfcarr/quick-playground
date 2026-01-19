@@ -30,6 +30,9 @@ function qckply_data() {
     foreach($types as $type => $ids) {
         printf('<h3>Type: %s (%d)</h3>',esc_html($type),count($ids));
     }
+    $results = $wpdb->get_results($wpdb->prepare("select * from %i where post_type='attachment'",$wpdb->posts));
+    foreach($results as $row) 
+        printf("<p>%d %s</p>",$row->ID,$row->guid);
 }
 
 //add_action('footer','qckply_sync_ids');

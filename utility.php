@@ -275,24 +275,78 @@ function qckply_zip_plugin($slug) {
 
 /**
  * Replaces the sync origin URL with the site URL in incoming JSON.
+ * Handles image URL replacements from the origin domain to the playground domain.
+ * Supports multisite structures with 'sites' folders in the image path.
  *
  * @param string $json The JSON string.
  * @return string      Modified JSON string.
  */
 function qckply_json_incoming($json) {
+
     $sync_origin = get_option('qckply_sync_origin');
     $playground = site_url();
-    $pattern = '/'.preg_quote($sync_origin, '/').'(?!.{1,3}wp-content)/';
-    $json = preg_replace($pattern,$playground,$json);
-    $clone = json_decode($json,true);
-    if(!empty($clone['added_images'])) {
-        foreach($clone['added_images'] as $index => $img) {
-            $search = str_replace('/','\/',$sync_origin.$img);
-            $replace = str_replace('/','\/',$playground.$img);
-            $json = str_replace($search,$replace,$json);
+    $data = json_decode($json);
+    $json = json_encode($data, JSON_PRETTY_PRINT);
+    //simplify by getting rid of some backslashes
+    $json = str_replace('\/','/',$json);
+    $json = str_replace('http:','https:',$json);
+    //replace references to the base url
+    $json = str_replace($sync_origin.'"',$playground.'"',$json);
+    $json = str_replace($sync_origin.'\"',$playground.'\"',$json);
+
+    $start = $json;
+
+    $images = qckply_get_uploads_images();
+    if(isset($_GET['page'])) {
+    printf('<p>Images</p><pre>%s</pre>',var_export($images,true));
+    }
+    $pattern = '/' . preg_quote($sync_origin, '/') . '[^"\'\s]+/';
+    $pattern = '/' . preg_quote($sync_origin, '/') . '[^"\'\s]*/';  // Note: */ instead of +/
+    
+    preg_match_all($pattern,$json,$matches);
+    //printf('<pre>%s</pre>',var_export($matches,true));
+    foreach($matches[0] as $url) {
+        $url = trim($url,'\\');
+        if(isset($_GET['page'])) {
+        printf('<p>%s</p>',$url);
+        }
+        if(strpos($url,'wp-content') !== false) {
+            preg_match('/\/[\d]{4}\/[\d]{2}\/.+/',$url,$match);
+            if(!empty($match[0]) && in_array(trim($match[0]),$images)) {
+                $replace = $playground.'/wp-content/uploads'.$match[0];
+                $json = str_replace($url,$replace,$json);
+                if(isset($_GET['page'])) {
+                printf('<p><strong>Replace %s with %s</strong></p>',$url,$replace);
+                }
+            }
+            elseif(isset($_GET['page'])) {
+                echo '<p>No image match for wp-content url '.var_export($match,true).'</p>';
+            }
+        }
+        else {
+            if($sync_origin == trim($url,'/')) {
+            printf('<p><strong>Skip base url %s</p>',$url);
+            }
+            else {
+            $replace = str_replace($sync_origin,$playground,$url);
+            printf('<p><strong>Replace non-image_url %s with %s</strong></p>',$url,$replace);
+            $json = str_replace($url,$replace,$json);
+            }
         }
     }
-    return $json;
+    $json = str_replace('/','\/',$json);
+
+    if(isset($_GET['page'])) {
+        printf('<h2>Starting Json</h2><pre>%s</pre>',htmlentities($start));
+        $data = json_decode($json);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+        echo '<p>JSON Decode Error: ' . json_last_error_msg().'</p>';
+        }
+        else
+            echo "<p>Json compiled successfully</p>";
+        printf('<h2>Altered Json</h2><pre>%s</pre>',htmlentities($json));
+    }
+return $json;
 }
 
 function qckply_playground_path() {
@@ -662,20 +716,21 @@ function qckply_posts_related($clone, $debug = false) {
       $pid = 'p'.intval($post_id);
       if(!empty($clone['related'][$pid]) && empty($_GET['nocache']))
         continue; //don't overwrite cached data if present
+    $post = get_post($post_id);
+    $clone['related'][$pid]['post_title'] = $post->post_title;
+    $clone['related'][$pid]['post_type'] = $post->post_type;
+    $clone['related'][$pid]['postmeta'] = $wpdb->get_results($wpdb->prepare("select * from %i where post_id=%d",$wpdb->postmeta,$post_id));
 $cat = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_title, p.post_type, tr.*,tt.*, terms.*
   FROM %i AS p 
   LEFT JOIN %i AS tr ON tr.object_id = p.ID
   LEFT JOIN %i AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
   LEFT JOIN %i AS terms ON terms.term_id = tt.term_id
- WHERE p.ID=%d",$wpdb->posts,$wpdb->term_relationships,$wpdb->term_taxonomy,$wpdb->terms,$post_id ));
+ WHERE p.ID=%d AND tt.taxonomy IS NOT NULL",$wpdb->posts,$wpdb->term_relationships,$wpdb->term_taxonomy,$wpdb->terms,$post_id ));
 
  $terms = [];
  $tax = [];
         if(!empty($cat))
         foreach($cat as $c) {
-            $clone['related'][$pid]['post_title'] = $c->post_title;
-            $clone['related'][$pid]['post_type'] = $c->post_type;
-            $clone['related'][$pid]['postmeta'] = $wpdb->get_results($wpdb->prepare("select * from %i where post_id=%d",$wpdb->postmeta,$post_id));
             $clone['related'][$pid]['term_join'][$c->taxonomy][] = $c;
             if($c->object_id) {                
             $clone['related'][$pid]['term_relationships'][] = (object) array('object_id'=>$c->object_id,'term_order'=>$c->term_order,'term_taxonomy_id'=>$c->term_taxonomy_id);
@@ -794,7 +849,7 @@ function qckply_show_hits() {
  */
 $qckply_embedded_checked = [];
 $qckply_image_urls = [];
-function qckply_get_post_images_with_sizes( $post, $debug =false, $get_all_attachments = false ) {
+function qckply_get_post_images_with_sizes( $post, $debug =false, $get_all_attachments = false, $omit_unused_sizes = false ) {
     global $qckply_embedded_checked, $qckply_image_urls, $qckply_attachments_per_post_limit, $qckply_skipped_attachment_urls;
     $uploads = wp_get_upload_dir();
 
@@ -897,7 +952,7 @@ function qckply_get_post_images_with_sizes( $post, $debug =false, $get_all_attac
                     $add_attachment( $att_id );
                     continue;
                 }
-                // Not in wp-uploads or not an attachment — include as external with file/url
+                // Not in wp-uploads or not an attachment
                 if(strpos($img_url,$uploads['baseurl']) !== false)
                 {
                 //local file, no attachment
@@ -915,25 +970,28 @@ function qckply_get_post_images_with_sizes( $post, $debug =false, $get_all_attac
             $embedded_posts = array_unique( $m[1] );
             foreach($embedded_posts as $epost_id) {
                 if(!in_array($epost_id,$qckply_embedded_checked)) {
-                if($debug) printf('<p>%s checking for images in embedded post %d</p>',$title,$epost_id);
                     $qckply_embedded_checked[] = $epost_id;
                     $more_images = qckply_get_post_images_with_sizes( $epost_id, $debug =false );
+                    if($debug) printf('<p>%s checking for images in embedded post %d %s</p>',$title,$epost_id,var_export($moreimages,true));
                     $images = array_merge($images,$more_images);
                 }
             }
         }
     }
+    
 
     }// end get_all_attachments
 
     // 2) Featured image (post meta '_thumbnail_id')
     $thumb_id = get_post_thumbnail_id( $post_id );
     if ( $thumb_id ) {
+        if($debug) printf('<p>post %d thumb %d</p>',$post_id,$thumb_id);
         $add_attachment( $thumb_id );
     }
 
-    //images saved from playground, may not be part of live content
     $qckply_uploaded_images = get_option('qckply_uploaded_images',[]);
+
+    //images saved from playground, may not be part of live content
     if(!empty($qckply_uploaded_images)) {
         foreach($qckply_uploaded_images as $upid)
             if(empty($added[$upid])) {
@@ -953,26 +1011,26 @@ function qckply_get_post_images_with_sizes( $post, $debug =false, $get_all_attac
                 //if($debug) printf('<p>including %s</p>',$img['url']);
                 continue;//uploaded from playground
             }
-            elseif(!empty($urls) && in_array($img['url'],$urls)) {
-                //if($debug) printf('<p>including %s</p>',$img['url']);
-            }
             else {
-                //if($debug) printf('<p>skipping %s</p>',$img['url']);
-                $images[$index]['skip'] = 1;//skip download of full size version
-            }
-            //if($debug) printf('<p>Unfiltered sizes %d</p>',sizeof($images[$index]['sizes']));
-            foreach ( $img['sizes'] as $name => $info ) {
-                if($info['ID'] == $thumb_id)
-                    continue;
-                if(!empty($urls) && in_array($info['url'],$urls)) {
-                //if($debug) printf('<p>found %s %s in<br>%s</p>',$info['url'],$name,var_export($urls,true));
+                if($omit_unused_sizes) {
+                if(!empty($urls) && !in_array($img['url'],$urls)) {
+                    $images[$index]['skip'] = 1;//skip download of full size version
                 }
-                else {
-                //if($debug) printf('<p><strong>not found %s %s</strong> against <br>%s</p>',$info['url'],$name,var_export($urls,true));
-                unset($images[$index]['sizes'][$name]);
+                foreach ( $img['sizes'] as $name => $info ) {
+                    if($info['ID'] == $thumb_id)
+                        continue;
+                    if(!empty($urls) && in_array($info['url'],$urls)) {
+                    //if($debug) printf('<p>found %s %s in<br>%s</p>',$info['url'],$name,var_export($urls,true));
+                    }
+                    else {
+                    //if($debug) printf('<p><strong>not found %s %s</strong> against <br>%s</p>',$info['url'],$name,var_export($urls,true));
+                    unset($images[$index]['sizes'][$name]);
+                    }
                 }
+
+                }                
             }
-            //if($debug) printf('<p>FILTERED sizes %d</p>',sizeof($images[$index]['sizes']));
+
         }
     }
 
@@ -985,13 +1043,13 @@ function qckply_get_site_images( $profile ='default',$debug =false ) {
     $images = array();
     // Helper to add an attachment once
     $added = array();
+    $upload = wp_upload_dir();
     $add_attachment = function( $att_id ) use ( &$images, &$added, $upload ) {
 
         if ( ! $att_id || isset( $added[ $att_id ] ) ) {
             return;
         }
         $added[ $att_id ] = true;
-
         $meta = wp_get_attachment_metadata( $att_id );
         $file_rel = isset( $meta['file'] ) ? $meta['file'] : _wp_relative_upload_path( get_attached_file( $att_id ) );
         $base_dir = untrailingslashit( $upload['basedir'] );
@@ -1097,6 +1155,9 @@ function qckply_zip_images($profile,$clone,$debug = false) {
             if(empty($img['skip'])) {
                 $all_images[] = $img['file'];
             }
+            else {
+                if($debug) printf('<p>Marked as "skip" %s</p>',var_export($img,true));
+            }
             if ( ! empty( $img['sizes'] ) ) {
                 foreach ( $img['sizes'] as $name => $info ) {
                     if(!empty($info['file']))
@@ -1147,9 +1208,11 @@ function qckply_zip_images($profile,$clone,$debug = false) {
         if(strpos($file_path,$base_dir) === false) {
             $file_path = $base_dir . $file_path;
         }
-        if (!file_exists($file_path) || in_array($file_path, $added)) {
+        if (in_array($file_path, $added)) {
+            continue;
+        }
+        if (!file_exists($file_path)) {
             $notfound[] = 'not found '.$file_path;
-            //if($debug) printf('<p>skipping %s</p>',$file_path);
             continue;
         }
         $added[] = $file_path;
@@ -1160,8 +1223,12 @@ function qckply_zip_images($profile,$clone,$debug = false) {
 
         //if($debug) printf('<p>adding %s</p>',$file_path);
         $result = $zip->addFile($file_path, $relative_path);
-        if(!$result)
-        error_log(sprintf('<p>file path %s<br />relative %s<br />%s</p>',$file_path,$relative_path,var_export($result,true)));
+        if(!$result || $debug) {
+        $error = sprintf('<p>file path %s<br />relative %s<br />%s</p>',$file_path,$relative_path,var_export($result,true));
+        error_log($error);
+        if($debug)
+            echo $error;
+        }
 
     }
 
@@ -1213,3 +1280,58 @@ add_filter( 'wp_calculate_image_srcset', function( $attr ) {
     }
     return $attr;
 }, 10, 3 );
+
+function qckply_theme_template_tracking_key($post_id, $saved) {
+    $pid = 'p'.$id;
+    if(!is_array($saved) || empty($saved['related']) || empty($saved['related'][$pid]) || empty($saved['related'][$pid]['term_join']) || empty($saved['related'][$pid]['term_join']['wp_theme']) )
+        return;
+    ksort($saved['related'][$pid]['term_join']);
+    $track = $saved_post['post_title'];
+    foreach($saved['related'][$pid]['term_join'] as $taxonomy => $values_array) {
+        foreach($values_array as $values) {
+            $track .= '/'.$taxonomy.':'.$values['name'];
+        }
+    }
+    return $track;
+}
+
+/**
+ * Recursively scans the wp-content/uploads directory and returns an array of all image file paths.
+ *
+ * @return array Array of relative file paths starting from wp-content for all images found in the uploads directory.
+ */
+function qckply_get_uploads_images() {
+    $upload_dir = wp_upload_dir();
+    $base_dir = $upload_dir['basedir'];
+    $images = array();
+    
+    // Supported image extensions
+    $image_extensions = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'ico' );
+    
+    if ( ! is_dir( $base_dir ) ) {
+        return $images;
+    }
+    
+    // Recursive directory iterator
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator( $base_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+        RecursiveIteratorIterator::LEAVES_ONLY
+    );
+    
+    foreach ( $iterator as $file ) {
+        if ( $file->isFile() ) {
+            $extension = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
+            if ( in_array( $extension, $image_extensions, true ) ) {
+                $filepath = $file->getPathname();
+                // Strip everything before and including wp-content
+                if ( strpos( $filepath, 'wp-content' ) !== false ) {
+                    $filepath = substr( $filepath, strpos( $filepath, 'wp-content' ) + 18 );
+                    $images[] = $filepath;
+                }
+            }
+        }
+    }
+    
+    return $images;
+}
+

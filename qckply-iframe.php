@@ -83,7 +83,7 @@ function qckply_iframe() {
 <head>
     <title><?php echo esc_html($title); ?> (Quick Playground)</title>
     <?php 
-    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.2' );
+    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.4' );
     @wp_print_styles(); ?>
 <!-- OG Meta Tags -->
 <meta property="og:title" content="<?php echo esc_attr($title); ?>" />

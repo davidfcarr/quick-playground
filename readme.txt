@@ -8,7 +8,7 @@ Requires at least: 6.2
 
 Tested up to: 6.9
 
-Stable tag: 1.0.9
+Stable tag: 1.2.1
 
 License: GPLv2 or later  
 
@@ -95,6 +95,19 @@ No, the Playground environment is completely separate from your live website. Ch
 
 
 == Changelog ==
+
+= 1.2.1 =
+
+* Improved sync functionality for saving images
+* Added ob_start() / ob_clean() to API response functions to supress unwanted output.
+
+= 1.2 =
+
+* Image handling and database query optimizations
+
+= 1.1 =
+
+Improved handling of images and metadata
 
 = 1.0.9 =
 

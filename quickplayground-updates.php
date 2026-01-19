@@ -4,8 +4,8 @@ add_action('init','qckply_update_tracking');
 function qckply_update_tracking() {
     //if we're in a playground and the initial import is done
     if(qckply_is_playground()) {
-    add_action('wp_after_insert_post','qckply_post_updated');
-    add_action('post_updated','qckply_post_updated');
+    add_action('wp_after_insert_post','qckply_post_updated',10,2);
+    add_action('post_updated','qckply_post_updated',10,2);
     add_action('updated_option','qckply_updated_option');
     add_action('added_option','qckply_updated_option');
     add_action('added_post_meta','qckply_updated_postmeta', 10, 4);
@@ -30,7 +30,9 @@ function qckply_top_ids($fresh = false, $update = true) {
     return $top;
 }
 
-function qckply_post_updated($post_id) {
+function qckply_post_updated($post_id, $post) {
+    if('attachment' == $post->post_type)
+        update_post_meta($post_id,'attachment_updated',time());
     $updated = get_option('qckply_updated_posts',array());
     if(!in_array($post_id,$updated)) {
         $updated[] = $post_id;

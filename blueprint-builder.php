@@ -18,7 +18,7 @@ global $wpdb, $current_user;
     $qckply_uploads = $qckply_directories['uploads'];
     $qckply_uploads_url = $qckply_directories['uploads_url'];
 
-$profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';
+$profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9\-]+/','_',strtolower(sanitize_text_field($_REQUEST['profile']))) : 'default';
 $stylesheet = get_stylesheet();
 printf('<h1>%s: %s</h1>', esc_html(get_bloginfo('name')), esc_html($profile));
 qckply_blueprint_settings_init($profile);
@@ -38,7 +38,7 @@ do_action('qckply_form_top');
 
 printf('<form class="qckply-form" method="post" action="%s"> <input type="hidden" name="build_profile" value="1">',esc_attr(admin_url('admin.php?page=qckply_builder')));
 wp_nonce_field('quickplayground','playground',true,true);
-printf('<p><input type="checkbox" name="reset_cache[]" value="all" /> %s %s</p>',esc_html__('Reset','quick-playground'),esc_html__('All','quick-playground'));
+printf('<p><input type="checkbox" name="reset_cache[]" value="all" /> %s</p>',esc_html__('Reset All Cached Content','quick-playground'));
 echo '<p><button>Refresh</button></p>';
 echo '<h2>Customization Options</h2>';
 printf('<p>Loading saved blueprint for profile %s with %d steps defined. You can add or modify themes, plugins, and settings below.</p>',esc_html($profile),intval(sizeof($blueprint['steps'])));
@@ -111,7 +111,7 @@ for($i = 0; $i < 10; $i++) {
     );
 }
 $att = get_option('qckply_profile_images_'.$profile,[]);
-printf('<p><label>%s</label> <input type="text" name="attachments" value="%s" size="80" /><br /><em>%s</em></p>',esc_html__('Attachment IDs','quick-playground'),implode(',',$att),esc_html__('If you want to include specific media files in the Playground, enter a comma-separated list of attachment IDs.','quick-playground'));
+printf('<p><label>%s</label> <input type="text" name="attachments" value="%s" size="80" /><br /><em>%s</em></p>',esc_html__('Attachment IDs','quick-playground'),implode(',',$att),esc_html__('If you want to include specific media files in the Playground, enter a comma-separated list of attachment IDs. By default, Quick Playground downloads attachments needed for the correct functioning of post featured images and a few other features, such as site logo.','quick-playground'));
 
 do_action('qckply_form_demo_content',$settings);
 
@@ -144,7 +144,7 @@ if(empty($caches)) {
 echo '<p>'.esc_html__('none','quick-playground').'</p>';
 }
 else {
-    printf('<p><input type="checkbox" name="reset_cache[]" value="all" /> %s %s</p>',esc_html__('Reset','quick-playground'),esc_html__('All','quick-playground'));
+    printf('<p><input type="checkbox" name="reset_cache[]" value="all" /> %s</p>',esc_html__('Reset All Cached Content','quick-playground'));
     foreach($caches as $cache) {
         printf('<p><input type="checkbox" name="reset_cache[]" value="%s" /> %s %s</p>',esc_attr($cache),esc_html__('Reset','quick-playground'),esc_html(ucfirst($cache)));
     }
@@ -176,13 +176,22 @@ qckply_print_button_shortcode(['profile'=>$profile,'is_demo'=>1]);
 qckply_key_pages_list();
 qckply_show_hits();
 
-$clone = qckply_get_clone_posts($profile);
+$clone = qckply_get_clone_posts($profile, true);
+echo '<h2>Zip Images Test</h2>';
 $clone = qckply_zip_images($profile,$clone,true);
 
-printf('<h2>Zip Images Test</h2><p>%s</p><pre>%s</pre><pre>%s</pre>',$clone['images_zip'],var_export($clone['added_images'],true),var_export($clone['not_found'],true));
+printf('<p>%s</p><pre>%s</pre><pre>%s</pre>',$clone['images_zip'],var_export($clone['added_images'],true),var_export($clone['not_found'],true));
 foreach($clone['posts'] as $post) {
-    if($post->post_type == 'attachment')
-    printf('<h3>Post ID %d: %s</h3><div>%s</div>',intval($post->ID),esc_html($post->post_title),wp_kses_post($post->guid));
+    if($post->post_type == 'attachment') {
+    $parent = '';
+    if(!empty($post->post_parent))
+    {
+        $parent_post = get_post($post->post_parent);
+        if($parent_post)
+            $parent = "(Parent: $parent_post->ID $parent_post->post_title )";
+    }
+    printf('<h3>Attachment ID %d: %s %s</h3><div>%s</div>',intval($post->ID),esc_html($post->post_title),esc_html($parent),wp_kses_post($post->guid));
+    }
 }
 
 printf('<p>Quickplay Directories:</p><pre>%s</pre><p>WP Directories</p><pre>%s</pre>',var_export($qckply_directories,true),var_export(wp_get_upload_dir(),true));
@@ -359,9 +368,13 @@ echo ($themeslots > 1) ? '<h2>Themes for Your Playground</h2>' : '<h2>Theme for 
 if($themeslots > 1)
     $themeslots += sizeof($saved_themes);
 
+$themes_shown = [];
+
 for($i = 0; $i < $themeslots; $i++) {
 $label = ($i == 0) ? 'Active Theme' : 'Additional Theme';
-if(!empty($saved_themes[$i]) && $i > 0) {
+$local = 0;
+
+if(!empty($saved_themes[$i])) {
     if($saved_themes[$i]['themeData']['resource'] == 'wordpress.org/themes') {
         $slug = $saved_themes[$i]['themeData']['slug'];
         $local = 0;
@@ -372,14 +385,16 @@ if(!empty($saved_themes[$i]) && $i > 0) {
         $slug = $match[1];
         $local = 1;
     }
-    printf('<p>Keep %s: <input type="checkbox" name="add_theme[]" value="%s" checked="checked" /> %s <input type="checkbox" name="zip[%s]" value="1" %s /> Local Zip</p>',esc_html($label),esc_attr($slug), esc_attr($slug), esc_attr($slug), $local ? ' checked="checked" ' : '');
+    if(in_array($slug,$themes_shown))
+        continue;
+    $themes_shown[] = $slug;
+    if(!$local && !empty($slug))//verify that it's available in the repository
+        $local = !qckply_repo_check($slug, 'theme');
 } 
-else {
 $default_option = ($i == 0) ? $current_theme_option : '';
 $hideafter = (empty($saved_themes)) ? 1 : sizeof($saved_themes);
 $classAndID = ($i > $hideafter ) ? ' class="hidden_item theme" id="theme_'.esc_attr($i).'" ' : ' class="theme" id="theme_'.esc_attr($i).'" ';
-printf('<p%s><label>%s</label> <select class="select_with_hidden" name="add_theme[]">%s</select> <input type="radio" name="ziplocal_theme[%d]" value="0" checked="checked" /> WordPress.org <input type="radio" name="ziplocal_theme[%d]" value="1" /> Local Zip WordPress.org</p>',wp_kses($classAndID, qckply_kses_allowed()),esc_html($label),wp_kses($default_option.$themeoptions, qckply_kses_allowed()),intval($i),intval($i),intval($i) );
-}
+printf('<p%s><label>%s</label> <select class="select_with_hidden" name="add_theme[]">%s</select> <input type="radio" name="ziplocal_theme[%d]" value="0" %s /> WordPress.org <input type="radio" name="ziplocal_theme[%d]" value="1" %s /> Local Zip WordPress.org</p>',wp_kses($classAndID, qckply_kses_allowed()),esc_html($label),wp_kses($default_option.$themeoptions, qckply_kses_allowed()),intval($i),empty($local) ? ' checked="checked" ' : '',intval($i),!empty($local) ? ' checked="checked" ' : '' );
 
 }
 if($themeslots > 1)

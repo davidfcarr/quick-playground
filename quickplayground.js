@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const showTest = document.getElementById('showtest');
-
+    if(showTest)
     showTest.addEventListener('click', function(event) {
       const info = document.getElementById('qckply-builder-info');
       console.log('info',info);
@@ -56,5 +56,30 @@ document.addEventListener("DOMContentLoaded", function () {
   closeBtn.addEventListener("click", () => {
     clearTimeout(timer);
     overlay.classList.add("fade-out");
+  });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  // attach click listeners to buttons with class "detail_control"
+  document.querySelectorAll('.detail_control_button').forEach(function (btn) {
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      console.log('show detail clicked');
+
+      // get numeric ID from the button's value and show the matching detail
+      var idNum = parseInt(btn.value, 10);
+      if (isNaN(idNum)) return;
+
+      var detail = document.getElementById('qckply_hidden_detail_' + idNum);
+      if (!detail) return;
+
+      detail.style.display = 'block';
+
+      var detail_control = document.getElementById('detail_control_' + idNum);
+      if (!detail) return;
+
+      detail_control.style.display = 'none';
+    });
   });
 });

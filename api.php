@@ -3,6 +3,23 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /**
  * REST controller for managing blueprints in the playground.
  */
+
+add_action('init', function() {
+    if (defined('REST_REQUEST') && REST_REQUEST) {
+        if (headers_sent($file, $line)) {
+            error_log("Headers sent on init during REST request in $file on line $line");
+        }
+    }
+}, 999);
+
+add_action('wp_loaded', function() {
+    if (defined('REST_REQUEST') && REST_REQUEST) {
+        if (headers_sent($file, $line)) {
+            error_log("Headers sent on wp_loaded during REST request in $file on line $line");
+        }
+    }
+}, 999);
+
 class Qckply_Blueprint extends WP_REST_Controller {
 
     /**
@@ -12,7 +29,7 @@ class Qckply_Blueprint extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'blueprint/(?P<profile>[a-z0-9_]+)';
+	  $path = 'blueprint/(?P<profile>[a-z0-9_\-]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -47,6 +64,7 @@ class Qckply_Blueprint extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
+    ob_start();
     $profile = sanitize_text_field($request['profile']);
     do_action('qckply_fetch_blueprint',$profile);
     $clone = qckply_get_clone_posts($profile);
@@ -63,9 +81,9 @@ class Qckply_Blueprint extends WP_REST_Controller {
       //no nonce check because this can be called from a static link
       $blueprint = qckply_swap_theme($blueprint, sanitize_text_field(wp_unslash($_GET['stylesheet'])));
     }
-    if(empty($_GET['is_demo'])) {
+    if(!empty($_GET['sync_code'])) {
       //no nonce check because this can be called from a static link
-      $blueprint = qckply_change_blueprint_setting($blueprint, array('qckply_sync_code'=>qckply_cloning_code($profile)));
+      $blueprint = qckply_change_blueprint_setting($blueprint, array('qckply_sync_code'=>sanitize_text_field($_GET['sync_code'])));
     } 
     else {
       $blueprint = qckply_change_blueprint_setting($blueprint, array('qckply_is_demo'=>true));
@@ -76,10 +94,14 @@ class Qckply_Blueprint extends WP_REST_Controller {
     }
     $blueprint = apply_filters('qckply_blueprint',$blueprint);
     qckply_hits($profile);
-    $response = new WP_REST_Response( $blueprint, 200 );
-    $response->header( "Access-Control-Allow-Origin", "*" );
-    return $response;
-	}
+    ob_clean();
+    $headers = [
+        "Access-Control-Allow-Origin" => "https://playground.wordpress.net",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type",
+    ];
+$response = new WP_REST_Response( $blueprint, 200, $headers );
+return $response;	}
 }
 
 /**
@@ -94,7 +116,7 @@ class Qckply_Clone extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'clone_posts/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_posts/(?P<profile>[a-z0-9_\-]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -131,6 +153,7 @@ class Qckply_Clone extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
+  ob_start();
   require('getmenus.php');
   global $wpdb;
     $qckply_directories = qckply_get_directories();
@@ -147,20 +170,25 @@ class Qckply_Clone extends WP_REST_Controller {
     $clone = qckply_posts_related($clone);
     $clone = qckply_get_menu_data($clone);
     unset($clone['ids']);
-    $response = new WP_REST_Response( $clone, 200 );
-    $response->header( "Access-Control-Allow-Origin", "*" );
+    ob_clean();
+    $headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type",
+    ];
+    $response = new WP_REST_Response( $clone, 200, $headers );
     return $response;
 }
 }
 
-function qckply_get_clone_posts($profile) {
+function qckply_get_clone_posts($profile, $debug = false) {
+  clearstatcache();
   global $wpdb;
     $qckply_directories = qckply_get_directories();
     $qckply_site_uploads = $qckply_directories['site_uploads'];
     $qckply_uploads = $qckply_directories['uploads'];
     $qckply_uploads_url = $qckply_directories['uploads_url'];
     $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
-    $top = qckply_top_ids(true);
     $posts = array();
     $clone['ids'] = array();
     if(empty($_GET['nocache'])) {
@@ -187,13 +215,13 @@ function qckply_get_clone_posts($profile) {
         $clone['error_file_not_found'] = $savedfile;
       }
     }
+    if($debug) echo "<p>after check for json file</p>";
 
     $clone['profile'] = $profile;
-    $top_post = qckply_top_ids()['posts'];
-    $clone['top_post'] = $top_post;
     $settings = get_option('quickplay_clone_settings_'.$profile,array());
     $template_part = get_block_template( get_stylesheet() . '//header', 'wp_template_part' );
     $header_content = (empty($template_part->content)) ? '' : $template_part->content;
+    if($debug) echo "<p>after header check</p>";
     $clone['nav_id'] = 0;
     if($header_content) {
     preg_match('/"ref":([0-9]+)/',$header_content,$match);
@@ -212,25 +240,29 @@ function qckply_get_clone_posts($profile) {
         }
         }
     }
-
+    if($debug) echo "<p>after page on front</p>";
     $params = [$wpdb->posts];
-    $sql = "SELECT * FROM %i WHERE post_status='publish' AND (`post_type` = 'wp_block' OR `post_type` = 'wp_global_styles' OR `post_type` = 'wp_navigation' OR `post_type` = 'wp_template' OR `post_type` = 'wp_template_part' ";
+    $sql = "SELECT * FROM %i WHERE post_status='publish' AND `post_type` IN ('wp_block','wp_global_styles','wp_navigation','wp_template','wp_template_part'";
     if(!empty($settings['post_types']) && is_array($settings['post_types']))
     {
       foreach($settings['post_types'] as $t) {
         $t = sanitize_text_field($t);
-        $sql .= " OR `post_type` = %s ";
+        $sql .= ",%s";
         $params[] = $t;
       }
     }
     $sql .= ")";
-    $templates = $wpdb->get_results($wpdb->prepare($sql, $params));
+    if($debug) echo 'get_clone_posts templates sql before prepare',$sql;
+    $sql = $wpdb->prepare($sql, $params);
+    if($debug) echo '<br>'.$sql;
+    $templates = $wpdb->get_results($sql);
     foreach($templates as $p) {
       if(!in_array($p->ID,$clone['ids'])) {
         $clone['ids'][] = $p->ID;
         $posts[] = $p;
       }
     }
+    
     if(!empty($settings['copy_blogs'])) {
         $blogs = get_posts(array('numberposts'=>intval($settings['copy_blogs'])));
         foreach($blogs as $blog)
@@ -300,14 +332,6 @@ function qckply_get_clone_posts($profile) {
       }
     }
     $clone['posts'] = $posts;
-  
-    $clone['posts'][] = (object) array(
-      'ID' => $top_post + 1,
-      'post_type' => 'qckply_placeholder',
-      'post_title' => 'Playground Placeholder',
-      'post_content' => '',
-      'post_status' => 'draft'
-    );
 
     $clone = apply_filters('qckply_qckply_clone_posts',$clone, $settings);
     return $clone;
@@ -325,7 +349,7 @@ class Qckply_Clone_Settings extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'clone_settings/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_settings/(?P<profile>[a-z0-9_\-]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -360,6 +384,7 @@ class Qckply_Clone_Settings extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
+  ob_start();
   require('getmenus.php');
   global $wpdb;
     $qckply_directories = qckply_get_directories();
@@ -409,10 +434,15 @@ class Qckply_Clone_Settings extends WP_REST_Controller {
     }
     }
     $clone = apply_filters('qckply_qckply_clone_settings',$clone);
-    $response = new WP_REST_Response( $clone, 200 );
-    $response->header( "Access-Control-Allow-Origin", "*" );
+    ob_clean();
+    $headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type",
+    ];
+    $response = new WP_REST_Response( $clone, 200, $headers );
     return $response;
-}
+  }
 }
 
 /**
@@ -427,7 +457,7 @@ class Qckply_Clone_Taxonomy extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'clone_taxonomy/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_taxonomy/(?P<profile>[a-z0-9_\-]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -464,6 +494,7 @@ class Qckply_Clone_Taxonomy extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
+    ob_start();
     $qckply_directories = qckply_get_directories();
     $qckply_site_uploads = $qckply_directories['site_uploads'];
     $qckply_uploads = $qckply_directories['uploads'];
@@ -509,8 +540,13 @@ class Qckply_Clone_Taxonomy extends WP_REST_Controller {
         }
     }
   }  unset($clone['ids']);
-    $response = new WP_REST_Response( $clone, 200 );
-    $response->header( "Access-Control-Allow-Origin", "*" );
+    ob_clean();
+    $headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type",
+    ];
+    $response = new WP_REST_Response( $clone, 200, $headers );
     return $response;
 }
 }
@@ -527,7 +563,7 @@ class Qckply_Clone_Custom extends WP_REST_Controller {
 
 	  $namespace = 'quickplayground/v1';
 
-	  $path = 'clone_custom/(?P<profile>[a-z0-9_]+)';
+	  $path = 'clone_custom/(?P<profile>[a-z0-9_\-]+)';
 
 	  register_rest_route( $namespace, '/' . $path, [
 
@@ -564,6 +600,7 @@ class Qckply_Clone_Custom extends WP_REST_Controller {
      * @return WP_REST_Response The response object.
      */
   public function get_items($request) {
+    ob_start();
     $qckply_directories = qckply_get_directories();
     $qckply_site_uploads = $qckply_directories['site_uploads'];
     $qckply_uploads = $qckply_directories['uploads'];
@@ -576,9 +613,14 @@ class Qckply_Clone_Custom extends WP_REST_Controller {
   if(file_exists($savedfile) && empty($_GET['nocache'])) {
     $json = file_get_contents($savedfile);
     if($json && $clone = json_decode($json)) {
-        $response = new WP_REST_Response( $clone, 200 );
-        $response->header( "Access-Control-Allow-Origin", "*" );
-        return $response;
+    ob_clean();
+      $headers = [
+          "Access-Control-Allow-Origin" => "*",
+          "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers" => "Content-Type",
+      ];
+      $response = new WP_REST_Response( $clone, 200, $headers );
+      return $response;
     }
   }
   
@@ -586,7 +628,13 @@ class Qckply_Clone_Custom extends WP_REST_Controller {
     $clone['ids'] = get_option('qckply_ids_'.$profile, array());
     $clone = apply_filters('qckply_clone_custom',$clone,$clone['ids']);
     $response = new WP_REST_Response( $clone,200 );
-    $response->header( "Access-Control-Allow-Origin", "*" );
+    ob_clean();
+    $headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type",
+    ];
+    $response = new WP_REST_Response( $clone, 200, $headers );
     return $response;
 }
 }
@@ -740,7 +788,6 @@ class Qckply_Download_Json extends WP_REST_Controller {
 }
 
 }
-
 
 add_action('rest_api_init', function () {
 	 $hook = new Qckply_Clone();

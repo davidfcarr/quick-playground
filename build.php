@@ -108,10 +108,13 @@ function qckply_build($postvars, $profile = 'default') {
     $steps[] = qckply_makeZipImagesItem($profile);
 
     if(isset($postvars['add_theme'])) {
+        $themes_included = [];
         foreach($postvars['add_theme'] as $i => $slug) {
             if(empty($slug) || in_array($slug, $themeslugs)) {
                 continue; // skip duplicate themes
             }
+            if(in_array($slug,$themes_included))
+                $themes_included[] = $slug;
             $themeslugs[] = $slug; // add to slugs to avoid duplicates
 
                 $public = true;
@@ -126,8 +129,8 @@ function qckply_build($postvars, $profile = 'default') {
                 if($ziplocal) {
                     $public = false;
             if(isset($_POST['show_details']) || isset($_GET['reset']))
-                    printf('<p>Adding local theme %s</p>',esc_html($slug));
-                    qckply_zip_theme($slug);
+                    $zipresult = qckply_zip_theme($slug);
+                    printf('<p>Adding local theme %s %s</p>',esc_html($slug),esc_html($zipresult));
                 } else {
                     if(qckply_repo_check($slug,'theme')) {
             if(isset($_POST['show_details']) || isset($_GET['reset']))
@@ -135,22 +138,54 @@ function qckply_build($postvars, $profile = 'default') {
                     } else {
                         $public = false;
             if(isset($_POST['show_details']) || isset($_GET['reset']))
-                        printf('<p>Public theme %s not found, adding as local zip</p>',esc_html($slug));
-                        qckply_zip_theme($slug);
+                        $zipresult = qckply_zip_theme($slug);
+                        printf('<p>Public theme %s not found, adding as local zip %s</p>',esc_html($slug),esc_html($zipresult));
+                        $postvars['zip'][$slug] = true;
                     }
                 }
             if($i < 1) {
                 if(isset($_POST['show_details']) || isset($_GET['reset']))
                 printf('<p>Default theme %s</p>',esc_html($slug));
+                $steps[] = qckply_makeThemeItem($slug, $public, true);
                 $settings['qckply_clone_stylesheet'] = $slug;
                 $themetest = wp_get_theme($slug);
                 $parent_theme = $themetest->parent();
                 if(!empty($parent_theme)) {
+                    $public = true;
                     $parent = $parent_theme->get_stylesheet();
-                    $steps[] = qckply_makeThemeItem($parent, false, false);
+                    if(!in_array($parent,$themes_included) && qckply_repo_check($parent,'theme')) {
+                    $themes_included[] = $parent;
+                    if(isset($_POST['show_details']) || isset($_GET['reset']))
+                            printf('<p>Adding public theme %s</p>',esc_html($parent));
+                            } else {
+                                $public = false;
+                            if(isset($_POST['show_details']) || isset($_GET['reset']))
+                                $zipresult = qckply_zip_theme($parent);
+                                printf('<p>Public theme %s not found, adding as local zip %s</p>',esc_html($parent),esc_html($zipresult));
+                            }
+                    $steps[] = qckply_makeThemeItem($parent, $public, false);
                 }
             }
-            $steps[] = qckply_makeThemeItem($slug, $public, $i < 1);
+           else {
+                $steps[] = qckply_makeThemeItem($slug, $public, false);
+                $themetest = wp_get_theme($slug);
+                $parent_theme = $themetest->parent();
+                if(!empty($parent_theme)) {
+                    $public = true;
+                    $parent = $parent_theme->get_stylesheet();
+                    if(!in_array($parent,$themes_included) && qckply_repo_check($parent,'theme')) {
+                    if(isset($_POST['show_details']) || isset($_GET['reset']))
+                            $themes_included[] = $parent;
+                            printf('<p>Adding public theme %s</p>',esc_html($parent));
+                            } else {
+                                $public = false;
+                            if(isset($_POST['show_details']) || isset($_GET['reset']))
+                                $zipresult = qckply_zip_theme($parent);
+                                printf('<p>Public theme %s not found, adding as local zip %s</p>',esc_html($parent),esc_html($zipresult));
+                            }
+                    $steps[] = qckply_makeThemeItem($parent, $public, false);
+                }
+           }
         }
     }
 

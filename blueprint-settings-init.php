@@ -16,9 +16,31 @@ function qckply_blueprint_settings_init($profile) {
     }  
         //iteratively applies sanitization to all values in the array
         $postvars = qckply_sanitize(wp_unslash($_POST));
-        $result = qckply_build($postvars,$profile);
-        $blueprint = $result[0];
-        $settings = $result[1];
+        if(isset($postvars['theme_blueprint'])) {
+                $pp = get_option('qckply_profiles',array('default'));
+            foreach($postvars['theme_blueprint'] as $index => $stylesheet) {
+                $profile = $stylesheet.'_demo';
+                if(!in_array($profile,$pp))
+                {
+                    $pp[] = $profile;
+                }
+                $postvars['add_theme'] = [$stylesheet];
+                $postvars['ziplocal_theme'] = array(0);
+                $postvars['settings']['stylesheet'] = $stylesheet;
+                $postvars['settings']['blogname'] = $postvars['theme_name'][$index].' Demo';
+                $postvars['settings']['blogdescription'] = 'A virtual website demo of '.$postvars['theme_name'][$index];
+                $result = qckply_build($postvars,$profile);
+                $blueprint = $result[0];
+                $settings = $result[1];
+                printf('<div class="notice notice-success"><p>Creating a Theme Demo for %s</p></div>',esc_html($postvars['theme_name'][$index]));
+            }
+            update_option('qckply_profiles',$pp);
+        }
+        else {
+            $result = qckply_build($postvars,$profile);
+            $blueprint = $result[0];
+            $settings = $result[1];
+        }
         $cachemessage = qckply_cache_message($profile,$settings);
         update_option('quickplay_clone_settings_'.$profile,$settings);
         update_option('qckply_disable_sync_'.$profile,!empty($_POST['qckply_disable_sync']));

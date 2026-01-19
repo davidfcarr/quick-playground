@@ -60,8 +60,8 @@ function qckply_clone_save_playground($clone) {
     elseif(200 != $status_code) {
         echo '<p>Error: HTTP status code '.esc_html( $status_code ).'</p>';
         if(!empty($returned['message']))
-        printf('<div class="notice notice-error"><p>Error saving over the network. Try <a href="%s">downloading</a> instead.</p></div>',esc_attr(rest_url('quickplayground/v1/download_json/'.$profile)));
-        printf('<p>%s</p>',esc_html('Server message: '.$returned['message']));
+            printf('<p>%s</p>',esc_html('Server message: '.$returned['message']));
+        printf('<div class="notice notice-error"><p>Error saving over the network. A security plugin such as WordFence could be blocking the connection. <a href="%s">Retry</a> or try <a href="%s">downloading</a> instead.</p></div>',esc_attr(admin_url('admin.php?page=qckply_save')),esc_attr(rest_url('quickplayground/v1/download_json/'.$profile)));
         printf('<p><a href="%s">Retry</a></p>',esc_attr(admin_url('admin.php?page=qckply_save')));
         echo '<p>If you see this repeatedly, please report the issue via <a href="https://wordpress.org/support/plugin/quick-playground/">https://wordpress.org/support/plugin/quick-playground/</a></p>';
         $file = 'quickplayground_posts_'.$profile.'.json';
@@ -86,6 +86,8 @@ function qckply_clone_save_playground($clone) {
     $clone = [];
     $clone['settings']['cache_created'] = time();
     $updated_options = get_option('qckply_updated_options',[]);
+    if(!in_array('stylesheet',$updated_options))
+        $updated_options[] = 'stylesheet';//always include stylesheet
     foreach($updated_options as $option) {
         $v = get_option($option);
         $clone['settings'][$option] = $v;
@@ -202,8 +204,16 @@ function qckply_posts() {
     $site_dir = '/wp-content/uploads'.get_option('qckply_site_dir');
     $search_path = $qckply_mysite_url.'/wp-content/uploads';
     $replace_path = $sync_origin.$site_dir;
-    $sql = $wpdb->prepare("SELECT * FROM %i WHERE post_status='publish' AND post_type != 'attachment' AND post_modified > %s ORDER BY post_modified DESC",$wpdb->posts, $top['post_modified']);
+    //block theme assets first
+    $sql = $wpdb->prepare("SELECT * FROM %i WHERE post_status='publish' AND (post_type = 'wp_template' OR post_type = 'wp_template_part' OR post_type = 'wp_global_styles' OR post_type='wp_navigation' ) AND post_modified > %s ORDER BY post_modified DESC",$wpdb->posts, $top['post_modified']);
+    $templates = $wpdb->get_results($sql);
+    //then other posts
+    $sql = $wpdb->prepare("SELECT * FROM %i WHERE post_status='publish' AND post_type != 'attachment' AND post_type != 'wp_template' AND post_type != 'wp_template_part' AND post_type != 'wp_global_styles' AND  post_type!='wp_navigation' AND post_modified > %s ORDER BY post_modified DESC",$wpdb->posts, $top['post_modified']);
     $posts = $wpdb->get_results($sql);
+    if(empty($posts))
+        $posts = [];
+    if(!empty($templates))
+        $posts = array_merge($templates,$posts); // templates first, then any regular content
     printf('<p>Found %d posts modified since last sync with %s</p>',esc_html(count($posts)),esc_html($sql));
     $ids = [];
     foreach($posts as $index => $post) {
@@ -216,6 +226,9 @@ function qckply_posts() {
 function qckply_save() {
     global $wpdb;    
     printf('<h1>%s</h1><p>%s</p>',esc_html__('Save and Sync Playground','quick-playground'),esc_html__('You can save the current state of the Playground for future sessions or to sync to your live website.','quick-playground'));
+    $sync_origin = $qckply_baseurl = get_option('qckply_sync_origin');
+    $qckply_profile = get_option('qckply_profile','default');
+    printf('<p><a href="%s" target="_blank">Save to Live Website</a> - administrator approval required on %s.</p>',esc_attr($sync_origin.'/wp-admin/admin.php?page=qckply_sync&profile='.$qckply_profile),esc_html($sync_origin));
     if(!empty($_POST) && !wp_verify_nonce( sanitize_text_field( wp_unslash ( $_POST['playground'])), 'quickplayground' ) ) 
     {
         echo '<h2>'.esc_html__('Security Error','quick-playground').'</h2>';
@@ -225,7 +238,6 @@ function qckply_save() {
     if(!empty($_POST))
         return;
     $origin_stylesheet = get_option('origin_stylesheet');
-    $sync_origin = $qckply_baseurl = get_option('qckply_sync_origin');
     $no_cache = get_option('qckply_no_cache',false);
     $qckply_profile = get_option('qckply_profile','default');
     $url = $qckply_baseurl .'/wp-json/quickplayground/v1/clone_posts/'.$qckply_profile.'?t='.time();
@@ -237,8 +249,7 @@ function qckply_save() {
     $sync_date = get_option('qckply_sync_date');
     $qckply_sync_code = get_option('qckply_sync_code');
     $action = admin_url('admin.php?page=qckply_save');
-    printf('<p><a href="%s" target="_blank">Save to Live Website</a> - administrator approval required on %s.</p>',esc_attr($sync_origin.'/wp-admin/admin.php?page=qckply_sync'),esc_html($sync_origin));
-    $play_posts = qckply_posts();//new, updated, clone, all, ids
+    $play_posts = qckply_posts();
     error_log('play_posts '.sizeof($play_posts));
     qckply_clone_save_playground($play_posts);
     set_transient('qckply_messages_updated',false);

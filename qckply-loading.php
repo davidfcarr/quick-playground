@@ -13,7 +13,7 @@ function qckply_loading() {
 <head>
     <title><?php echo esc_html($title); ?> (Playground Loading)</title>
     <?php 
-    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.2' );
+    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.4' );
     wp_print_styles(); ?>
 </head>
 <body id="playground-loading">
@@ -50,15 +50,12 @@ function qckply_loading() {
         $target = sanitize_text_field(wp_unslash($_GET['qckply_clone']));
         $output = '';
             qckply_clone( 'settings' );
-            //qckply_clone( 'taxonomy' );
             qckply_clone( 'custom' );
-            //qckply_clone( 'prompts' );
             qckply_top_ids(true);
             set_transient('qckply_welcome_shown',false);
             $url = qckply_link();
             printf('<div id="qckply-overlay-message"><p>Done, redirect to <a href="%s">%s</a></p></div>',esc_attr($url),esc_html($url));
-            //$output = ob_get_clean();
-            //echo '<div id="qckply-overlay-message"><p>Loading images ...</p></div>';
+            error_log('qckply landing url '.$url);
             wp_print_inline_script_tag('window.location.href="'.$url.'"',
                 array(
                     'id'    => 'hide-sidebar-js',

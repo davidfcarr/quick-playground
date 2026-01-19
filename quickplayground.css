@@ -22,51 +22,51 @@ textarea {
 
 .qckply-form input[type="number"] {
   width: 12ch;
-  background: var(--surface-2);
-  color: var(--text-1);
-  border: var(--border);
+  background: var(--qckply-surface-2);
+  color: var(--qckply-text-1);
+  border: var(--qckply-border);
   border-radius: 16px;
   padding: 1ex 2ex;
-  accent-color: var(--accent);
+  accent-color: var(--qckply-accent);
 }
 
 .qckply-form select, .qckply-form option, .qckply-form input:not([type="checkbox"], [type="radio"], [type="number"]) {
-  background: var(--surface-2);
-  color: var(--text-1);
-  border: var(--border);
+  background: var(--qckply-surface-2);
+  color: var(--qckply-text-1);
+  border: var(--qckply-border);
   border-radius: 16px;
   padding: 1ex 2ex;
-  accent-color: var(--accent);
+  accent-color: var(--qckply-accent);
   width: 25%;
 }
 
 /* general styling */
 :root {
-  --surface-0: hsl(229, 41%, 5%);
-  --surface-1: hsl(229, 25%, 12%);
-  --surface-2: hsl(234, 26%, 16%);
-  --text-1: hsl(229, 12%, 100%);
-  --text-2: hsl(229, 12%, 66%);
-  --required: hsl(321, 32%, 56%);
-  --accent: hsl(262, 84%, 52%);
-  --border: 1px solid hsl(229, 22%, 19%);
+  --qckply-surface-0: hsl(229, 41%, 5%);
+  --qckply-surface-1: hsl(229, 25%, 12%);
+  --qckply-surface-2: hsl(234, 26%, 16%);
+  --qckply-text-1: hsl(229, 12%, 100%);
+  --qckply-text-2: hsl(229, 12%, 66%);
+  --qckply-required: hsl(321, 32%, 56%);
+  --qckply-accent: hsl(262, 84%, 52%);
+  --qckply-border: 1px solid hsl(229, 22%, 19%);
 }
 
-a {
-  color: hsl(from var(--accent) h s 30%);
+.qckply-form a {
+  color: hsl(from var(--qckply-accent) h s 30%);
 }
 
 .qckply-form button {
   cursor: pointer;
-  background-color: var(--accent);
-  color: var(--text-1);
+  background-color: var(--qckply-accent);
+  color: var(--qckply-text-1);
   padding: 1em 1.5em;
   border: 0;
   border-radius: 16px;
 
   &:hover,
   &:focus-visible {
-    background-color: hsl(from var(--accent) h s 30%);
+    background-color: hsl(from var(--qckply-accent) h s 30%);
   }
 }
 
@@ -144,15 +144,15 @@ ul.playgroundpro {
 
 #qckply-overlay-message button {
   cursor: pointer;
-  background-color: var(--accent);
-  color: var(--text-1);
+  background-color: var(--qckply-accent);
+  color: var(--qckply-text-1);
   margin-top: -2em;
   padding: .5em .75em;
   border: 0;
   border-radius: 12px;
   &:hover,
   &:focus-visible {
-    background-color: hsl(from var(--accent) h s 30%);
+    background-color: hsl(from var(--qckply-accent) h s 30%);
   }
 }
 
@@ -162,14 +162,14 @@ ul.playgroundpro {
 .qckply-form option,
 .qckply-form option:focus,
 .qckply-form option:active {
-  color: var(--text-1); /* or #fff */
-  background: var(--surface-2); /* or your desired background */
+  color: var(--qckply-text-1); /* or #fff */
+  background: var(--qckply-surface-2); /* or your desired background */
 }
 
 .qckply-form select:focus-visible,
 .qckply-form option:focus-visible {
-  color: var(--text-1);
-  background: var(--surface-2);
+  color: var(--qckply-text-1);
+  background: var(--qckply-surface-2);
 }
 
 #playground-loading {
@@ -262,4 +262,7 @@ body#quickplay-iframe-body {
         width: 100% !important;
         flex: 1 1 100%;
     }
+}
+.qckply_hidden_detail {
+  display: none;
 }

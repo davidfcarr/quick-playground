@@ -3,7 +3,7 @@
  * Plugin Name: Quick Playground
  * Plugin URI:  https://quickplayground.com
  * Description: Preview your content in different themes or test plugins using WordPress Playground. Quickly create Theme and Plugin demo, testing, and staging websites.
- * Version:     1.0.9
+ * Version:     1.2.1
  * Author:      David F. Carr
 *  License:     GPL2
 *  Text Domain: quick-playground
@@ -62,7 +62,7 @@ function qckply_main() {
     $qckply_site_uploads_url = $qckply_directories['site_uploads_url'];
 
     //nonce is checked above
-    $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9]+/','_',strtolower(sanitize_text_field(wp_unslash($_REQUEST['profile'])))) : 'default';
+    $profile = isset($_REQUEST['profile']) ? preg_replace('/[^a-z0-9\-]+/','_',strtolower(sanitize_text_field(wp_unslash($_REQUEST['profile'])))) : 'default';
     printf('<h2>Quick Playground for %s: %s</h2>',esc_html(get_bloginfo('name')),esc_html($profile));
     $stylesheet = get_stylesheet();
     qckply_blueprint_settings_init($profile);
@@ -79,23 +79,49 @@ function qckply_main() {
 
     echo "<p>Your website content and settings are not shared with any external cloud service. The playground is a private instance of WordPress loaded into your web browser.</p>";
 echo '</div>';
+
+$settings = get_option('quickplay_clone_settings_'.$profile,array());
+if(!empty($settings['page_on_front'])) {
+    $page_on_front = $settings['page_on_front'];
+}
+
+$front = $page_options = $post_options = '';
+$pages = $wpdb->get_results($wpdb->prepare("SELECT ID, post_title, post_status FROM %i WHERE post_type='page' AND (post_status='publish' OR post_status='draft') ORDER BY post_status, post_title ", $wpdb->posts));
+foreach($pages as $page) {
+    $status = ('draft' == $page->post_status) ? '(Draft)' : '';
+    $opt = sprintf('<option value="%d" >%s %s</option>',intval($page->ID),esc_html($page->post_title),esc_html($status));
+    if($settings['page_on_front'] == $page->ID)
+        $front = $opt;
+    $page_options .= $opt;
+}
+
+printf('<form class="qckply-form" method="post" action="%s"> <input type="hidden" name="build_profile" value="1">',esc_attr(admin_url('admin.php?page=qckply_builder')));
+wp_nonce_field('quickplayground','playground',true,true);
+
     $themes = wp_get_themes(['allowed'=>true]);
     if(!empty($themes) && sizeof($themes) > 1) {
         echo '<h2>Playground Design Gallery</h2><p>See how your website would look with any of the WordPress themes shown below.</p>';
     echo '<div class="qckply-theme-previews">';
-    foreach($themes as $theme) {
+    foreach($themes as $index => $theme) {
         if($theme->stylesheet == $stylesheet)
             continue;
         $blueprint_url = qckply_get_api_url(['profile'=>$profile,'stylesheet'=>$theme->stylesheet]);
         $screenshot = $theme->get_screenshot(); ///get_stylesheet_directory_uri().'/screenshot.png';
-        //variables are sanitized in qckply_get_button. output includes svg code not compatible with wp_kses_post. was not able to get it work with wp_kses and custom tags
         printf('<div class="qckply-stylesheet"><div style="">Theme: %s</div><div class="qckply-theme-screenshot"><img src="%s" width="300" /></div><div class="qckply-theme-button">',esc_html($theme->Name),esc_attr($screenshot));
         qckply_get_button(['profile'=>$profile,'stylesheet'=>$theme->stylesheet],true);
-        printf('<br /></div>%s</div>',wp_kses_post(qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet])));
+        printf('<br /></div>%s',wp_kses_post(qckply_get_blueprint_link(['profile'=>$profile,'stylesheet' =>$theme->stylesheet])));
+        printf('<p><input type="checkbox" name="theme_blueprint[]" value="%s" checked="checked" /> ',esc_attr($theme->stylesheet));
+        printf('<input type="text" name="theme_name[]" value="%s" checked="checked" /></p>',esc_attr($theme->name));
+        echo '</div>';
     }
     echo '</div>';
     }
-
+printf('<h2>%s</h2>',esc_html__('Theme Demos','quick-playground'));
+printf('<p>%s</p>',esc_html__('You can create a separate playground blueprint profile based on each of the checked themes, specifying just a couple of options. If needed, you can elaborate further on the Blueprint Buidler screen.','quick-playground'));
+printf('<p><label>%s</label> <select name="settings[page_on_front]">%s</select></p>',esc_html__('Front Page','quick-playground'),wp_kses($front.$page_options, qckply_kses_allowed()));
+printf('<p><input type="checkbox" name="settings[qckply_key_pages]" value="1" %s > Include key pages and posts (linked to from the home page or menu)</p>',(!isset($settings['qckply_key_pages']) || $settings['qckply_key_pages']) ? ' checked="checked" ' : '');
+submit_button();
+echo '<input type="hidden" name="build_profile" value="1" /></form>';
 }
 
 /**
@@ -107,13 +133,13 @@ function qckply_enqueue_admin_script( $hook = '' ) {
     if ( !strpos($hook,'uick-playground') && !strpos($hook,'quickplayground') && !qckply_is_playground()) {
         return;
     }
-    wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.75',['in_footer'=>true] );
-    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.2' );
+    wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.9.2',['in_footer'=>true] );
+    wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.4' );
 }
 function qckply_enqueue_script( $hook = '' ) {
     if ( qckply_is_playground()) {
-        wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.6',['in_footer'=>true] );
-        wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.2' );
+        wp_enqueue_script( 'qckply_script', plugin_dir_url( __FILE__ ) . 'quickplayground.js', array(), '0.9.2',['in_footer'=>true] );
+        wp_enqueue_style( 'qckply_style', plugin_dir_url( __FILE__ ) . 'quickplayground.css', array(), '1.4' );
     }
 }
 
@@ -136,6 +162,8 @@ function qckply_get_api_url($args=[], $json_url = false) {
     else {
         $profile = sanitize_text_field($args['profile']);
     }
+    if(empty($args['is_demo']))
+        $args['sync_code'] = qckply_cloning_code($profile);
     $args = apply_filters('qckply_api_url_args',$args);
     $args['t'] = time();
     unset($args['profile']);
